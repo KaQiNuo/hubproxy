@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"hubproxy/config"
 	"hubproxy/utils"
 )
 
@@ -38,6 +39,17 @@ type Repository struct {
 	Organization  string `json:"affiliation"`
 	PullsLastWeek int    `json:"pulls_last_week"`
 	Namespace     string `json:"namespace"`
+	Source        string `json:"source"` // 新增字段：镜像源
+}
+
+// MultiSourceSearchResult 多源搜索结果
+type MultiSourceSearchResult struct {
+	Source    string       `json:"source"`
+	Count     int          `json:"count"`
+	Next      string       `json:"next"`
+	Previous  string       `json:"previous"`
+	Results   []Repository `json:"results"`
+	Error     string       `json:"error,omitempty"`
 }
 
 // TagInfo 标签信息
@@ -82,7 +94,22 @@ const (
 	maxCacheSize       = 1000
 	maxPaginationCache = 200
 	cacheTTL           = 30 * time.Minute
+	defaultPageSize    = 25
 )
+
+// getEnabledRegistries 获取所有启用的注册表
+func getEnabledRegistries() map[string]config.RegistryMapping {
+	cfg := config.GetConfig()
+	enabledRegistries := make(map[string]config.RegistryMapping)
+
+	for domain, registry := range cfg.Registries {
+		if registry.Enabled {
+			enabledRegistries[domain] = registry
+		}
+	}
+
+	return enabledRegistries
+}
 
 type Cache struct {
 	data    map[string]cacheEntry
@@ -160,6 +187,297 @@ func init() {
 	}()
 }
 
+// searchRegistryByDomain 按域名搜索指定注册表
+func searchRegistryByDomain(ctx context.Context, domain, query string, page, pageSize int) (*SearchResult, error) {
+	switch domain {
+	case "docker.io":
+		// Docker Hub 搜索
+		return searchDockerHub(ctx, query, page, pageSize)
+	case "ghcr.io":
+		// GitHub Container Registry 搜索
+		return searchGHCR(ctx, query, page, pageSize)
+	case "gcr.io":
+		// Google Container Registry 搜索
+		return searchGCR(ctx, query, page, pageSize)
+	case "quay.io":
+		// Quay.io 搜索
+		return searchQuay(ctx, query, page, pageSize)
+	case "registry.k8s.io":
+		// Kubernetes Registry 搜索
+		return searchK8sRegistry(ctx, query, page, pageSize)
+	default:
+		// 默认使用 Docker Hub 搜索
+		return searchDockerHub(ctx, query, page, pageSize)
+	}
+}
+
+// searchGHCR 搜索 GitHub Container Registry
+func searchGHCR(ctx context.Context, query string, page, pageSize int) (*SearchResult, error) {
+	return searchGenericRegistry(ctx, "ghcr.io", "https://ghcr.io/v2/search", query, page, pageSize)
+}
+
+// searchGCR 搜索 Google Container Registry
+func searchGCR(ctx context.Context, query string, page, pageSize int) (*SearchResult, error) {
+	// GCR 不提供通用搜索API，但我们可以尝试查询特定仓库
+	// 对于GCR，我们返回一个占位符结果，因为GCR本身没有公开的搜索API
+	return &SearchResult{
+		Count:    0,
+		Next:     "",
+		Previous: "",
+		Results:  []Repository{},
+	}, nil
+}
+
+// searchQuay 搜索 Quay.io
+func searchQuay(ctx context.Context, query string, page, pageSize int) (*SearchResult, error) {
+	return searchGenericRegistry(ctx, "quay.io", "https://quay.io/api/v1/find", query, page, pageSize)
+}
+
+// searchK8sRegistry 搜索 Kubernetes Registry
+func searchK8sRegistry(ctx context.Context, query string, page, pageSize int) (*SearchResult, error) {
+	// registry.k8s.io 也没有公开的搜索API，但我们可以通过其API获取一些仓库信息
+	// 尝试获取特定路径下的仓库信息
+	baseURL := "https://registry.k8s.io/v2/_catalog"
+	params := url.Values{}
+	params.Set("n", fmt.Sprintf("%d", pageSize))
+	params.Set("last", query) // 这只是示例，实际可能需要其他方式
+
+	fullURL := baseURL + "?" + params.Encode()
+	
+	req, err := http.NewRequestWithContext(ctx, "GET", fullURL, nil)
+	if err != nil {
+		return nil, fmt.Errorf("创建K8s registry请求失败: %v", err)
+	}
+
+	resp, err := utils.GetSearchHTTPClient().Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("请求K8s registry API失败: %v", err)
+	}
+	defer safeCloseResponseBody(resp.Body, "k8s registry响应体")
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, fmt.Errorf("读取K8s registry响应失败: %v", err)
+	}
+
+	if resp.StatusCode != http.StatusOK {
+		// 如果无法访问，返回空结果而不是错误
+		return &SearchResult{
+			Count:    0,
+			Next:     "",
+			Previous: "",
+			Results:  []Repository{},
+		}, nil
+	}
+
+	// 解析响应
+	var catalog struct {
+		Repositories []string `json:"repositories"`
+	}
+	
+	if err := json.Unmarshal(body, &catalog); err != nil {
+		// 如果无法解析，也返回空结果
+		return &SearchResult{
+			Count:    0,
+			Next:     "",
+			Previous: "",
+			Results:  []Repository{},
+		}, nil
+	}
+
+	// 过滤匹配的仓库
+	filteredRepos := []string{}
+	for _, repo := range catalog.Repositories {
+		if strings.Contains(strings.ToLower(repo), strings.ToLower(query)) {
+			filteredRepos = append(filteredRepos, repo)
+		}
+	}
+
+	// 转换为Repository格式
+	repositories := make([]Repository, 0, len(filteredRepos))
+	for _, repoName := range filteredRepos {
+		repo := Repository{
+			Name:          repoName,
+			Description:   fmt.Sprintf("Kubernetes official image: %s", repoName),
+			IsOfficial:    true,
+			IsAutomated:   true,
+			StarCount:     0,
+			PullCount:     0,
+			RepoOwner:     "kubernetes",
+			LastUpdated:   "",
+			Status:        1,
+			Organization:  "kubernetes",
+			PullsLastWeek: 0,
+			Namespace:     "k8s",
+			Source:        "registry.k8s.io",
+		}
+		repositories = append(repositories, repo)
+	}
+
+	return &SearchResult{
+		Count:    len(repositories),
+		Next:     "",
+		Previous: "",
+		Results:  repositories,
+	}, nil
+}
+
+// searchGenericRegistry 通用注册表搜索函数
+func searchGenericRegistry(ctx context.Context, source, endpoint, query string, page, pageSize int) (*SearchResult, error) {
+	// 生成缓存键
+	cacheKey := fmt.Sprintf("search_multi:%s:%s:%d:%d", source, query, page, pageSize)
+
+	if cached, ok := searchCache.Get(cacheKey); ok {
+		return cached.(*SearchResult), nil
+	}
+
+	// 构建请求URL
+	var fullURL string
+	var params url.Values
+
+	if strings.Contains(endpoint, "search") {
+		// Docker-like API
+		params = url.Values{
+			"query":     {query},
+			"page":      {fmt.Sprintf("%d", page)},
+			"page_size": {fmt.Sprintf("%d", pageSize)},
+		}
+		fullURL = endpoint + "?" + params.Encode()
+	} else if strings.Contains(endpoint, "find") {
+		// Quay-like API
+		params = url.Values{
+			"term": {query},
+		}
+		fullURL = endpoint + "?" + params.Encode()
+	} else {
+		// 默认情况
+		params = url.Values{
+			"q":         {query},
+			"page":      {fmt.Sprintf("%d", page)},
+			"page_size": {fmt.Sprintf("%d", pageSize)},
+		}
+		fullURL = endpoint + "?" + params.Encode()
+	}
+
+	req, err := http.NewRequestWithContext(ctx, "GET", fullURL, nil)
+	if err != nil {
+		return nil, fmt.Errorf("创建请求失败: %v", err)
+	}
+
+	req.Header.Set("Accept", "application/json")
+	
+	resp, err := utils.GetSearchHTTPClient().Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("请求%s API失败: %v", source, err)
+	}
+	defer safeCloseResponseBody(resp.Body, fmt.Sprintf("%s响应体", source))
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, fmt.Errorf("读取%s响应失败: %v", source, err)
+	}
+
+	if resp.StatusCode != http.StatusOK {
+		switch resp.StatusCode {
+		case http.StatusTooManyRequests:
+			return nil, fmt.Errorf("请求%s过于频繁，请稍后重试", source)
+		case http.StatusNotFound:
+			return nil, fmt.Errorf("在%s中未找到相关镜像", source)
+		case http.StatusBadGateway, http.StatusServiceUnavailable:
+			return nil, fmt.Errorf("%s服务暂时不可用，请稍后重试", source)
+		default:
+			return nil, fmt.Errorf("请求%s失败: 状态码=%d, 响应=%s", source, resp.StatusCode, string(body))
+		}
+	}
+
+	var result *SearchResult
+	
+	if source == "quay.io" {
+		// Quay.io 特殊处理
+		var quayResult struct {
+			Apps []struct {
+				Name        string `json:"name"`
+				Description string `json:"description"`
+				Owner       string `json:"owner"`
+				IsPublic    bool   `json:"is_public"`
+			} `json:"apps"`
+			Repositories []struct {
+				Name        string `json:"name"`
+				Description string `json:"description"`
+				IsPublic    bool   `json:"is_public"`
+				Namespace   string `json:"namespace"`
+			} `json:"repositories"`
+		}
+		
+		if err := json.Unmarshal(body, &quayResult); err != nil {
+			return nil, fmt.Errorf("解析%s响应失败: %v", source, err)
+		}
+
+		// 转换Quay.io结果为通用格式
+		repos := make([]Repository, 0)
+		for _, app := range quayResult.Apps {
+			repo := Repository{
+				Name:        app.Name,
+				Description: app.Description,
+				IsOfficial:  false,
+				IsAutomated: false,
+				StarCount:   0,
+				PullCount:   0,
+				RepoOwner:   app.Owner,
+				LastUpdated: "",
+				Status:      1,
+				Organization: app.Owner,
+				PullsLastWeek: 0,
+				Namespace:   app.Owner,
+				Source:      source,
+			}
+			repos = append(repos, repo)
+		}
+		
+		for _, repoData := range quayResult.Repositories {
+			repo := Repository{
+				Name:        repoData.Name,
+				Description: repoData.Description,
+				IsOfficial:  false,
+				IsAutomated: repoData.IsPublic,
+				StarCount:   0,
+				PullCount:   0,
+				RepoOwner:   repoData.Namespace,
+				LastUpdated: "",
+				Status:      1,
+				Organization: repoData.Namespace,
+				PullsLastWeek: 0,
+				Namespace:   repoData.Namespace,
+				Source:      source,
+			}
+			repos = append(repos, repo)
+		}
+
+		result = &SearchResult{
+			Count:   len(repos),
+			Next:    "",
+			Previous: "",
+			Results: repos,
+		}
+	} else {
+		// 标准Docker Registry API格式
+		result = &SearchResult{}
+		if err := json.Unmarshal(body, result); err != nil {
+			return nil, fmt.Errorf("解析%s响应失败: %v", source, err)
+		}
+
+		// 添加源标识到每个仓库
+		for i := range result.Results {
+			result.Results[i].Source = source
+		}
+	}
+
+	// 缓存结果
+	searchCache.SetWithTTL(cacheKey, result, cacheTTL)
+	
+	return result, nil
+}
+
 func filterSearchResults(results []Repository, query string) []Repository {
 	searchTerm := strings.ToLower(strings.TrimPrefix(query, "library/"))
 	filtered := make([]Repository, 0)
@@ -226,6 +544,26 @@ func normalizeRepository(repo *Repository) {
 				repo.Name = parts[len(parts)-1]
 			}
 		}
+	}
+}
+
+// mergeSearchResults 合并来自不同源的搜索结果
+func mergeSearchResults(results []MultiSourceSearchResult) *SearchResult {
+	allRepos := make([]Repository, 0)
+	totalCount := 0
+
+	for _, result := range results {
+		if result.Error == "" {
+			allRepos = append(allRepos, result.Results...)
+			totalCount += result.Count
+		}
+	}
+
+	return &SearchResult{
+		Count:   totalCount,
+		Next:    "", // 多源合并后不再适用分页
+		Previous: "",
+		Results: allRepos,
 	}
 }
 
@@ -508,6 +846,65 @@ func sendErrorResponse(c *gin.Context, message string) {
 	c.JSON(http.StatusBadRequest, gin.H{"error": message})
 }
 
+// searchMultiRegistries 并行搜索多个注册表
+func searchMultiRegistries(ctx context.Context, query string, page, pageSize int) ([]MultiSourceSearchResult, error) {
+	enabledRegistries := getEnabledRegistries()
+	
+	var results []MultiSourceSearchResult
+	
+	// 并发搜索所有启用的注册表
+	var wg sync.WaitGroup
+	resultChan := make(chan MultiSourceSearchResult, len(enabledRegistries))
+	
+	for domain := range enabledRegistries {
+		wg.Add(1)
+		go func(domain string) {
+			defer wg.Done()
+			
+			result, err := searchRegistryByDomain(ctx, domain, query, page, pageSize)
+			if err != nil {
+				resultChan <- MultiSourceSearchResult{
+					Source:  domain,
+					Error:   err.Error(),
+					Count:   0,
+					Results: []Repository{},
+				}
+			} else {
+				resultChan <- MultiSourceSearchResult{
+					Source:  domain,
+					Count:   result.Count,
+					Next:    result.Next,
+					Previous: result.Previous,
+					Results: result.Results,
+				}
+			}
+		}(domain)
+	}
+	
+	// 等待所有goroutine完成
+	go func() {
+		wg.Wait()
+		close(resultChan)
+	}()
+	
+	// 收集结果
+	for res := range resultChan {
+		results = append(results, res)
+	}
+	
+	return results, nil
+}
+
+// searchMultiRegistriesMerged 并行搜索多个注册表并合并结果
+func searchMultiRegistriesMerged(ctx context.Context, query string, page, pageSize int) (*SearchResult, error) {
+	multiResults, err := searchMultiRegistries(ctx, query, page, pageSize)
+	if err != nil {
+		return nil, err
+	}
+	
+	return mergeSearchResults(multiResults), nil
+}
+
 // RegisterSearchRoute 注册搜索相关路由
 func RegisterSearchRoute(r *gin.Engine) {
 	r.GET("/search", func(c *gin.Context) {
@@ -517,15 +914,74 @@ func RegisterSearchRoute(r *gin.Engine) {
 			return
 		}
 
-		page, pageSize := parsePaginationParams(c, 25)
+		// 检查是否需要多源搜索
+		multiSource := c.Query("multi_source") == "true" || c.Query("all_sources") == "true"
+		mergedResult := c.Query("merged") == "true"
+		
+		page, pageSize := parsePaginationParams(c, defaultPageSize)
 
-		result, err := searchDockerHub(c.Request.Context(), query, page, pageSize)
+		if multiSource {
+			// 多源搜索
+			if mergedResult {
+				// 返回合并后的结果
+				result, err := searchMultiRegistriesMerged(c.Request.Context(), query, page, pageSize)
+				if err != nil {
+					sendErrorResponse(c, err.Error())
+					return
+				}
+				
+				c.JSON(http.StatusOK, result)
+			} else {
+				// 返回各源的独立结果
+				results, err := searchMultiRegistries(c.Request.Context(), query, page, pageSize)
+				if err != nil {
+					sendErrorResponse(c, err.Error())
+					return
+				}
+				
+				c.JSON(http.StatusOK, gin.H{
+					"multi_source_results": results,
+					"total_sources":        len(results),
+					"query":                query,
+					"page":                 page,
+					"page_size":            pageSize,
+				})
+			}
+		} else {
+			// 单源搜索，默认使用Docker Hub
+			result, err := searchDockerHub(c.Request.Context(), query, page, pageSize)
+			if err != nil {
+				sendErrorResponse(c, err.Error())
+				return
+			}
+
+			c.JSON(http.StatusOK, result)
+		}
+	})
+
+	// 新增多源搜索专用路由
+	r.GET("/search/multi", func(c *gin.Context) {
+		query := c.Query("q")
+		if query == "" {
+			sendErrorResponse(c, "搜索关键词不能为空")
+			return
+		}
+
+		page, pageSize := parsePaginationParams(c, defaultPageSize)
+
+		results, err := searchMultiRegistries(c.Request.Context(), query, page, pageSize)
 		if err != nil {
 			sendErrorResponse(c, err.Error())
 			return
 		}
 
-		c.JSON(http.StatusOK, result)
+		c.JSON(http.StatusOK, gin.H{
+			"multi_source_results": results,
+			"total_sources":        len(results),
+			"query":                query,
+			"page":                 page,
+			"page_size":            pageSize,
+		})
 	})
 
 	r.GET("/tags/:namespace/:name", func(c *gin.Context) {
