@@ -170,18 +170,71 @@
         .main {
             flex: 1;
             padding: 2rem 1rem;
+            min-height: calc(100vh - 4rem);
+        }
+        
+        .search-section {
+            margin-bottom: 2rem;
+        }
+        
+        .results-section {
+            margin-top: 2rem;
         }
 
         .container {
             max-width: 1200px;
             margin: 0 auto;
+            padding: 0 15px;
+        }
+        
+        @media (max-width: 768px) {
+            .container {
+                padding: 0 10px;
+            }
+            
+            .option-group {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+            
+            .result-meta {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 10px;
+            }
+            
+            .meta-stats {
+                flex-wrap: wrap;
+            }
+        }
+        
+        @media (max-width: 480px) {
+            .result-card {
+                padding: 15px;
+            }
+            
+            .option-group label {
+                font-size: 0.85rem;
+            }
         }
 
         h1 {
             color: var(--foreground);
-            font-weight: bold;
+            font-weight: 700;
             margin-bottom: 30px;
             text-align: center;
+            font-size: 2.2rem;
+            background: linear-gradient(135deg, var(--primary), #3b82f6);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        @media (max-width: 768px) {
+            h1 {
+                font-size: 1.8rem;
+            }
         }
 
         .search-container {
@@ -231,16 +284,22 @@
             border-radius: 20px;
             padding: 12px 20px;
             height: 46px;
-            transition: all 0.2s;
+            transition: all 0.3s ease;
             font-size: 1rem;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
         }
 
         .form-control:focus {
             background-color: var(--input);
             color: var(--foreground);
             border-color: var(--ring);
-            box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.2);
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.3);
             outline: 0;
+        }
+        
+        .form-control::placeholder {
+            color: var(--muted-foreground);
+            opacity: 0.6;
         }
 
         .search-button {
@@ -260,6 +319,105 @@
         .search-button:hover {
             transform: scale(1.05);
             background-color: #1d4ed8;
+            box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
+        }
+        
+        .search-button:active {
+            transform: scale(0.98);
+        }
+
+        .multi-source-options {
+            max-width: 600px;
+            margin: 15px auto;
+            padding: 15px;
+            background-color: var(--secondary);
+            border-radius: 10px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            border: 1px solid var(--border);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+        }
+
+        .option-group {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            align-items: center;
+        }
+
+        .option-group label {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            font-size: 0.9rem;
+            cursor: pointer;
+            padding: 5px 10px;
+            border-radius: 5px;
+            transition: background-color 0.2s;
+        }
+        
+        .option-group label:hover {
+            background-color: var(--muted);
+        }
+        
+        .option-group input[type="checkbox"],
+        .option-group input[type="radio"] {
+            margin: 0;
+        }
+
+        .source-badge {
+            display: inline-block;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            font-weight: normal;
+            white-space: nowrap;
+            margin-left: 8px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .source-dockerhub {
+            background-color: #0db7ed;
+            color: white;
+        }
+
+        .source-ghcr {
+            background-color: #181717;
+            color: white;
+        }
+
+        .source-gcr {
+            background-color: #4285f4;
+            color: white;
+        }
+
+        .source-quay {
+            background-color: #336699;
+            color: white;
+        }
+
+        .source-k8s {
+            background-color: #326ce5;
+            color: white;
+        }
+
+        .source-result-section {
+            margin-top: 20px;
+            padding: 15px;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            background-color: var(--card);
+        }
+
+        .source-result-header {
+            font-size: 1.1rem;
+            font-weight: 600;
+            margin-bottom: 10px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid var(--border);
+            color: var(--primary);
         }
 
         .result-card {
@@ -270,11 +428,24 @@
             transition: all 0.3s ease;
             cursor: pointer;
             border: 1px solid var(--border);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
         }
 
         .result-card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            transform: translateY(-3px);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+            border-color: var(--primary);
+        }
+        
+        .result-card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 10px;
+        }
+        
+        .result-card-title-section {
+            flex: 1;
         }
 
         .result-title {
@@ -295,6 +466,23 @@
             line-height: 1.5;
             opacity: 0.9;
         }
+        
+        .result-badges {
+            margin-top: 8px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 5px;
+        }
+        
+        .source-badge {
+            font-size: 0.7rem;
+            padding: 2px 8px;
+        }
+        
+        .badge {
+            font-size: 0.75rem;
+            padding: 2px 8px;
+        }
 
         .result-meta {
             display: flex;
@@ -305,6 +493,8 @@
             margin-top: 15px;
             flex-wrap: wrap;
             gap: 10px;
+            padding-top: 10px;
+            border-top: 1px solid var(--muted);
         }
 
         .meta-stats {
@@ -319,12 +509,27 @@
             font-size: 0.85rem;
             color: var(--muted-foreground);
             text-align: right;
+            background-color: var(--secondary);
+            padding: 8px 12px;
+            border-radius: 6px;
         }
 
         .meta-pulls .pulls-count {
             font-size: 1rem;
             color: var(--foreground);
+            font-weight: 600;
             margin-top: 4px;
+        }
+        
+        @media (max-width: 768px) {
+            .result-meta {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            
+            .meta-pulls {
+                text-align: left;
+            }
         }
 
         .badge {
@@ -646,6 +851,58 @@
         .back-to-search:hover {
             text-decoration: underline;
         }
+        
+        /* 选项卡样式 */
+        .tabs {
+            width: 100%;
+        }
+        
+        .tab-header {
+            display: flex;
+            border-bottom: 1px solid var(--border);
+            margin-bottom: 20px;
+        }
+        
+        .tab-btn {
+            background: transparent;
+            border: none;
+            padding: 12px 20px;
+            cursor: pointer;
+            font-size: 1rem;
+            font-weight: 500;
+            color: var(--muted-foreground);
+            border-bottom: 2px solid transparent;
+            transition: all 0.3s ease;
+            position: relative;
+        }
+        
+        .tab-btn:hover {
+            color: var(--foreground);
+            background-color: var(--muted);
+        }
+        
+        .tab-btn.active {
+            color: var(--primary);
+            border-bottom: 2px solid var(--primary);
+        }
+        
+        .tab-content {
+            width: 100%;
+        }
+        
+        .tab-pane {
+            display: none;
+        }
+        
+        .tab-pane.active {
+            display: block;
+            animation: fadeIn 0.3s ease;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
 
         @media (max-width: 768px) {
             .result-meta {
@@ -740,7 +997,7 @@
                 <a href="/" class="nav-link">🚀 GitHub加速</a>
                 <a href="/images.html" class="nav-link">🐳 离线镜像下载</a>
                 <a href="/search.html" class="nav-link active">🔍 镜像搜索</a>
-                <a href="https://gitee.com/if-the-wind/github-hosts/raw/main/hosts" target="_blank" class="nav-link">📄 Hosts</a>
+                <a href="/test_api.html" class="nav-link">🧪 API测试</a>
                 
                 <button class="theme-toggle" id="themeToggle">
                     🌙
@@ -753,11 +1010,90 @@
         <div class="container">
         <h1>Docker镜像搜索</h1>
         
-        <div class="search-container">
-            <div class="input-group">
-                <input type="text" class="form-control" id="searchInput" placeholder="输入镜像名称搜索...">
-                <div class="input-group-append">
-                    <button class="btn search-button" id="searchButton">搜索</button>
+        <div class="search-section">
+            <div class="search-container">
+                <div class="input-group">
+                    <input type="text" class="form-control" id="searchInput" placeholder="输入镜像名称搜索...">
+                    <div class="input-group-append">
+                        <button class="btn search-button" id="searchButton">搜索</button>
+                    </div>
+                </div>
+                
+                <!-- 多源搜索参数选择 -->
+                <div class="multi-source-options">
+                    <div class="option-group">
+                        <label>
+                            <input type="checkbox" id="multiSourceCheckbox" onchange="toggleMultiSourceOptions()">
+                            多源搜索
+                        </label>
+                    </div>
+                    <div id="multiSourceControls" style="display: none; margin-top: 10px; padding: 15px; background-color: var(--secondary); border-radius: 8px;">
+                        <div class="option-group">
+                            <label>
+                                <input type="radio" name="resultFormat" value="separate" checked>
+                                显示各源独立结果
+                            </label>
+                            <label>
+                                <input type="radio" name="resultFormat" value="merged">
+                                合并结果
+                            </label>
+                        </div>
+                        <div class="option-group">
+                            <label>
+                                <input type="checkbox" id="includeDockerHub" checked>
+                                Docker Hub
+                            </label>
+                            <label>
+                                <input type="checkbox" id="includeGHCR" checked>
+                                GHCR (ghcr.io)
+                            </label>
+                            <label>
+                                <input type="checkbox" id="includeGCR" checked>
+                                GCR (gcr.io)
+                            </label>
+                            <label>
+                                <input type="checkbox" id="includeQuay" checked>
+                                Quay.io
+                            </label>
+                            <label>
+                                <input type="checkbox" id="includeK8s" checked>
+                                K8s Registry (registry.k8s.io)
+                            </label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="results-section">
+            <!-- 搜索结果选项卡 -->
+            <div class="tabs">
+                <div class="tab-header">
+                    <button class="tab-btn active" data-tab="single">单一搜索结果</button>
+                    <button class="tab-btn" data-tab="separate">多源分离</button>
+                    <button class="tab-btn" data-tab="merged">多源合并</button>
+                </div>
+                <div class="tab-content">
+                    <div id="singleTab" class="tab-pane active">
+                        <div id="searchResults" class="search-results"></div>
+                        <div class="pagination" style="display: none;">
+                            <button id="prevPage" disabled>上一页</button>
+                            <button id="nextPage" disabled>下一页</button>
+                        </div>
+                    </div>
+                    <div id="separateTab" class="tab-pane">
+                        <div id="separateResults" class="search-results"></div>
+                        <div class="pagination" style="display: none;">
+                            <button id="separatePrevPage" disabled>上一页</button>
+                            <button id="separateNextPage" disabled>下一页</button>
+                        </div>
+                    </div>
+                    <div id="mergedTab" class="tab-pane">
+                        <div id="mergedResults" class="search-results"></div>
+                        <div class="pagination" style="display: none;">
+                            <button id="mergedPrevPage" disabled>上一页</button>
+                            <button id="mergedNextPage" disabled>下一页</button>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -862,6 +1198,12 @@
         // 标签分页相关变量
         let currentTagPage = 1;
         let totalTagPages = 1;
+
+        function toggleMultiSourceOptions() {
+            const checkbox = document.getElementById('multiSourceCheckbox');
+            const controls = document.getElementById('multiSourceControls');
+            controls.style.display = checkbox.checked ? 'block' : 'none';
+        }
 
         document.getElementById('searchButton').addEventListener('click', () => {
             currentPage = 1;
@@ -1087,17 +1429,70 @@
                     targetRepo = repo.toLowerCase();
                 }
 
-                const response = await fetch(`/search?q=${encodeURIComponent(searchQuery)}&page=${currentPage}&page_size=25`);
+                // 构建搜索URL
+                let searchUrl = `/search?q=${encodeURIComponent(searchQuery)}&page=${currentPage}&page_size=25`;
+                
+                // 检查是否启用多源搜索
+                const multiSourceCheckbox = document.getElementById('multiSourceCheckbox');
+                if (multiSourceCheckbox.checked) {
+                    searchUrl += '&multi_source=true';
+                    
+                    // 获取结果格式
+                    const resultFormat = document.querySelector('input[name="resultFormat"]:checked');
+                    if (resultFormat && resultFormat.value === 'merged') {
+                        searchUrl += '&merged=true';
+                    }
+                }
+
+                const response = await fetch(searchUrl);
                 const data = await response.json();
 
                 if (!response.ok) {
                     throw new Error(data.error || '搜索请求失败');
                 }
                 
-                totalPages = Math.min(Math.ceil(data.count / 25), 100);
+                // 处理多源搜索结果
+                let results = [];
+                let totalCount = 0;
+                
+                if (multiSourceCheckbox.checked && data.multi_source_results) {
+                    // 处理多源结果
+                    const resultFormat = document.querySelector('input[name="resultFormat"]:checked');
+                    if (resultFormat && resultFormat.value === 'merged') {
+                        // 如果是合并结果，直接使用results数组
+                        results = data.results || [];
+                        totalCount = data.count || 0;
+                    } else {
+                        // 如果是分离结果，需要合并所有源的结果
+                        results = [];
+                        // 确保multi_source_results是一个数组
+                        const multiResults = Array.isArray(data.multi_source_results) ? data.multi_source_results : [];
+                        multiResults.forEach(sourceResult => {
+                            // 检查sourceResult是否存在且有Results属性
+                            if (sourceResult && sourceResult.Results && Array.isArray(sourceResult.Results)) {
+                                if (!sourceResult.Error) {
+                                    // 为每个结果添加源信息
+                                    sourceResult.Results.forEach(repo => {
+                                        if (repo) {
+                                            repo.source = sourceResult.Source || sourceResult.source || 'docker.io';
+                                        }
+                                    });
+                                    results = results.concat(sourceResult.Results.filter(r => r)); // 过滤掉undefined
+                                }
+                            }
+                        });
+                        totalCount = results.length;
+                    }
+                } else {
+                    // 单源搜索结果
+                    results = data.results || [];
+                    totalCount = data.count || 0;
+                }
+                
+                totalPages = Math.min(Math.ceil(totalCount / 25), 100);
                 updatePagination();
                 
-                displayResults(data.results, targetRepo);
+                displayResults(results, targetRepo);
             } catch (error) {
                 console.error('搜索错误:', error);
                 showToast(error.message || '搜索失败，请稍后重试');
@@ -1151,19 +1546,30 @@
                 const pullsLastWeek = result.pulls_last_week || 0;
                 const lastUpdated = result.last_updated || '';
                 const organization = result.affiliation || '';
+                const source = result.source || result.Source || 'docker.io'; // 默认来源，兼容大小写
 
                 const badges = [];
                 if (result.is_official) badges.push('<span class="badge badge-official">官方</span>');
                 if (organization) badges.push(`<span class="badge badge-organization">By ${organization}</span>`);
+                
+                // 添加来源徽章
+                const sourceBadge = getSourceBadge(source);
+                badges.push(sourceBadge);
 
                 const stats = [];
                 if (starCount > 0) stats.push(`<span class="meta-item">⭐ ${formatUtils.formatNumber(starCount)}</span>`);
                 if (pullCount > 0) stats.push(`<span class="meta-item">⬇️ ${formatUtils.formatNumber(pullCount)}+</span>`);
 
                 card.innerHTML = `
-                    <div class="result-title">
-                        ${displayName}
-                        ${badges.join(' ')}
+                    <div class="result-card-header">
+                        <div class="result-card-title-section">
+                            <div class="result-title">
+                                ${displayName}
+                            </div>
+                            <div class="result-badges">
+                                ${badges.join(' ')}
+                            </div>
+                        </div>
                     </div>
                     <div class="result-description">${description}</div>
                     <div class="result-meta">
@@ -1194,6 +1600,48 @@
 
                 resultsContainer.appendChild(card);
             });
+        }
+
+        // 获取来源徽章
+        function getSourceBadge(source) {
+            // 标准化来源字符串，转换为小写
+            const normalizedSource = (source || '').toString().toLowerCase();
+            let className = '';
+            let displayText = normalizedSource;
+            
+            switch(normalizedSource) {
+                case 'docker.io':
+                case 'docker hub':
+                    className = 'source-dockerhub';
+                    displayText = 'Docker Hub';
+                    break;
+                case 'ghcr.io':
+                case 'ghcr':
+                    className = 'source-ghcr';
+                    displayText = 'GHCR';
+                    break;
+                case 'gcr.io':
+                case 'gcr':
+                    className = 'source-gcr';
+                    displayText = 'GCR';
+                    break;
+                case 'quay.io':
+                case 'quay':
+                    className = 'source-quay';
+                    displayText = 'Quay';
+                    break;
+                case 'registry.k8s.io':
+                case 'k8s':
+                case 'kubernetes':
+                    className = 'source-k8s';
+                    displayText = 'K8s';
+                    break;
+                default:
+                    className = 'source-dockerhub';
+                    displayText = normalizedSource || 'Unknown';
+            }
+            
+            return `<span class="source-badge ${className}">${displayText}</span>`;
         }
 
         // 内存管理
@@ -1450,8 +1898,14 @@
         const initialQuery = urlParams.get('q');
         if (initialQuery) {
             document.getElementById('searchInput').value = initialQuery;
-            performSearch();
+            performSingleSearch(); // 默认执行单一搜索
+        } else {
+            // 如果没有初始查询，也可以执行一次默认的单一搜索（可选）
+            // performSingleSearch();
         }
+        
+        // 初始化多源搜索参数选择
+        document.getElementById('multiSourceCheckbox').addEventListener('change', toggleMultiSourceOptions);
 
         const themeToggle = document.getElementById('themeToggle');
         const html = document.documentElement;
@@ -1479,6 +1933,274 @@
             mobileMenuToggle.textContent = navLinks.classList.contains('active') ? '✕' : '☰';
         });
         
+        // 选项卡切换功能
+        document.querySelectorAll('.tab-btn').forEach(button => {
+            button.addEventListener('click', () => {
+                // 移除所有活动状态
+                document.querySelectorAll('.tab-btn').forEach(btn => {
+                    btn.classList.remove('active');
+                });
+                document.querySelectorAll('.tab-pane').forEach(pane => {
+                    pane.classList.remove('active');
+                });
+                
+                // 设置当前按钮为活动状态
+                button.classList.add('active');
+                
+                // 显示对应的选项卡内容
+                const tabId = button.getAttribute('data-tab');
+                document.getElementById(`${tabId}Tab`).classList.add('active');
+                
+                // 执行对应选项卡的搜索
+                switch(tabId) {
+                    case 'single':
+                        performSingleSearch();
+                        break;
+                    case 'separate':
+                        performSeparateSearch();
+                        break;
+                    case 'merged':
+                        performMergedSearch();
+                        break;
+                }
+            });
+        });
+        
+        // 修改原来的搜索函数，使其可以指定结果容器
+        function displayResults(results, targetRepo = '', containerId = 'searchResults') {
+            const resultsContainer = document.getElementById(containerId);
+            resultsContainer.innerHTML = '';
+
+            if (!results || results.length === 0) {
+                resultsContainer.innerHTML = '<div class="text-center">未找到相关镜像</div>';
+                return;
+            }
+
+            results.sort((a, b) => {
+                if (targetRepo) {
+                    const aName = (a.name || a.repo_name || '').toLowerCase();
+                    const bName = (b.name || b.repo_name || '').toLowerCase();
+                    const aMatch = aName === targetRepo || aName.endsWith('/' + targetRepo);
+                    const bMatch = bName === targetRepo || bName.endsWith('/' + targetRepo);
+                    
+                    if (aMatch && !bMatch) return -1;
+                    if (!aMatch && bMatch) return 1;
+                }
+                
+                if (a.is_official !== b.is_official) {
+                    return b.is_official - a.is_official;
+                }
+                
+                return b.pull_count - a.pull_count;
+            });
+
+            results.forEach(result => {
+                const card = document.createElement('div');
+                card.className = 'result-card';
+                
+                let displayName = '';
+                if (result.is_official) {
+                    displayName = (result.name || result.repo_name || '').replace('library/', '');
+                } else {
+                    const name = result.name || result.repo_name || '';
+                    displayName = result.namespace ? `${result.namespace}/${name}` : name;
+                }
+
+                const description = result.short_description || '暂无描述';
+                const starCount = result.star_count || 0;
+                const pullCount = result.pull_count || 0;
+                const pullsLastWeek = result.pulls_last_week || 0;
+                const lastUpdated = result.last_updated || '';
+                const organization = result.affiliation || '';
+                const source = result.source || result.Source || 'docker.io'; // 默认来源，兼容大小写
+
+                const badges = [];
+                if (result.is_official) badges.push('<span class="badge badge-official">官方</span>');
+                if (organization) badges.push(`<span class="badge badge-organization">By ${organization}</span>`);
+                
+                // 添加来源徽章
+                const sourceBadge = getSourceBadge(source);
+                badges.push(sourceBadge);
+
+                const stats = [];
+                if (starCount > 0) stats.push(`<span class="meta-item">⭐ ${formatUtils.formatNumber(starCount)}</span>`);
+                if (pullCount > 0) stats.push(`<span class="meta-item">⬇️ ${formatUtils.formatNumber(pullCount)}+</span>`);
+
+                card.innerHTML = `
+                    <div class="result-card-header">
+                        <div class="result-card-title-section">
+                            <div class="result-title">
+                                ${displayName}
+                            </div>
+                            <div class="result-badges">
+                                ${badges.join(' ')}
+                            </div>
+                        </div>
+                    </div>
+                    <div class="result-description">${description}</div>
+                    <div class="result-meta">
+                        <div class="meta-stats">
+                            ${stats.join(' ')}
+                            ${lastUpdated ? `<span class="meta-item">更新于 ${formatUtils.formatTimeAgo(lastUpdated)}</span>` : ''}
+                        </div>
+                        ${pullsLastWeek > 0 ? `
+                        <div class="meta-pulls">
+                            <div>本周拉取次数</div>
+                            <div class="pulls-count">${formatUtils.formatNumber(pullsLastWeek)}</div>
+                        </div>
+                        ` : ''}
+                    </div>
+                `;
+
+                card.addEventListener('click', () => {
+                    currentRepo = result;
+                    const namespace = result.namespace || (result.is_official ? 'library' : '');
+                    const name = result.name || result.repo_name || '';
+                    const repoName = name.replace('library/', '');
+                    if (!namespace || !repoName) {
+                        showToast('无效的仓库信息');
+                        return;
+                    }
+                    loadTags(namespace, repoName);
+                });
+
+                resultsContainer.appendChild(card);
+            });
+        }
+        
+        // 修改performSearch函数，使其支持多个结果容器
+        async function performSearch(targetContainer = 'searchResults') {
+            const query = document.getElementById('searchInput').value.trim();
+            if (!query) {
+                showToast('请输入搜索关键词');
+                return;
+            }
+
+            currentQuery = query;
+            showLoading();
+
+            try {
+                let searchQuery = query;
+                let targetRepo = '';
+                if (query.includes('/')) {
+                    const [namespace, repo] = query.split('/');
+                    searchQuery = namespace;
+                    targetRepo = repo.toLowerCase();
+                }
+
+                // 构建搜索URL
+                let searchUrl = `/search?q=${encodeURIComponent(searchQuery)}&page=${currentPage}&page_size=25`;
+                
+                // 检查是否启用多源搜索
+                const multiSourceCheckbox = document.getElementById('multiSourceCheckbox');
+                if (multiSourceCheckbox.checked) {
+                    searchUrl += '&multi_source=true';
+                    
+                    // 获取结果格式
+                    const resultFormat = document.querySelector('input[name="resultFormat"]:checked');
+                    if (resultFormat && resultFormat.value === 'merged') {
+                        searchUrl += '&merged=true';
+                    }
+                }
+
+                const response = await fetch(searchUrl);
+                const data = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(data.error || '搜索请求失败');
+                }
+                
+                // 处理多源搜索结果
+                let results = [];
+                let totalCount = 0;
+                
+                if (multiSourceCheckbox.checked && data.multi_source_results) {
+                    // 处理多源结果
+                    const resultFormat = document.querySelector('input[name="resultFormat"]:checked');
+                    if (resultFormat && resultFormat.value === 'merged') {
+                        // 如果是合并结果，直接使用results数组
+                        results = data.results || [];
+                        totalCount = data.count || 0;
+                    } else {
+                        // 如果是分离结果，需要合并所有源的结果
+                        results = [];
+                        // 确保multi_source_results是一个数组
+                        const multiResults = Array.isArray(data.multi_source_results) ? data.multi_source_results : [];
+                        multiResults.forEach(sourceResult => {
+                            // 检查sourceResult是否存在且有Results属性
+                            if (sourceResult && sourceResult.Results && Array.isArray(sourceResult.Results)) {
+                                if (!sourceResult.Error) {
+                                    // 为每个结果添加源信息
+                                    sourceResult.Results.forEach(repo => {
+                                        if (repo) {
+                                            repo.source = sourceResult.Source || sourceResult.source || 'docker.io';
+                                        }
+                                    });
+                                    results = results.concat(sourceResult.Results.filter(r => r)); // 过滤掉undefined
+                                }
+                            }
+                        });
+                        totalCount = results.length;
+                    }
+                } else {
+                    // 单源搜索结果
+                    results = data.results || [];
+                    totalCount = data.count || 0;
+                }
+                
+                totalPages = Math.min(Math.ceil(totalCount / 25), 100);
+                
+                // 根据目标容器更新对应的分页控件
+                if (targetContainer === 'searchResults') {
+                    updatePagination();
+                } else if (targetContainer === 'separateResults') {
+                    // 为分离结果设置分页（如果需要的话）
+                    updatePagination({ prefix: 'separate' });
+                } else if (targetContainer === 'mergedResults') {
+                    // 为合并结果设置分页（如果需要的话）
+                    updatePagination({ prefix: 'merged' });
+                }
+                
+                displayResults(results, targetRepo, targetContainer);
+            } catch (error) {
+                console.error('搜索错误:', error);
+                showToast(error.message || '搜索失败，请稍后重试');
+            } finally {
+                hideLoading();
+            }
+        }
+        
+        // 单一搜索功能
+        function performSingleSearch() {
+            // 单一搜索逻辑已经在performSearch中实现
+            // 只需确保不启用多源搜索即可
+            document.getElementById('multiSourceCheckbox').checked = false;
+            toggleMultiSourceOptions(); // 隐藏多源选项
+            performSearch('searchResults'); // 调用原有的搜索函数，指定结果容器
+        }
+        
+        // 多源分离搜索功能
+        function performSeparateSearch() {
+            document.getElementById('multiSourceCheckbox').checked = true;
+            toggleMultiSourceOptions(); // 显示多源选项
+            
+            // 选择"显示各源独立结果"单选框
+            document.querySelector('input[value="separate"]').checked = true;
+            
+            performSearch('separateResults'); // 调用搜索函数，指定结果容器
+        }
+        
+        // 多源合并搜索功能
+        function performMergedSearch() {
+            document.getElementById('multiSourceCheckbox').checked = true;
+            toggleMultiSourceOptions(); // 显示多源选项
+            
+            // 选择"合并结果"单选框
+            document.querySelector('input[value="merged"]').checked = true;
+            
+            performSearch('mergedResults'); // 调用搜索函数，指定结果容器
+        }
+
         document.addEventListener('click', (e) => {
             if (!e.target.closest('.navbar') && navLinks.classList.contains('active')) {
                 navLinks.classList.remove('active');

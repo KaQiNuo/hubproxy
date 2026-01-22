@@ -213,18 +213,180 @@ func searchRegistryByDomain(ctx context.Context, domain, query string, page, pag
 
 // searchGHCR 搜索 GitHub Container Registry
 func searchGHCR(ctx context.Context, query string, page, pageSize int) (*SearchResult, error) {
-	return searchGenericRegistry(ctx, "ghcr.io", "https://ghcr.io/v2/search", query, page, pageSize)
+	// GHCR没有公共搜索API，我们需要使用不同的方法来查找包
+	// 尝试通过GitHub API查找相关的包
+	return searchGHCRByPackagesAPI(ctx, query, page, pageSize)
+}
+
+// searchGHCRByPackagesAPI 通过GitHub Packages API搜索GHCR包
+func searchGHCRByPackagesAPI(ctx context.Context, query string, page, pageSize int) (*SearchResult, error) {
+	// GitHub Packages API URL for containers
+	apiURL := fmt.Sprintf("https://api.github.com/search/repositories?q=%s+in:name,description,readme+topic:container", url.QueryEscape(query))
+	
+	req, err := http.NewRequestWithContext(ctx, "GET", apiURL, nil)
+	if err != nil {
+		return nil, fmt.Errorf("创建GitHub API请求失败: %v", err)
+	}
+	
+	// 设置适当的请求头
+	req.Header.Set("Accept", "application/vnd.github.v3+json")
+	req.Header.Set("User-Agent", "HubProxy")
+	
+	resp, err := utils.GetSearchHTTPClient().Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("请求GitHub API失败: %v", err)
+	}
+	defer safeCloseResponseBody(resp.Body, "GitHub API响应体")
+	
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, fmt.Errorf("读取GitHub API响应失败: %v", err)
+	}
+	
+	if resp.StatusCode != http.StatusOK {
+		// 如果GitHub API不可用，返回空结果而不是错误
+		return &SearchResult{
+			Count:    0,
+			Next:     "",
+			Previous: "",
+			Results:  []Repository{},
+		}, nil
+	}
+	
+	// 解析GitHub仓库搜索结果
+	var githubResult struct {
+		TotalCount int `json:"total_count"`
+		Items      []struct {
+			ID       int    `json:"id"`
+			Name     string `json:"name"`
+			FullName string `json:"full_name"`
+			Owner    struct {
+				Login string `json:"login"`
+			} `json:"owner"`
+			Description string `json:"description"`
+			Stars       int    `json:"stargazers_count"`
+			UpdatedAt   string `json:"updated_at"`
+		} `json:"items"`
+	}
+	
+	if err := json.Unmarshal(body, &githubResult); err != nil {
+		return nil, fmt.Errorf("解析GitHub API响应失败: %v", err)
+	}
+	
+	// 现在对每个仓库尝试查找对应的容器包
+	repositories := make([]Repository, 0)
+	
+	// 计算分页范围
+	startIdx := (page - 1) * pageSize
+	if startIdx >= len(githubResult.Items) {
+		return &SearchResult{
+			Count:    githubResult.TotalCount,
+			Next:     "",
+			Previous: "",
+			Results:  []Repository{},
+		}, nil
+	}
+	
+	endIdx := startIdx + pageSize
+	if endIdx > len(githubResult.Items) {
+		endIdx = len(githubResult.Items)
+	}
+	
+	selectedItems := githubResult.Items[startIdx:endIdx]
+	
+	for _, item := range selectedItems {
+		// 检查此仓库是否有容器包
+		hasContainerPackage, packageName := checkRepositoryForContainerPackage(ctx, item.Owner.Login, item.Name)
+		if hasContainerPackage {
+			// 创建Repository对象
+			repo := Repository{
+				Name:        packageName, // 实际的包名
+				Description: item.Description,
+				IsOfficial:  false,
+				IsAutomated: true,
+				StarCount:   item.Stars,
+				PullCount:   0, // GHCR不提供下载次数
+				RepoOwner:   item.Owner.Login,
+				LastUpdated: item.UpdatedAt,
+				Status:      1,
+				Organization: item.Owner.Login,
+				PullsLastWeek: 0,
+				Namespace:   item.Owner.Login,
+				Source:      "ghcr.io",
+			}
+			repositories = append(repositories, repo)
+		}
+	}
+	
+	return &SearchResult{
+		Count:    len(repositories),
+		Next:     "",
+		Previous: "",
+		Results:  repositories,
+	}, nil
+}
+
+// checkRepositoryForContainerPackage 检查仓库是否有容器包
+func checkRepositoryForContainerPackage(ctx context.Context, owner, repo string) (bool, string) {
+	// 检查GitHub Packages中的容器包
+	packageURL := fmt.Sprintf("https://api.github.com/users/%s/packages?package_type=container", owner)
+	
+	req, err := http.NewRequestWithContext(ctx, "GET", packageURL, nil)
+	if err != nil {
+		return false, ""
+	}
+	
+	req.Header.Set("Accept", "application/vnd.github.v3+json")
+	req.Header.Set("User-Agent", "HubProxy")
+	
+	resp, err := utils.GetSearchHTTPClient().Do(req)
+	if err != nil {
+		return false, ""
+	}
+	defer safeCloseResponseBody(resp.Body, "GitHub Packages API响应体")
+	
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return false, ""
+	}
+	
+	if resp.StatusCode != http.StatusOK {
+		return false, ""
+	}
+	
+	// 解析包列表
+	var packages []struct {
+		Name       string `json:"name"`
+		PackageType string `json:"package_type"`
+		Owner      struct {
+			Login string `json:"login"`
+		} `json:"owner"`
+	}
+	
+	if err := json.Unmarshal(body, &packages); err != nil {
+		return false, ""
+	}
+	
+	// 查找匹配的包名
+	for _, pkg := range packages {
+		if strings.EqualFold(pkg.Name, repo) && strings.EqualFold(pkg.PackageType, "container") {
+			return true, fmt.Sprintf("%s/%s", pkg.Owner.Login, pkg.Name)
+		}
+	}
+	
+	return false, ""
 }
 
 // searchGCR 搜索 Google Container Registry
 func searchGCR(ctx context.Context, query string, page, pageSize int) (*SearchResult, error) {
 	// GCR 不提供通用搜索API，但我们可以尝试查询特定仓库
-	// 对于GCR，我们返回一个占位符结果，因为GCR本身没有公开的搜索API
+	// 作为替代方案，我们可以尝试构建可能的仓库路径并检查它们是否存在
+	// 这里我们返回空结果，但不返回错误，这样合并时不会失败
 	return &SearchResult{
 		Count:    0,
 		Next:     "",
 		Previous: "",
-		Results:  []Repository{},
+		Results:  []Repository{}, // 返回空数组而不是nil，避免前端错误
 	}, nil
 }
 
@@ -235,12 +397,11 @@ func searchQuay(ctx context.Context, query string, page, pageSize int) (*SearchR
 
 // searchK8sRegistry 搜索 Kubernetes Registry
 func searchK8sRegistry(ctx context.Context, query string, page, pageSize int) (*SearchResult, error) {
-	// registry.k8s.io 也没有公开的搜索API，但我们可以通过其API获取一些仓库信息
-	// 尝试获取特定路径下的仓库信息
+	// registry.k8s.io 也没有公开的搜索API，所以我们尝试列出所有仓库并过滤
+	// 由于没有直接的搜索API，我们获取仓库列表并进行客户端过滤
 	baseURL := "https://registry.k8s.io/v2/_catalog"
 	params := url.Values{}
-	params.Set("n", fmt.Sprintf("%d", pageSize))
-	params.Set("last", query) // 这只是示例，实际可能需要其他方式
+	params.Set("n", fmt.Sprintf("%d", 10000)) // 获取尽可能多的仓库
 
 	fullURL := baseURL + "?" + params.Encode()
 	
@@ -285,17 +446,36 @@ func searchK8sRegistry(ctx context.Context, query string, page, pageSize int) (*
 		}, nil
 	}
 
-	// 过滤匹配的仓库
+	// 过滤匹配的仓库 - 匹配查询词
 	filteredRepos := []string{}
+	queryLower := strings.ToLower(query)
 	for _, repo := range catalog.Repositories {
-		if strings.Contains(strings.ToLower(repo), strings.ToLower(query)) {
+		if strings.Contains(strings.ToLower(repo), queryLower) {
 			filteredRepos = append(filteredRepos, repo)
 		}
 	}
 
+	// 分页处理
+	startIdx := (page - 1) * pageSize
+	if startIdx >= len(filteredRepos) {
+		return &SearchResult{
+			Count:    len(filteredRepos),
+			Next:     "",
+			Previous: "",
+			Results:  []Repository{},
+		}, nil
+	}
+
+	endIdx := startIdx + pageSize
+	if endIdx > len(filteredRepos) {
+		endIdx = len(filteredRepos)
+	}
+
+	selectedRepos := filteredRepos[startIdx:endIdx]
+
 	// 转换为Repository格式
-	repositories := make([]Repository, 0, len(filteredRepos))
-	for _, repoName := range filteredRepos {
+	repositories := make([]Repository, 0, len(selectedRepos))
+	for _, repoName := range selectedRepos {
 		repo := Repository{
 			Name:          repoName,
 			Description:   fmt.Sprintf("Kubernetes official image: %s", repoName),
@@ -308,15 +488,15 @@ func searchK8sRegistry(ctx context.Context, query string, page, pageSize int) (*
 			Status:        1,
 			Organization:  "kubernetes",
 			PullsLastWeek: 0,
-			Namespace:     "k8s",
+			Namespace:     "registry.k8s.io",
 			Source:        "registry.k8s.io",
 		}
 		repositories = append(repositories, repo)
 	}
 
 	return &SearchResult{
-		Count:    len(repositories),
-		Next:     "",
+		Count:    len(filteredRepos), // 总数是过滤后的总数
+		Next:     "", // K8s registry不支持标准分页
 		Previous: "",
 		Results:  repositories,
 	}, nil
@@ -386,7 +566,22 @@ func searchGenericRegistry(ctx context.Context, source, endpoint, query string, 
 		case http.StatusBadGateway, http.StatusServiceUnavailable:
 			return nil, fmt.Errorf("%s服务暂时不可用，请稍后重试", source)
 		default:
-			return nil, fmt.Errorf("请求%s失败: 状态码=%d, 响应=%s", source, resp.StatusCode, string(body))
+			return nil, fmt.Errorf("请求%s失败: 状态码=%d", source, resp.StatusCode)
+		}
+	}
+
+	// 检查响应内容类型，防止HTML响应
+	contentType := resp.Header.Get("Content-Type")
+	if strings.Contains(strings.ToLower(contentType), "text/html") {
+		// 如果响应是HTML，尝试检查是否包含错误信息
+		bodyStr := string(body)
+		if strings.Contains(bodyStr, "<!DOCTYPE html") || strings.Contains(bodyStr, "<html") {
+			return &SearchResult{
+				Count:    0,
+				Next:     "",
+				Previous: "",
+				Results:  []Repository{},
+			}, nil
 		}
 	}
 
@@ -410,7 +605,13 @@ func searchGenericRegistry(ctx context.Context, source, endpoint, query string, 
 		}
 		
 		if err := json.Unmarshal(body, &quayResult); err != nil {
-			return nil, fmt.Errorf("解析%s响应失败: %v", source, err)
+			// 如果解析失败，可能是HTML响应或其他格式，返回空结果
+			return &SearchResult{
+				Count:    0,
+				Next:     "",
+				Previous: "",
+				Results:  []Repository{},
+			}, nil
 		}
 
 		// 转换Quay.io结果为通用格式
@@ -463,7 +664,13 @@ func searchGenericRegistry(ctx context.Context, source, endpoint, query string, 
 		// 标准Docker Registry API格式
 		result = &SearchResult{}
 		if err := json.Unmarshal(body, result); err != nil {
-			return nil, fmt.Errorf("解析%s响应失败: %v", source, err)
+			// 如果JSON解析失败，返回空结果而不是错误，这样不会影响其他源的结果
+			return &SearchResult{
+				Count:    0,
+				Next:     "",
+				Previous: "",
+				Results:  []Repository{},
+			}, nil
 		}
 
 		// 添加源标识到每个仓库
@@ -553,17 +760,35 @@ func mergeSearchResults(results []MultiSourceSearchResult) *SearchResult {
 	totalCount := 0
 
 	for _, result := range results {
-		if result.Error == "" {
+		// 即使某个源有错误，我们也处理其他源的结果
+		if result.Results != nil {
+			// 为每个仓库添加源信息（如果还没有的话）
+			for i := range result.Results {
+				if result.Results[i].Source == "" {
+					result.Results[i].Source = result.Source
+				}
+			}
 			allRepos = append(allRepos, result.Results...)
-			totalCount += result.Count
+			// 使用实际结果数量而不是可能不准确的计数
+			totalCount += len(result.Results)
 		}
 	}
 
+	// 对合并的结果进行排序，优先显示官方仓库和拉取数高的仓库
+	sort.Slice(allRepos, func(i, j int) bool {
+		// 首先按是否官方排序
+		if allRepos[i].IsOfficial != allRepos[j].IsOfficial {
+			return allRepos[i].IsOfficial
+		}
+		// 然后按拉取数排序
+		return allRepos[i].PullCount > allRepos[j].PullCount
+	})
+
 	return &SearchResult{
-		Count:   totalCount,
-		Next:    "", // 多源合并后不再适用分页
+		Count:    totalCount,
+		Next:     "", // 多源合并后不再适用分页
 		Previous: "",
-		Results: allRepos,
+		Results:  allRepos,
 	}
 }
 
@@ -870,6 +1095,12 @@ func searchMultiRegistries(ctx context.Context, query string, page, pageSize int
 					Results: []Repository{},
 				}
 			} else {
+				// 确保结果中有源信息
+				for i := range result.Results {
+					if result.Results[i].Source == "" {
+						result.Results[i].Source = domain
+					}
+				}
 				resultChan <- MultiSourceSearchResult{
 					Source:  domain,
 					Count:   result.Count,

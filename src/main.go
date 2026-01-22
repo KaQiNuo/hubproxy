@@ -98,6 +98,9 @@ func main() {
 	router.GET("/search.html", func(c *gin.Context) {
 		serveEmbedFile(c, "public/search.html")
 	})
+	router.GET("/test_api.html", func(c *gin.Context) {
+		serveEmbedFile(c, "public/test_api.html")
+	})
 	router.GET("/favicon.ico", func(c *gin.Context) {
 		serveEmbedFile(c, "public/favicon.ico")
 	})

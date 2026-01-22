@@ -1,0 +1,1343 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="API测试页面">
+    <meta name="keywords" content="API、测试、Docker、镜像搜索">
+    <meta name="color-scheme" content="dark light">
+    <title>API测试页面</title>
+    <link rel="icon" href="/favicon.ico">
+    <style>
+        :root {
+            --background: #ffffff;
+            --foreground: #0f172a;
+            --card: #ffffff;
+            --card-foreground: #0f172a;
+            --primary: #2563eb;
+            --primary-foreground: #f8fafc;
+            --secondary: #f1f5f9;
+            --secondary-foreground: #0f172a;
+            --muted: #f1f5f9;
+            --muted-foreground: #64748b;
+            --accent: #f1f5f9;
+            --accent-foreground: #0f172a;
+            --border: #e2e8f0;
+            --input: #ffffff;
+            --ring: #2563eb;
+            --radius: 0.5rem;
+        }
+
+        .dark {
+            --background: #0f172a;
+            --foreground: #f8fafc;
+            --card: #1e293b;
+            --card-foreground: #f8fafc;
+            --primary: #3b82f6;
+            --primary-foreground: #f8fafc;
+            --secondary: #1e293b;
+            --secondary-foreground: #f8fafc;
+            --muted: #1e293b;
+            --muted-foreground: #94a3b8;
+            --accent: #1e293b;
+            --accent-foreground: #f8fafc;
+            --border: #334155;
+            --input: #1e293b;
+            --ring: #3b82f6;
+        }
+
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --background: #0f172a;
+                --foreground: #f8fafc;
+                --card: #1e293b;
+                --card-foreground: #f8fafc;
+                --primary: #3b82f6;
+                --primary-foreground: #f8fafc;
+                --secondary: #1e293b;
+                --secondary-foreground: #f8fafc;
+                --muted: #1e293b;
+                --muted-foreground: #94a3b8;
+                --accent: #1e293b;
+                --accent-foreground: #f8fafc;
+                --border: #334155;
+                --input: #1e293b;
+                --ring: #3b82f6;
+            }
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+            background-color: var(--background);
+            color: var(--foreground);
+            line-height: 1.5;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            transition: background-color 0.3s, color 0.3s;
+        }
+
+        .navbar {
+            position: sticky !important;
+            top: 0 !important;
+            z-index: 50 !important;
+            width: 100% !important;
+            border-bottom: 1px solid var(--border) !important;
+            background-color: var(--background) !important;
+            backdrop-filter: blur(8px) !important;
+            background-color: rgba(255, 255, 255, 0.95) !important;
+            padding: 0 !important;
+            margin: 0 !important;
+        }
+
+        .dark .navbar {
+            background-color: rgba(15, 23, 42, 0.95) !important;
+        }
+
+        .navbar-container {
+            max-width: 1200px !important;
+            margin: 0 auto !important;
+            padding: 0 1rem !important;
+            display: flex !important;
+            align-items: center !important;
+            justify-content: space-between !important;
+            height: 4rem !important;
+        }
+
+        .logo {
+            display: flex !important;
+            align-items: center !important;
+            gap: 0.5rem !important;
+            text-decoration: none !important;
+            color: var(--foreground) !important;
+            font-weight: 600 !important;
+            font-size: 1.125rem !important;
+        }
+
+        .logo-icon {
+            width: 2rem !important;
+            height: 2rem !important;
+            border-radius: 0.5rem !important;
+            background: linear-gradient(135deg, var(--primary), #3b82f6) !important;
+            display: flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            color: white !important;
+        }
+
+        .nav-links {
+            display: flex !important;
+            align-items: center !important;
+            gap: 0.5rem !important;
+        }
+
+        .nav-link {
+            padding: 0.5rem 1rem !important;
+            border-radius: var(--radius) !important;
+            text-decoration: none !important;
+            color: var(--muted-foreground) !important;
+            transition: all 0.2s !important;
+            font-weight: 500 !important;
+        }
+
+        .nav-link:hover,
+        .nav-link.active {
+            color: var(--foreground) !important;
+            background-color: var(--muted) !important;
+        }
+
+        .theme-toggle {
+            padding: 0.5rem !important;
+            border: none !important;
+            border-radius: var(--radius) !important;
+            background-color: transparent !important;
+            color: var(--muted-foreground) !important;
+            cursor: pointer !important;
+            transition: all 0.2s !important;
+        }
+
+        .theme-toggle:hover {
+            background-color: var(--muted) !important;
+            color: var(--foreground) !important;
+        }
+
+        .main {
+            flex: 1;
+            padding: 2rem 1rem;
+            min-height: calc(100vh - 4rem);
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 15px;
+        }
+
+        h1 {
+            text-align: center;
+            margin-bottom: 2rem;
+            color: var(--primary);
+            font-size: 2rem;
+        }
+        
+        .mobile-menu-toggle {
+            display: none;
+        }
+
+        .icon {
+            display: inline-block;
+            vertical-align: middle;
+            margin-right: 4px;
+            margin-top: -2px;
+        }
+        
+        @media (max-width: 768px) {
+            .nav-links {
+                position: fixed;
+                top: 70px;
+                left: 0;
+                right: 0;
+                background: var(--background);
+                border: 1px solid var(--border);
+                border-top: none;
+                border-radius: 0 0 12px 12px;
+                padding: 1rem;
+                flex-direction: column;
+                gap: 0.5rem;
+                z-index: 1000;
+                transform: translateY(-100vh);
+                transition: transform 0.3s ease;
+            }
+            
+            .nav-links.active {
+                transform: translateY(0);
+            }
+            
+            .mobile-menu-toggle {
+                display: block !important;
+                background: none;
+                border: none;
+                color: var(--foreground);
+                font-size: 1.5rem;
+                cursor: pointer;
+                padding: 0.5rem;
+                border-radius: var(--radius);
+                transition: background-color 0.2s;
+            }
+            
+            .mobile-menu-toggle:hover {
+                background-color: var(--muted);
+            }
+            
+            .navbar-container {
+                justify-content: space-between !important;
+            }
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 1rem;
+        }
+
+        h1 {
+            text-align: center;
+            margin-bottom: 2rem;
+            color: var(--primary);
+            font-size: 2rem;
+        }
+
+        .search-section {
+            background: var(--card);
+            padding: 1.5rem;
+            border-radius: var(--radius);
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+            margin-bottom: 2rem;
+            border: 1px solid var(--border);
+        }
+
+        .form-group {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 1rem;
+            flex-wrap: wrap;
+        }
+
+        .input-group {
+            flex: 1;
+            min-width: 200px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 500;
+            color: var(--foreground);
+        }
+
+        input[type="text"] {
+            width: 100%;
+            padding: 0.75rem;
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            background-color: var(--input);
+            color: var(--foreground);
+            font-size: 1rem;
+        }
+
+        .btn-group {
+            display: flex;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+        }
+
+        button {
+            padding: 0.75rem 1.5rem;
+            background-color: var(--primary);
+            color: var(--primary-foreground);
+            border: none;
+            border-radius: var(--radius);
+            cursor: pointer;
+            font-size: 1rem;
+            font-weight: 500;
+            transition: all 0.2s;
+        }
+
+        button:hover {
+            background-color: #1d4ed8;
+            transform: translateY(-2px);
+        }
+
+        button:disabled {
+            background-color: var(--muted);
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .results-section {
+            margin-top: 2rem;
+        }
+
+        .result-card {
+            background-color: var(--card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 1.5rem;
+            margin-bottom: 1rem;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        }
+
+        .result-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .result-title {
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: var(--primary);
+        }
+
+        .result-source {
+            font-size: 0.9rem;
+            padding: 0.25rem 0.75rem;
+            border-radius: 20px;
+            background-color: var(--secondary);
+        }
+
+        .result-content {
+            font-family: monospace;
+            white-space: pre-wrap;
+            word-break: break-all;
+            max-height: 300px;
+            overflow-y: auto;
+            background-color: var(--muted);
+            padding: 1rem;
+            border-radius: var(--radius);
+            font-size: 0.9rem;
+            line-height: 1.4;
+        }
+        
+        .result-summary {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 1rem;
+            margin-bottom: 1rem;
+            padding: 1rem;
+            background-color: var(--secondary);
+            border-radius: var(--radius);
+        }
+        
+        .summary-item {
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .summary-label {
+            font-size: 0.8rem;
+            color: var(--muted-foreground);
+            margin-bottom: 0.25rem;
+        }
+        
+        .summary-value {
+            font-weight: 600;
+            font-size: 1.1rem;
+        }
+        
+        .api-endpoint {
+            font-family: monospace;
+            background-color: var(--muted);
+            padding: 0.25rem 0.5rem;
+            border-radius: 4px;
+            font-size: 0.9rem;
+            margin: 0.5rem 0;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 2rem;
+            color: var(--muted-foreground);
+        }
+
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 4px solid var(--muted);
+            border-top: 4px solid var(--primary);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 1rem;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .status-indicator {
+            display: inline-block;
+            padding: 0.25rem 0.75rem;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 500;
+        }
+
+        .status-success {
+            background-color: #d4edda;
+            color: #155724;
+        }
+
+        .status-error {
+            background-color: #f8d7da;
+            color: #721c24;
+        }
+
+        .status-pending {
+            background-color: #fff3cd;
+            color: #856404;
+        }
+
+        .tabs {
+            display: flex;
+            margin-bottom: 1rem;
+            border-bottom: 1px solid var(--border);
+            flex-wrap: wrap;
+        }
+
+        .tab {
+            padding: 0.75rem 1.5rem;
+            cursor: pointer;
+            border-bottom: 3px solid transparent;
+            transition: all 0.2s;
+        }
+
+        .tab.active {
+            border-bottom: 3px solid var(--primary);
+            color: var(--primary);
+            font-weight: 500;
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        @media (max-width: 768px) {
+            .form-group {
+                flex-direction: column;
+            }
+            
+            .btn-group {
+                flex-direction: column;
+            }
+            
+            button {
+                width: 100%;
+            }
+            
+            .result-header {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 0.5rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar">
+        <div class="navbar-container">
+            <a href="/" class="logo">
+                <div class="logo-icon">
+                    ⚡
+                </div>
+                加速服务
+            </a>
+            
+            <button class="mobile-menu-toggle" id="mobileMenuToggle">
+                ☰
+            </button>
+            
+            <div class="nav-links" id="navLinks">
+                <a href="/" class="nav-link">🚀 GitHub加速</a>
+                <a href="/images.html" class="nav-link">🐳 离线镜像下载</a>
+                <a href="/search.html" class="nav-link">🔍 镜像搜索</a>
+                <a href="/test_api.html" class="nav-link active">🧪 API测试</a>
+                
+                <button class="theme-toggle" id="themeToggle">
+                    🌙
+                </button>
+            </div>
+        </div>
+    </nav>
+
+    <main class="main">
+        <div class="container">
+            <h1>API测试页面</h1>
+
+            <div class="search-section">
+                <div class="form-group">
+                    <div class="input-group">
+                        <label for="searchQuery">搜索关键词</label>
+                        <input type="text" id="searchQuery" placeholder="输入搜索关键词，例如: litellm" value="litellm">
+                    </div>
+                    <div class="input-group">
+                        <label>&nbsp;</label>
+                        <div class="btn-group">
+                            <button type="button" id="testSingle">测试单一搜索</button>
+                            <button type="button" id="testMultiSeparate">测试多源分离</button>
+                            <button type="button" id="testMultiMerged">测试多源合并</button>
+                            <button type="button" id="testAllSources">测试全部源</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="tabs">
+                <div class="tab active" data-tab="single">单一搜索</div>
+                <div class="tab" data-tab="multi-separate">多源分离</div>
+                <div class="tab" data-tab="multi-merged">多源合并</div>
+                <div class="tab" data-tab="individual">独立源测试</div>
+            </div>
+
+            <div class="results-section">
+                <div id="singleTab" class="tab-content active">
+                    <h3>单一搜索结果</h3>
+                    <div id="singleResults"></div>
+                </div>
+
+                <div id="multiSeparateTab" class="tab-content">
+                    <h3>多源分离搜索结果</h3>
+                    <div id="multiSeparateResults"></div>
+                </div>
+
+                <div id="multiMergedTab" class="tab-content">
+                    <h3>多源合并搜索结果</h3>
+                    <div id="multiMergedResults"></div>
+                </div>
+
+                <div id="individualTab" class="tab-content">
+                    <h3>独立源测试结果</h3>
+                    <div id="individualResults"></div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        // Tab切换功能
+        document.querySelectorAll('.tab').forEach(tab => {
+            tab.addEventListener('click', () => {
+                // 移除所有活动标签
+                document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+                document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+                
+                // 激活当前标签
+                tab.classList.add('active');
+                const tabId = `${tab.dataset.tab}Tab`;
+                const targetTabContent = document.getElementById(tabId);
+                if (targetTabContent) {
+                    targetTabContent.classList.add('active');
+                }
+                
+                // 如果切换到某选项卡且对应内容区域为空，自动执行搜索
+                const query = document.getElementById('searchQuery').value.trim();
+                if (query && query !== '') {
+                    // 检查对应的结果区域是否为空
+                    let shouldAutoSearch = false;
+                    let resultsContainerId = '';
+                    
+                    if (tab.dataset.tab === 'multi-separate') {
+                        resultsContainerId = 'multiSeparateResults';
+                        shouldAutoSearch = true;
+                    } else if (tab.dataset.tab === 'multi-merged') {
+                        resultsContainerId = 'multiMergedResults';
+                        shouldAutoSearch = true;
+                    } else if (tab.dataset.tab === 'single') {
+                        resultsContainerId = 'singleResults';
+                        shouldAutoSearch = true;
+                    } else if (tab.dataset.tab === 'individual') {
+                        resultsContainerId = 'individualResults';
+                        shouldAutoSearch = true;
+                    }
+                    
+                    if (shouldAutoSearch) {
+                        const resultsContainer = document.getElementById(resultsContainerId);
+                        // 只有当结果容器为空或只包含初始内容时才自动搜索
+                        if (resultsContainer && 
+                            (resultsContainer.innerHTML.trim() === '' || 
+                             resultsContainer.querySelector('.loading'))) {
+                            // 根据选项卡类型执行相应的搜索
+                            if (tab.dataset.tab === 'multi-separate') {
+                                testMultiSeparateSearch();
+                            } else if (tab.dataset.tab === 'multi-merged') {
+                                testMultiMergedSearch();
+                            } else if (tab.dataset.tab === 'single') {
+                                testSingleSearch();
+                            } else if (tab.dataset.tab === 'individual') {
+                                testIndividualSources();
+                            }
+                        }
+                    }
+                } else {
+                    // 如果没有查询词，则在选项卡中显示提示信息
+                    let resultsContainerId = '';
+                    let placeholderTitle = '';
+                    let placeholderContent = '';
+                    
+                    if (tab.dataset.tab === 'multi-separate') {
+                        resultsContainerId = 'multiSeparateResults';
+                        placeholderTitle = '多源分离搜索';
+                        placeholderContent = '请输入搜索关键词以执行多源分离搜索。多源分离搜索会从多个镜像仓库（如Docker Hub、GHCR、GCR等）分别获取结果并单独显示。';
+                    } else if (tab.dataset.tab === 'multi-merged') {
+                        resultsContainerId = 'multiMergedResults';
+                        placeholderTitle = '多源合并搜索';
+                        placeholderContent = '请输入搜索关键词以执行多源合并搜索。多源合并搜索会从多个镜像仓库获取结果并合并显示。';
+                    } else if (tab.dataset.tab === 'single') {
+                        resultsContainerId = 'singleResults';
+                        placeholderTitle = '单一搜索';
+                        placeholderContent = '请输入搜索关键词以执行单一搜索。';
+                    } else if (tab.dataset.tab === 'individual') {
+                        resultsContainerId = 'individualResults';
+                        placeholderTitle = '独立源测试';
+                        placeholderContent = '请输入搜索关键词以测试各个独立的镜像仓库源。';
+                    }
+                    
+                    const resultsContainer = document.getElementById(resultsContainerId);
+                    if (resultsContainer && resultsContainer.innerHTML.trim() === '') {
+                        resultsContainer.innerHTML = `<div class="result-card">
+                            <div class="result-header">
+                                <div class="result-title">${placeholderTitle}</div>
+                                <div class="result-source status-indicator status-pending">待执行</div>
+                            </div>
+                            <div class="result-content">${placeholderContent}</div>
+                        </div>`;
+                    }
+                }
+            });
+        });
+
+        // 测试函数
+        async function testSingleSearch() {
+            const query = document.getElementById('searchQuery').value.trim();
+            if (!query) {
+                alert('请输入搜索关键词');
+                return;
+            }
+
+            const resultsDiv = document.getElementById('singleResults');
+            resultsDiv.innerHTML = '<div class="loading"><div class="spinner"></div>正在搜索...</div>';
+
+            try {
+                const response = await fetch(`/search?q=${encodeURIComponent(query)}`);
+                const data = await response.json();
+                
+                displayResult(resultsDiv, 'Docker Hub 搜索', 'docker.io', data, response.status);
+            } catch (error) {
+                // 即使出现错误，也显示错误信息而不是隐藏结果
+                resultsDiv.innerHTML = `<div class="result-card">
+                    <div class="result-header">
+                        <div class="result-title">Docker Hub 搜索</div>
+                        <div class="result-source status-indicator status-error">Error</div>
+                    </div>
+                    <div class="result-content">${error.message}</div>
+                </div>`;
+            }
+        }
+
+        async function testMultiSeparateSearch() {
+            const query = document.getElementById('searchQuery').value.trim();
+            if (!query) {
+                alert('请输入搜索关键词');
+                return;
+            }
+
+            const resultsDiv = document.getElementById('multiSeparateResults');
+            resultsDiv.innerHTML = '<div class="loading"><div class="spinner"></div>正在搜索多个源...</div>';
+
+            try {
+                const startTime = Date.now();
+                const response = await fetch(`/search?q=${encodeURIComponent(query)}&multi_source=true`);
+                const responseTime = Date.now() - startTime;
+                const data = await response.json();
+                
+                console.log('多源分离搜索响应:', data); // 调试信息
+                
+                // 检查是否有错误
+                if (data.error || data.Error) {
+                    resultsDiv.innerHTML = `<div class="result-card">
+                        <div class="result-header">
+                            <div class="result-title">多源分离搜索</div>
+                            <div class="result-source status-indicator status-error">Error</div>
+                        </div>
+                        <div class="result-summary">
+                            <div class="summary-item">
+                                <span class="summary-label">HTTP状态码</span>
+                                <span class="summary-value">${response.status}</span>
+                            </div>
+                            <div class="summary-item">
+                                <span class="summary-label">响应时间</span>
+                                <span class="summary-value">${responseTime}ms</span>
+                            </div>
+                        </div>
+                        <div class="result-content">服务器返回错误: ${data.error || data.Error}</div>
+                    </div>`;
+                    return;
+                }
+                
+                if (data.multi_source_results && Array.isArray(data.multi_source_results)) {
+                    resultsDiv.innerHTML = '';
+                    
+                    // 显示总体摘要
+                    const totalSources = data.multi_source_results.length;
+                    const successfulSources = data.multi_source_results.filter(r => !(r.Error || r.error)).length;
+                    const totalResults = data.multi_source_results.reduce((sum, r) => 
+                        sum + (r.Results ? r.Results.length : r.results ? r.results.length : 0), 0);
+                    
+                    const summaryCard = document.createElement('div');
+                    summaryCard.className = 'result-card';
+                    summaryCard.innerHTML = `
+                        <div class="result-header">
+                            <div class="result-title">多源分离搜索 - 概览</div>
+                            <div class="result-source status-indicator status-success">Summary</div>
+                        </div>
+                        <div class="result-summary">
+                            <div class="summary-item">
+                                <span class="summary-label">HTTP状态码</span>
+                                <span class="summary-value">${response.status}</span>
+                            </div>
+                            <div class="summary-item">
+                                <span class="summary-label">响应时间</span>
+                                <span class="summary-value">${responseTime}ms</span>
+                            </div>
+                            <div class="summary-item">
+                                <span class="summary-label">数据源数量</span>
+                                <span class="summary-value">${totalSources}</span>
+                            </div>
+                            <div class="summary-item">
+                                <span class="summary-label">成功源数</span>
+                                <span class="summary-value">${successfulSources}</span>
+                            </div>
+                            <div class="summary-item">
+                                <span class="summary-label">总结果数</span>
+                                <span class="summary-value">${totalResults}</span>
+                            </div>
+                        </div>
+                    `;
+                    resultsDiv.appendChild(summaryCard);
+                    
+                    if (totalResults === 0 && successfulSources === 0) {
+                        const noResultsCard = document.createElement('div');
+                        noResultsCard.className = 'result-card';
+                        noResultsCard.innerHTML = `
+                            <div class="result-header">
+                                <div class="result-title">提示</div>
+                                <div class="result-source status-indicator status-error">无结果</div>
+                            </div>
+                            <div class="result-content">所有数据源均未返回结果。这可能是因为：
+                                1. 搜索的镜像名称不存在
+                                2. 网络连接问题导致API调用失败
+                                3. 搜索词过于特殊，没有匹配项
+                                4. 部分注册表暂时不可用
+                                
+                                请尝试使用更常见的搜索词，如 "nginx"、"redis" 或 "alpine"。
+                            </div>
+                        `;
+                        resultsDiv.appendChild(noResultsCard);
+                    }
+                    
+                    // 显示每个源的详细结果
+                    data.multi_source_results.forEach(result => {
+                        const title = `${result.Source || result.source || 'Unknown'} 搜索结果`;
+                        const hasError = result.Error || result.error;
+                        const status = hasError ? 'error' : (result.Results && result.Results.length > 0) || (result.results && result.results.length > 0) ? 'success' : 'pending';
+                        const statusText = hasError ? 'Error' : (result.Results && result.Results.length > 0) || (result.results && result.results.length > 0) ? 'Success' : 'No Results';
+                        const resultCount = result.Results ? result.Results.length : result.results ? result.results.length : 0;
+                        
+                        const resultCard = document.createElement('div');
+                        resultCard.className = 'result-card';
+                        resultCard.innerHTML = `
+                            <div class="result-header">
+                                <div class="result-title">${title}</div>
+                                <div class="result-source status-indicator status-${status}">${statusText}</div>
+                            </div>
+                            <div class="result-summary">
+                                <div class="summary-item">
+                                    <span class="summary-label">结果数量</span>
+                                    <span class="summary-value">${resultCount}</span>
+                                </div>
+                                <div class="summary-item">
+                                    <span class="summary-label">计数</span>
+                                    <span class="summary-value">${result.Count || result.count || 0}</span>
+                                </div>
+                            </div>
+                            <div class="result-content">${JSON.stringify(result, null, 2)}</div>
+                        `;
+                        resultsDiv.appendChild(resultCard);
+                    });
+                } else {
+                    resultsDiv.innerHTML = `<div class="result-card">
+                        <div class="result-header">
+                            <div class="result-title">多源分离搜索</div>
+                            <div class="result-source status-indicator status-error">Error</div>
+                        </div>
+                        <div class="result-summary">
+                            <div class="summary-item">
+                                <span class="summary-label">HTTP状态码</span>
+                                <span class="summary-value">${response.status}</span>
+                            </div>
+                            <div class="summary-item">
+                                <span class="summary-label">响应时间</span>
+                                <span class="summary-value">${responseTime}ms</span>
+                            </div>
+                        </div>
+                        <div class="result-content">没有返回预期的数据格式。响应内容: ${JSON.stringify(data)}</div>
+                    </div>`;
+                }
+            } catch (error) {
+                console.error('多源分离搜索错误:', error); // 调试信息
+                // 即使出现错误，也显示错误信息而不是隐藏结果
+                resultsDiv.innerHTML = `<div class="result-card">
+                    <div class="result-header">
+                        <div class="result-title">多源分离搜索</div>
+                        <div class="result-source status-indicator status-error">Error</div>
+                    </div>
+                    <div class="result-content">搜索发生错误: ${error.message}<br>请检查浏览器控制台获取更多详细信息。</div>
+                </div>`;
+            }
+        }
+
+        async function testMultiMergedSearch() {
+            const query = document.getElementById('searchQuery').value.trim();
+            if (!query) {
+                alert('请输入搜索关键词');
+                return;
+            }
+
+            const resultsDiv = document.getElementById('multiMergedResults');
+            resultsDiv.innerHTML = '<div class="loading"><div class="spinner"></div>正在搜索...</div>';
+
+            try {
+                const startTime = Date.now();
+                const response = await fetch(`/search?q=${encodeURIComponent(query)}&multi_source=true&merged=true`);
+                const responseTime = Date.now() - startTime;
+                const data = await response.json();
+                
+                console.log('多源合并搜索响应:', data); // 调试信息
+                
+                // 检查是否有错误
+                if (data.error || data.Error) {
+                    resultsDiv.innerHTML = `<div class="result-card">
+                        <div class="result-header">
+                            <div class="result-title">多源合并搜索</div>
+                            <div class="result-source status-indicator status-error">Error</div>
+                        </div>
+                        <div class="result-summary">
+                            <div class="summary-item">
+                                <span class="summary-label">HTTP状态码</span>
+                                <span class="summary-value">${response.status}</span>
+                            </div>
+                            <div class="summary-item">
+                                <span class="summary-label">响应时间</span>
+                                <span class="summary-value">${responseTime}ms</span>
+                            </div>
+                        </div>
+                        <div class="result-content">服务器返回错误: ${data.error || data.Error}</div>
+                    </div>`;
+                    return;
+                }
+                
+                // 计算结果摘要
+                let resultCount = 0;
+                if (data.results) {
+                    resultCount = Array.isArray(data.results) ? data.results.length : 0;
+                }
+                
+                // 检查是否有结果
+                const hasAnyResults = resultCount > 0;
+                
+                // 确定状态和文本
+                const finalStatus = hasAnyResults ? 'success' : 'pending';
+                const finalStatusText = hasAnyResults ? 'Success' : 'No Results';
+                
+                resultsDiv.innerHTML = `
+                    <div class="result-card">
+                        <div class="result-header">
+                            <div class="result-title">多源合并搜索</div>
+                            <div class="result-source status-indicator status-${finalStatus}">${finalStatusText}</div>
+                        </div>
+                        <div class="result-summary">
+                            <div class="summary-item">
+                                <span class="summary-label">HTTP状态码</span>
+                                <span class="summary-value">${response.status}</span>
+                            </div>
+                            <div class="summary-item">
+                                <span class="summary-label">响应时间</span>
+                                <span class="summary-value">${responseTime}ms</span>
+                            </div>
+                            <div class="summary-item">
+                                <span class="summary-label">结果数量</span>
+                                <span class="summary-value">${resultCount}</span>
+                            </div>
+                            <div class="summary-item">
+                                <span class="summary-label">数据源数量</span>
+                                <span class="summary-value">多个源</span>
+                            </div>
+                        </div>
+                        ${!hasAnyResults ? `
+                        <div class="result-content">所有数据源均未返回结果。这可能是因为：
+                            1. 搜索的镜像名称不存在
+                            2. 网络连接问题导致API调用失败
+                            3. 搜索词过于特殊，没有匹配项
+                            4. 部分注册表暂时不可用
+                            
+                            请尝试使用更常见的搜索词，如 "nginx"、"redis" 或 "alpine"。
+                        </div>` : `
+                        <div class="result-content">响应数据:\n${JSON.stringify(data, null, 2)}</div>`}
+                    </div>
+                `;
+            } catch (error) {
+                console.error('多源合并搜索错误:', error); // 调试信息
+                // 即使出现错误，也显示错误信息而不是隐藏结果
+                resultsDiv.innerHTML = `<div class="result-card">
+                    <div class="result-header">
+                        <div class="result-title">多源合并搜索</div>
+                        <div class="result-source status-indicator status-error">Error</div>
+                    </div>
+                    <div class="result-summary">
+                        <div class="summary-item">
+                            <span class="summary-label">错误类型</span>
+                            <span class="summary-value">${error.name}</span>
+                        </div>
+                    </div>
+                    <div class="result-content">搜索发生错误: ${error.message}<br>请检查浏览器控制台获取更多详细信息。</div>
+                </div>`;
+            }
+        }
+
+        async function testIndividualSources() {
+            const query = document.getElementById('searchQuery').value.trim();
+            if (!query) {
+                alert('请输入搜索关键词');
+                return;
+            }
+
+            const resultsDiv = document.getElementById('individualResults');
+            resultsDiv.innerHTML = '<div class="loading"><div class="spinner"></div>正在测试各个源...</div>';
+
+            // 测试每个源的独立端点
+            const sources = [
+                { name: 'Docker Hub', endpoint: `/search?q=${encodeURIComponent(query)}`, source: 'docker.io' },
+                { name: 'GHCR', endpoint: `/search?q=${encodeURIComponent(query)}&multi_source=true&merged=true`, source: 'ghcr.io' },
+                { name: 'GCR', endpoint: `/search?q=${encodeURIComponent(query)}&multi_source=true&merged=true`, source: 'gcr.io' },
+                { name: 'Quay.io', endpoint: `/search?q=${encodeURIComponent(query)}&multi_source=true&merged=true`, source: 'quay.io' },
+                { name: 'K8s Registry', endpoint: `/search?q=${encodeURIComponent(query)}&multi_source=true&merged=true`, source: 'registry.k8s.io' }
+            ];
+
+            resultsDiv.innerHTML = '';
+
+            for (const source of sources) {
+                try {
+                    const startTime = Date.now();
+                    const response = await fetch(source.endpoint);
+                    const responseTime = Date.now() - startTime;
+                    const data = await response.json();
+                    
+                    // 计算该源的结果数量
+                    let resultCount = 0;
+                    if (data.results) {
+                        resultCount = Array.isArray(data.results) ? data.results.length : 0;
+                    }
+                    if (data.multi_source_results) {
+                        // 如果是多源结果，计算特定源的结果数
+                        const sourceResult = data.multi_source_results.find(r => 
+                            r.Source === source.source || r.source === source.source
+                        );
+                        if (sourceResult && sourceResult.Results) {
+                            resultCount = sourceResult.Results.length;
+                        }
+                    }
+                    
+                    const hasResults = resultCount > 0;
+                    const status = hasResults ? 'success' : 'error';
+                    const statusText = hasResults ? 'Success' : 'No Results';
+                    
+                    const resultCard = document.createElement('div');
+                    resultCard.className = 'result-card';
+                    resultCard.innerHTML = `
+                        <div class="result-header">
+                            <div class="result-title">${source.name}</div>
+                            <div class="result-source status-indicator status-${status}">${statusText}</div>
+                        </div>
+                        <div class="api-endpoint">${source.endpoint}</div>
+                        <div class="result-summary">
+                            <div class="summary-item">
+                                <span class="summary-label">HTTP状态码</span>
+                                <span class="summary-value">${response.status}</span>
+                            </div>
+                            <div class="summary-item">
+                                <span class="summary-label">响应时间</span>
+                                <span class="summary-value">${responseTime}ms</span>
+                            </div>
+                            <div class="summary-item">
+                                <span class="summary-label">结果数量</span>
+                                <span class="summary-value">${resultCount}</span>
+                            </div>
+                        </div>
+                        <div class="result-content">响应数据:\n${JSON.stringify(data, null, 2)}</div>
+                    `;
+                    resultsDiv.appendChild(resultCard);
+                    
+                    // 短暂延迟，避免请求过于频繁
+                    await new Promise(resolve => setTimeout(resolve, 300));
+                } catch (error) {
+                    const resultCard = document.createElement('div');
+                    resultCard.className = 'result-card';
+                    resultCard.innerHTML = `
+                        <div class="result-header">
+                            <div class="result-title">${source.name}</div>
+                            <div class="result-source status-indicator status-error">Error</div>
+                        </div>
+                        <div class="api-endpoint">${source.endpoint}</div>
+                        <div class="result-summary">
+                            <div class="summary-item">
+                                <span class="summary-label">错误信息</span>
+                                <span class="summary-value">请求失败</span>
+                            </div>
+                        </div>
+                        <div class="result-content">错误详情:\n${error.message}</div>
+                    `;
+                    resultsDiv.appendChild(resultCard);
+                }
+            }
+        }
+
+        function displayResult(container, title, source, data, statusCode) {
+            const hasResults = data && ((Array.isArray(data.results) && data.results.length > 0) || 
+                                       (data.multi_source_results && data.multi_source_results.length > 0) ||
+                                       (Array.isArray(data) && data.length > 0));
+            const status = hasResults ? 'success' : 'error';
+            const statusText = hasResults ? 'Success' : 'No Results';
+            
+            // 计算结果摘要
+            let resultCount = 0;
+            let sourceCount = 0;
+            if (data.results) {
+                resultCount = Array.isArray(data.results) ? data.results.length : 0;
+            }
+            if (data.multi_source_results) {
+                sourceCount = Array.isArray(data.multi_source_results) ? data.multi_source_results.length : 0;
+                // 计算所有源的总结果数
+                resultCount = data.multi_source_results.reduce((sum, sourceRes) => 
+                    sum + (Array.isArray(sourceRes.Results) ? sourceRes.Results.length : 0), 0);
+            }
+            
+            container.innerHTML = `
+                <div class="result-card">
+                    <div class="result-header">
+                        <div class="result-title">${title}</div>
+                        <div class="result-source status-indicator status-${status}">${statusText}</div>
+                    </div>
+                    <div class="result-summary">
+                        <div class="summary-item">
+                            <span class="summary-label">HTTP状态码</span>
+                            <span class="summary-value">${statusCode}</span>
+                        </div>
+                        <div class="summary-item">
+                            <span class="summary-label">结果数量</span>
+                            <span class="summary-value">${resultCount}</span>
+                        </div>
+                        <div class="summary-item">
+                            <span class="summary-label">数据源数量</span>
+                            <span class="summary-value">${sourceCount || 1}</span>
+                        </div>
+                    </div>
+                    <div class="result-content">响应数据:\n${JSON.stringify(data, null, 2)}</div>
+                </div>
+            `;
+        }
+
+        // URL参数解析函数
+        function getUrlParams() {
+            const params = new URLSearchParams(window.location.search);
+            return {
+                q: params.get('q') || '',
+                page: params.get('page') || '1',
+                page_size: params.get('page_size') || '25',
+                multi_source: params.get('multi_source') !== null,
+                merged: params.get('merged') !== null
+            };
+        }
+
+        // 构建API端点URL
+        function buildApiUrl(params) {
+            let url = '/search?q=' + encodeURIComponent(params.q);
+            if (params.page) url += `&page=${params.page}`;
+            if (params.page_size) url += `&page_size=${params.page_size}`;
+            if (params.multi_source) url += '&multi_source=true';
+            if (params.merged) url += '&merged=true';
+            return url;
+        }
+
+        // 根据URL参数自动执行搜索
+        window.addEventListener('load', () => {
+            // 检查URL是否包含我们关心的搜索参数
+            const urlParams = new URLSearchParams(window.location.search);
+            const hasSearchParams = urlParams.has('q') || urlParams.has('page') || urlParams.has('page_size') || 
+                                   urlParams.has('multi_source') || urlParams.has('merged');
+                                    
+            if (hasSearchParams) {
+                const params = getUrlParams();
+                if (params.q && params.q.trim() !== '') {
+                    document.getElementById('searchQuery').value = params.q;
+                    
+                    // 设置页面中的其他参数
+                    if (params.page) document.getElementById('searchPage').value = params.page;
+                    if (params.page_size) document.getElementById('searchPageSize').value = params.page_size;
+                    if (params.multi_source) document.getElementById('searchMultiSource').checked = true;
+                    if (params.merged) document.getElementById('searchMerged').checked = true;
+                    
+                    // 根据参数自动执行相应的搜索类型（仅在页面加载时执行一次）
+                    setTimeout(() => {
+                        if (params.multi_source && params.merged) {
+                            testWithParams(); // 使用带参数的搜索
+                        } else if (params.multi_source) {
+                            testWithParams(); // 使用带参数的搜索
+                        } else {
+                            testWithParams(); // 使用带参数的搜索
+                        }
+                    }, 100); // 稍微延时以确保UI元素已完全加载
+                }
+            }
+        });
+
+        // 更新浏览器URL而不刷新页面
+        function updateUrl(params) {
+            const queryString = Object.keys(params)
+                .filter(key => params[key] !== '' && params[key] !== false)
+                .map(key => `${key}=${encodeURIComponent(params[key])}`)
+                .join('&');
+            
+            const newUrl = queryString ? `?${queryString}` : '?';
+            window.history.replaceState({}, '', newUrl);
+        }
+
+        // 事件监听器
+        document.getElementById('testSingle').addEventListener('click', testSingleSearch);
+        document.getElementById('testMultiSeparate').addEventListener('click', testMultiSeparateSearch);
+        document.getElementById('testMultiMerged').addEventListener('click', testMultiMergedSearch);
+        document.getElementById('testAllSources').addEventListener('click', testIndividualSources);
+
+        // 回车键搜索
+        document.getElementById('searchQuery').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                testSingleSearch();
+            }
+        });
+
+        // 添加高级搜索选项
+        document.querySelector('.search-section').insertAdjacentHTML('beforeend', `
+            <div class="form-group" style="margin-top: 1rem;">
+                <div class="input-group">
+                    <label for="searchPage">页码</label>
+                    <input type="number" id="searchPage" placeholder="页码，默认1" value="1" min="1">
+                </div>
+                <div class="input-group">
+                    <label for="searchPageSize">每页大小</label>
+                    <input type="number" id="searchPageSize" placeholder="每页结果数，默认25" value="25" min="1" max="100">
+                </div>
+                <div class="input-group" style="align-self: flex-end;">
+                    <label>
+                        <input type="checkbox" id="searchMultiSource"> 多源搜索
+                    </label>
+                </div>
+                <div class="input-group" style="align-self: flex-end;">
+                    <label>
+                        <input type="checkbox" id="searchMerged"> 合并结果
+                    </label>
+                </div>
+            </div>
+            <div class="btn-group" style="margin-top: 1rem;">
+                <button id="testWithParams">使用参数搜索</button>
+            </div>
+        `);
+
+        // 使用参数搜索函数
+        async function testWithParams() {
+            const query = document.getElementById('searchQuery').value.trim();
+            if (!query) {
+                alert('请输入搜索关键词');
+                return;
+            }
+
+            const page = document.getElementById('searchPage').value || '1';
+            const pageSize = document.getElementById('searchPageSize').value || '25';
+            const multiSource = document.getElementById('searchMultiSource').checked;
+            const merged = document.getElementById('searchMerged').checked;
+
+            // 更新URL参数
+            const params = { q: query, page, page_size: pageSize };
+            if (multiSource) params.multi_source = true;
+            if (merged) params.merged = true;
+            updateUrl(params);
+
+            const resultsDiv = document.getElementById('singleResults');
+            resultsDiv.innerHTML = '<div class="loading"><div class="spinner"></div>正在搜索...</div>';
+
+            try {
+                const startTime = Date.now();
+                const apiUrl = buildApiUrl(params);
+                const response = await fetch(apiUrl);
+                const responseTime = Date.now() - startTime;
+                const data = await response.json();
+                
+                const hasResults = data && ((Array.isArray(data.results) && data.results.length > 0) || 
+                                           (data.multi_source_results && data.multi_source_results.length > 0) ||
+                                           (Array.isArray(data) && data.length > 0));
+                const status = hasResults ? 'success' : 'error';
+                const statusText = hasResults ? 'Success' : 'No Results';
+                
+                // 计算结果摘要
+                let resultCount = 0;
+                let sourceCount = 0;
+                if (data.results) {
+                    resultCount = Array.isArray(data.results) ? data.results.length : 0;
+                }
+                if (data.multi_source_results) {
+                    sourceCount = Array.isArray(data.multi_source_results) ? data.multi_source_results.length : 0;
+                    // 计算所有源的总结果数
+                    resultCount = data.multi_source_results.reduce((sum, sourceRes) => 
+                        sum + (Array.isArray(sourceRes.Results) ? sourceRes.Results.length : 0), 0);
+                }
+                
+                resultsDiv.innerHTML = `
+                    <div class="result-card">
+                        <div class="result-header">
+                            <div class="result-title">带参数搜索</div>
+                            <div class="result-source status-indicator status-${status}">${statusText}</div>
+                        </div>
+                        <div class="api-endpoint">${apiUrl}</div>
+                        <div class="result-summary">
+                            <div class="summary-item">
+                                <span class="summary-label">HTTP状态码</span>
+                                <span class="summary-value">${response.status}</span>
+                            </div>
+                            <div class="summary-item">
+                                <span class="summary-label">响应时间</span>
+                                <span class="summary-value">${responseTime}ms</span>
+                            </div>
+                            <div class="summary-item">
+                                <span class="summary-label">结果数量</span>
+                                <span class="summary-value">${resultCount}</span>
+                            </div>
+                            <div class="summary-item">
+                                <span class="summary-label">数据源数量</span>
+                                <span class="summary-value">${sourceCount || 1}</span>
+                            </div>
+                        </div>
+                        <div class="result-content">响应数据:\n${JSON.stringify(data, null, 2)}</div>
+                    </div>
+                `;
+            } catch (error) {
+                resultsDiv.innerHTML = `<div class="result-card">
+                    <div class="result-header">
+                        <div class="result-title">带参数搜索</div>
+                        <div class="result-source status-indicator status-error">Error</div>
+                    </div>
+                    <div class="api-endpoint">${buildApiUrl({q: query, page, page_size: pageSize, multi_source: multiSource, merged})}</div>
+                    <div class="result-content">${error.message}</div>
+                </div>`;
+            }
+        }
+
+        // 主题切换功能
+        const themeToggle = document.getElementById('themeToggle');
+        const html = document.documentElement;
+                 
+        const savedTheme = localStorage.getItem('theme');
+        const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+        
+        if (savedTheme === 'dark' || (!savedTheme && prefersDark)) {
+            html.classList.add('dark');
+            themeToggle.textContent = '☀️';
+        }
+        
+        themeToggle.addEventListener('click', () => {
+            html.classList.toggle('dark');
+            const isDark = html.classList.contains('dark');
+            themeToggle.textContent = isDark ? '☀️' : '🌙';
+            localStorage.setItem('theme', isDark ? 'dark' : 'light');
+        });
+        
+        // 移动端菜单功能
+        const mobileMenuToggle = document.getElementById('mobileMenuToggle');
+        const navLinks = document.getElementById('navLinks');
+        
+        if (mobileMenuToggle && navLinks) {
+            mobileMenuToggle.addEventListener('click', () => {
+                navLinks.classList.toggle('active');
+                mobileMenuToggle.textContent = navLinks.classList.contains('active') ? '✕' : '☰';
+            });
+            
+            document.addEventListener('click', (e) => {
+                if (!e.target.closest('.navbar') && navLinks && navLinks.classList.contains('active')) {
+                    navLinks.classList.remove('active');
+                    mobileMenuToggle.textContent = '☰';
+                }
+            });
+        }
+    </script>
+</body>
+</html>

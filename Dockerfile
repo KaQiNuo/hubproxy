@@ -4,6 +4,9 @@ ARG TARGETARCH
 
 WORKDIR /app
 COPY src/go.mod src/go.sum ./
+
+# 设置Go模块代理
+RUN go env -w GOPROXY=https://goproxy.cn,direct
 RUN go mod download && apk add upx
 
 COPY src/ .
