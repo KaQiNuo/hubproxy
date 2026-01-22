@@ -220,8 +220,47 @@ func searchGHCR(ctx context.Context, query string, page, pageSize int) (*SearchR
 
 // searchGHCRByPackagesAPI 通过GitHub Packages API搜索GHCR包
 func searchGHCRByPackagesAPI(ctx context.Context, query string, page, pageSize int) (*SearchResult, error) {
-	// GitHub Packages API URL for containers
-	apiURL := fmt.Sprintf("https://api.github.com/search/repositories?q=%s+in:name,description,readme+topic:container", url.QueryEscape(query))
+	// 直接检查是否存在指定的包
+	// 尝试直接构建包的路径并检查是否存在
+	repositories := make([]Repository, 0)
+	
+	// 检查是否是完整的包路径（如 BerriAI/litellm）
+	if strings.Contains(query, "/") {
+		parts := strings.Split(query, "/")
+		if len(parts) == 2 {
+			owner := parts[0]
+			packageName := parts[1]
+			// 直接检查这个包是否存在
+			if checkDirectPackageExists(ctx, owner, packageName) {
+				// 创建Repository对象
+				repo := Repository{
+					Name:        fmt.Sprintf("%s/%s", owner, packageName),
+					Description: "",
+					IsOfficial:  false,
+					IsAutomated: true,
+					StarCount:   0,
+					PullCount:   0,
+					RepoOwner:   owner,
+					LastUpdated: "",
+					Status:      1,
+					Organization: owner,
+					PullsLastWeek: 0,
+					Namespace:   owner,
+					Source:      "ghcr.io",
+				}
+				repositories = append(repositories, repo)
+				return &SearchResult{
+					Count:    1,
+					Next:     "",
+					Previous: "",
+					Results:  repositories,
+				}, nil
+			}
+		}
+	}
+	
+	// 如果不是完整路径，尝试搜索仓库
+	apiURL := fmt.Sprintf("https://api.github.com/search/repositories?q=%s+in:name,description,readme", url.QueryEscape(query))
 	
 	req, err := http.NewRequestWithContext(ctx, "GET", apiURL, nil)
 	if err != nil {
@@ -274,8 +313,6 @@ func searchGHCRByPackagesAPI(ctx context.Context, query string, page, pageSize i
 	}
 	
 	// 现在对每个仓库尝试查找对应的容器包
-	repositories := make([]Repository, 0)
-	
 	// 计算分页范围
 	startIdx := (page - 1) * pageSize
 	if startIdx >= len(githubResult.Items) {
@@ -295,17 +332,16 @@ func searchGHCRByPackagesAPI(ctx context.Context, query string, page, pageSize i
 	selectedItems := githubResult.Items[startIdx:endIdx]
 	
 	for _, item := range selectedItems {
-		// 检查此仓库是否有容器包
-		hasContainerPackage, packageName := checkRepositoryForContainerPackage(ctx, item.Owner.Login, item.Name)
-		if hasContainerPackage {
+		// 直接检查这个包是否存在
+		if checkDirectPackageExists(ctx, item.Owner.Login, item.Name) {
 			// 创建Repository对象
 			repo := Repository{
-				Name:        packageName, // 实际的包名
+				Name:        fmt.Sprintf("%s/%s", item.Owner.Login, item.Name),
 				Description: item.Description,
 				IsOfficial:  false,
 				IsAutomated: true,
 				StarCount:   item.Stars,
-				PullCount:   0, // GHCR不提供下载次数
+				PullCount:   0,
 				RepoOwner:   item.Owner.Login,
 				LastUpdated: item.UpdatedAt,
 				Status:      1,
@@ -326,54 +362,100 @@ func searchGHCRByPackagesAPI(ctx context.Context, query string, page, pageSize i
 	}, nil
 }
 
-// checkRepositoryForContainerPackage 检查仓库是否有容器包
-func checkRepositoryForContainerPackage(ctx context.Context, owner, repo string) (bool, string) {
-	// 检查GitHub Packages中的容器包
-	packageURL := fmt.Sprintf("https://api.github.com/users/%s/packages?package_type=container", owner)
+// checkDirectPackageExists 直接检查包是否存在
+func checkDirectPackageExists(ctx context.Context, owner, packageName string) bool {
+	// 直接构建包的URL并检查是否存在
+	packageURL := fmt.Sprintf("https://ghcr.io/v2/%s/%s/tags/list", owner, packageName)
 	
 	req, err := http.NewRequestWithContext(ctx, "GET", packageURL, nil)
 	if err != nil {
-		return false, ""
+		return false
 	}
 	
-	req.Header.Set("Accept", "application/vnd.github.v3+json")
+	// 设置适当的请求头
 	req.Header.Set("User-Agent", "HubProxy")
 	
 	resp, err := utils.GetSearchHTTPClient().Do(req)
 	if err != nil {
-		return false, ""
+		return false
 	}
-	defer safeCloseResponseBody(resp.Body, "GitHub Packages API响应体")
+	defer safeCloseResponseBody(resp.Body, "GHCR API响应体")
 	
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return false, ""
-	}
+	// 检查响应状态码
+	// 如果返回200或401（需要认证但存在），则认为包存在
+	return resp.StatusCode == http.StatusOK || resp.StatusCode == http.StatusUnauthorized
+}
+
+// checkRepositoryForContainerPackage 检查仓库是否有容器包
+func checkRepositoryForContainerPackage(ctx context.Context, owner, repo string) (bool, string) {
+	fmt.Printf("检查仓库 %s/%s 是否有容器包\n", owner, repo)
 	
-	if resp.StatusCode != http.StatusOK {
-		return false, ""
-	}
-	
-	// 解析包列表
-	var packages []struct {
-		Name       string `json:"name"`
-		PackageType string `json:"package_type"`
-		Owner      struct {
-			Login string `json:"login"`
-		} `json:"owner"`
+	// 尝试用户和组织的接口
+	endpoints := []string{
+		fmt.Sprintf("https://api.github.com/users/%s/packages?package_type=container", owner),
+		fmt.Sprintf("https://api.github.com/orgs/%s/packages?package_type=container", owner),
 	}
 	
-	if err := json.Unmarshal(body, &packages); err != nil {
-		return false, ""
-	}
-	
-	// 查找匹配的包名
-	for _, pkg := range packages {
-		if strings.EqualFold(pkg.Name, repo) && strings.EqualFold(pkg.PackageType, "container") {
-			return true, fmt.Sprintf("%s/%s", pkg.Owner.Login, pkg.Name)
+	for _, packageURL := range endpoints {
+		fmt.Printf("尝试访问: %s\n", packageURL)
+		req, err := http.NewRequestWithContext(ctx, "GET", packageURL, nil)
+		if err != nil {
+			fmt.Printf("创建请求失败: %v\n", err)
+			continue
+		}
+		
+		req.Header.Set("Accept", "application/vnd.github.v3+json")
+		req.Header.Set("User-Agent", "HubProxy")
+		
+		resp, err := utils.GetSearchHTTPClient().Do(req)
+		if err != nil {
+			fmt.Printf("请求失败: %v\n", err)
+			continue
+		}
+		defer safeCloseResponseBody(resp.Body, "GitHub Packages API响应体")
+		
+		body, err := io.ReadAll(resp.Body)
+		if err != nil {
+			fmt.Printf("读取响应失败: %v\n", err)
+			continue
+		}
+		
+		if resp.StatusCode != http.StatusOK {
+			fmt.Printf("响应状态码: %d, 响应内容: %s\n", resp.StatusCode, string(body))
+			continue
+		}
+		
+		fmt.Printf("成功获取包列表，响应长度: %d\n", len(body))
+		
+		// 解析包列表
+		var packages []struct {
+			Name       string `json:"name"`
+			PackageType string `json:"package_type"`
+			Owner      struct {
+				Login string `json:"login"`
+			} `json:"owner"`
+		}
+		
+		if err := json.Unmarshal(body, &packages); err != nil {
+			fmt.Printf("解析包列表失败: %v, 响应内容: %s\n", err, string(body))
+			continue
+		}
+		
+		fmt.Printf("解析到 %d 个包\n", len(packages))
+		for i, pkg := range packages {
+			fmt.Printf("第%d个包: %s/%s (类型: %s)\n", i+1, pkg.Owner.Login, pkg.Name, pkg.PackageType)
+		}
+		
+		// 查找匹配的包名
+		for _, pkg := range packages {
+			if strings.EqualFold(pkg.Name, repo) && strings.EqualFold(pkg.PackageType, "container") {
+				fmt.Printf("找到匹配的容器包: %s/%s\n", pkg.Owner.Login, pkg.Name)
+				return true, fmt.Sprintf("%s/%s", pkg.Owner.Login, pkg.Name)
+			}
 		}
 	}
 	
+	fmt.Printf("未找到 %s/%s 的容器包\n", owner, repo)
 	return false, ""
 }
 
@@ -1157,18 +1239,21 @@ func RegisterSearchRoute(r *gin.Engine) {
 				// 返回合并后的结果
 				result, err := searchMultiRegistriesMerged(c.Request.Context(), query, page, pageSize)
 				if err != nil {
-					sendErrorResponse(c, err.Error())
+					// 即使有错误，也返回空结果而不是错误响应
+					c.JSON(http.StatusOK, &SearchResult{
+						Count:    0,
+						Next:     "",
+						Previous: "",
+						Results:  []Repository{},
+					})
 					return
 				}
 				
 				c.JSON(http.StatusOK, result)
 			} else {
 				// 返回各源的独立结果
-				results, err := searchMultiRegistries(c.Request.Context(), query, page, pageSize)
-				if err != nil {
-					sendErrorResponse(c, err.Error())
-					return
-				}
+				results, _ := searchMultiRegistries(c.Request.Context(), query, page, pageSize)
+				// 忽略错误，因为searchMultiRegistries已经在内部处理了所有错误情况
 				
 				c.JSON(http.StatusOK, gin.H{
 					"multi_source_results": results,
@@ -1192,28 +1277,25 @@ func RegisterSearchRoute(r *gin.Engine) {
 
 	// 新增多源搜索专用路由
 	r.GET("/search/multi", func(c *gin.Context) {
-		query := c.Query("q")
-		if query == "" {
-			sendErrorResponse(c, "搜索关键词不能为空")
-			return
-		}
+			query := c.Query("q")
+			if query == "" {
+				sendErrorResponse(c, "搜索关键词不能为空")
+				return
+			}
 
-		page, pageSize := parsePaginationParams(c, defaultPageSize)
+			page, pageSize := parsePaginationParams(c, defaultPageSize)
 
-		results, err := searchMultiRegistries(c.Request.Context(), query, page, pageSize)
-		if err != nil {
-			sendErrorResponse(c, err.Error())
-			return
-		}
+			results, _ := searchMultiRegistries(c.Request.Context(), query, page, pageSize)
+			// 忽略错误，因为searchMultiRegistries已经在内部处理了所有错误情况
 
-		c.JSON(http.StatusOK, gin.H{
-			"multi_source_results": results,
-			"total_sources":        len(results),
-			"query":                query,
-			"page":                 page,
-			"page_size":            pageSize,
+			c.JSON(http.StatusOK, gin.H{
+				"multi_source_results": results,
+				"total_sources":        len(results),
+				"query":                query,
+				"page":                 page,
+				"page_size":            pageSize,
+			})
 		})
-	})
 
 	r.GET("/tags/:namespace/:name", func(c *gin.Context) {
 		namespace := c.Param("namespace")
