@@ -83,88 +83,88 @@
             transition: background-color 0.3s, color 0.3s;
         }
 
-        .navbar {
-            position: sticky !important;
-            top: 0 !important;
-            z-index: 50 !important;
-            width: 100% !important;
-            border-bottom: 1px solid var(--border) !important;
-            background-color: var(--background) !important;
-            backdrop-filter: blur(8px) !important;
-            background-color: rgba(255, 255, 255, 0.95) !important;
-            padding: 0 !important;
-            margin: 0 !important;
+        nav.navbar {
+            position: sticky;
+            top: 0;
+            z-index: 50;
+            width: 100%;
+            border-bottom: 1px solid var(--border);
+            background-color: var(--background);
+            backdrop-filter: blur(8px);
+            background-color: rgba(255, 255, 255, 0.95);
+            padding: 0;
+            margin: 0;
         }
 
-        .dark .navbar {
-            background-color: rgba(15, 23, 42, 0.95) !important;
+        .dark nav.navbar {
+            background-color: rgba(15, 23, 42, 0.95);
         }
 
-        .navbar-container {
-            max-width: 1200px !important;
-            margin: 0 auto !important;
-            padding: 0 1rem !important;
-            display: flex !important;
-            align-items: center !important;
-            justify-content: space-between !important;
-            height: 4rem !important;
+        .navbar .navbar-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 1rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            height: 4rem;
         }
 
-        .logo {
-            display: flex !important;
-            align-items: center !important;
-            gap: 0.5rem !important;
-            text-decoration: none !important;
-            color: var(--foreground) !important;
-            font-weight: 600 !important;
-            font-size: 1.125rem !important;
+        .navbar .logo {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            text-decoration: none;
+            color: var(--foreground);
+            font-weight: 600;
+            font-size: 1.125rem;
         }
 
-        .logo-icon {
-            width: 2rem !important;
-            height: 2rem !important;
-            border-radius: 0.5rem !important;
-            background: linear-gradient(135deg, var(--primary), #3b82f6) !important;
-            display: flex !important;
-            align-items: center !important;
-            justify-content: center !important;
-            color: white !important;
+        .navbar .logo-icon {
+            width: 2rem;
+            height: 2rem;
+            border-radius: 0.5rem;
+            background: linear-gradient(135deg, var(--primary), #3b82f6);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
         }
 
-        .nav-links {
-            display: flex !important;
-            align-items: center !important;
-            gap: 0.5rem !important;
+        .navbar .nav-links {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
         }
 
-        .nav-link {
-            padding: 0.5rem 1rem !important;
-            border-radius: var(--radius) !important;
-            text-decoration: none !important;
-            color: var(--muted-foreground) !important;
-            transition: all 0.2s !important;
-            font-weight: 500 !important;
+        .navbar .nav-link {
+            padding: 0.5rem 1rem;
+            border-radius: var(--radius);
+            text-decoration: none;
+            color: var(--muted-foreground);
+            transition: all 0.2s;
+            font-weight: 500;
         }
 
-        .nav-link:hover,
-        .nav-link.active {
-            color: var(--foreground) !important;
-            background-color: var(--muted) !important;
+        .navbar .nav-link:hover,
+        .navbar .nav-link.active {
+            color: var(--foreground);
+            background-color: var(--muted);
         }
 
-        .theme-toggle {
-            padding: 0.5rem !important;
-            border: none !important;
-            border-radius: var(--radius) !important;
-            background-color: transparent !important;
-            color: var(--muted-foreground) !important;
-            cursor: pointer !important;
-            transition: all 0.2s !important;
+        .navbar .theme-toggle {
+            padding: 0.5rem;
+            border: none;
+            border-radius: var(--radius);
+            background-color: transparent;
+            color: var(--muted-foreground);
+            cursor: pointer;
+            transition: all 0.2s;
         }
 
-        .theme-toggle:hover {
-            background-color: var(--muted) !important;
-            color: var(--foreground) !important;
+        .navbar .theme-toggle:hover {
+            background-color: var(--muted);
+            color: var(--foreground);
         }
 
         .main {
@@ -220,7 +220,7 @@
             }
             
             .mobile-menu-toggle {
-                display: block !important;
+                display: block;
                 background: none;
                 border: none;
                 color: var(--foreground);
@@ -236,22 +236,11 @@
             }
             
             .navbar-container {
-                justify-content: space-between !important;
+                justify-content: space-between;
             }
         }
 
-        .container {
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 0 1rem;
-        }
 
-        h1 {
-            text-align: center;
-            margin-bottom: 2rem;
-            color: var(--primary);
-            font-size: 2rem;
-        }
 
         .search-section {
             background: var(--card);
@@ -537,8 +526,7 @@
                         <label>&nbsp;</label>
                         <div class="btn-group">
                             <button type="button" id="testSingle">测试单一搜索</button>
-                            <button type="button" id="testMultiSeparate">测试多源分离</button>
-                            <button type="button" id="testMultiMerged">测试多源合并</button>
+                            
                             <button type="button" id="testAllSources">测试全部源</button>
                         </div>
                     </div>
@@ -547,8 +535,6 @@
 
             <div class="tabs">
                 <div class="tab active" data-tab="single">单一搜索</div>
-                <div class="tab" data-tab="multi-separate">多源分离</div>
-                <div class="tab" data-tab="multi-merged">多源合并</div>
                 <div class="tab" data-tab="individual">独立源测试</div>
             </div>
 
@@ -577,7 +563,713 @@
     </main>
 
     <script>
-        // Tab切换功能
+        // 模块化结构
+        const ApiTester = {
+            // DOM元素缓存
+            elements: {
+                searchQuery: document.getElementById('searchQuery'),
+                testSingle: document.getElementById('testSingle'),
+                testAllSources: document.getElementById('testAllSources'),
+                testWithParams: null, // 动态添加
+                searchPage: null, // 动态添加
+                searchPageSize: null, // 动态添加
+                searchMultiSource: null, // 动态添加
+                searchMerged: null, // 动态添加
+                singleResults: document.getElementById('singleResults'),
+                multiSeparateResults: document.getElementById('multiSeparateResults'),
+                multiMergedResults: document.getElementById('multiMergedResults'),
+                individualResults: document.getElementById('individualResults'),
+                themeToggle: document.getElementById('themeToggle'),
+                mobileMenuToggle: document.getElementById('mobileMenuToggle'),
+                navLinks: document.getElementById('navLinks')
+            },
+
+            // 初始化
+            init() {
+                this.addAdvancedSearchOptions();
+                this.initElements();
+                this.bindEvents();
+                this.initFromUrlParams();
+                this.initTheme();
+            },
+
+            // 初始化动态元素
+            initElements() {
+                this.elements.testWithParams = document.getElementById('testWithParams');
+                this.elements.searchPage = document.getElementById('searchPage');
+                this.elements.searchPageSize = document.getElementById('searchPageSize');
+                this.elements.searchMultiSource = document.getElementById('searchMultiSource');
+                this.elements.searchMerged = document.getElementById('searchMerged');
+            },
+
+            // 添加高级搜索选项
+            addAdvancedSearchOptions() {
+                document.querySelector('.search-section').insertAdjacentHTML('beforeend', `
+                    <div class="form-group" style="margin-top: 1rem;">
+                        <div class="input-group">
+                            <label for="searchPage">页码</label>
+                            <input type="number" id="searchPage" placeholder="页码，默认1" value="1" min="1">
+                        </div>
+                        <div class="input-group">
+                            <label for="searchPageSize">每页大小</label>
+                            <input type="number" id="searchPageSize" placeholder="每页结果数，默认25" value="25" min="1" max="100">
+                        </div>
+                        <div class="input-group" style="align-self: flex-end;">
+                            <label>
+                                <input type="checkbox" id="searchMultiSource"> 多源搜索
+                            </label>
+                        </div>
+                        <div class="input-group" style="align-self: flex-end;">
+                            <label>
+                                <input type="checkbox" id="searchMerged"> 合并结果
+                            </label>
+                        </div>
+                    </div>
+                    <div class="btn-group" style="margin-top: 1rem;">
+                        <button id="testWithParams">使用参数搜索</button>
+                    </div>
+                `);
+            },
+
+            // 绑定事件
+            bindEvents() {
+                // 搜索按钮事件
+                this.elements.testSingle.addEventListener('click', this.testSingleSearch.bind(this));
+                this.elements.testAllSources.addEventListener('click', this.testIndividualSources.bind(this));
+                this.elements.testWithParams.addEventListener('click', this.testWithParams.bind(this));
+                
+                // 回车键搜索
+                this.elements.searchQuery.addEventListener('keypress', (e) => {
+                    if (e.key === 'Enter') {
+                        this.testSingleSearch();
+                    }
+                });
+
+                // 主题切换事件
+                if (this.elements.themeToggle) {
+                    this.elements.themeToggle.addEventListener('click', this.toggleTheme.bind(this));
+                }
+
+                // 移动端菜单事件
+                if (this.elements.mobileMenuToggle && this.elements.navLinks) {
+                    this.elements.mobileMenuToggle.addEventListener('click', this.toggleMobileMenu.bind(this));
+                    document.addEventListener('click', (e) => {
+                        if (!e.target.closest('.navbar') && this.elements.navLinks && this.elements.navLinks.classList.contains('active')) {
+                            this.elements.navLinks.classList.remove('active');
+                            this.elements.mobileMenuToggle.textContent = '☰';
+                        }
+                    });
+                }
+            },
+
+            // 初始化主题
+            initTheme() {
+                const html = document.documentElement;
+                const savedTheme = localStorage.getItem('theme');
+                const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+                
+                if (savedTheme === 'dark' || (!savedTheme && prefersDark)) {
+                    html.classList.add('dark');
+                    this.elements.themeToggle.textContent = '☀️';
+                }
+            },
+
+            // 切换主题
+            toggleTheme() {
+                const html = document.documentElement;
+                html.classList.toggle('dark');
+                const isDark = html.classList.contains('dark');
+                this.elements.themeToggle.textContent = isDark ? '☀️' : '🌙';
+                localStorage.setItem('theme', isDark ? 'dark' : 'light');
+            },
+
+            // 切换移动端菜单
+            toggleMobileMenu() {
+                this.elements.navLinks.classList.toggle('active');
+                this.elements.mobileMenuToggle.textContent = this.elements.navLinks.classList.contains('active') ? '✕' : '☰';
+            },
+
+            // 通用辅助函数
+            showLoading(container, message = '正在搜索...') {
+                container.innerHTML = `<div class="loading"><div class="spinner"></div>${message}</div>`;
+            },
+
+            showError(container, title, error) {
+                container.innerHTML = `<div class="result-card">
+                    <div class="result-header">
+                        <div class="result-title">${title}</div>
+                        <div class="result-source status-indicator status-error">Error</div>
+                    </div>
+                    <div class="result-content">${error.message || error}</div>
+                </div>`;
+            },
+
+            createResultCard(title, source, data, statusCode, responseTime = null, endpoint = null) {
+                const hasResults = data && ((Array.isArray(data.results) && data.results.length > 0) || 
+                                           (data.multi_source_results && data.multi_source_results.length > 0) ||
+                                           (Array.isArray(data) && data.length > 0));
+                const status = hasResults ? 'success' : 'error';
+                const statusText = hasResults ? 'Success' : 'No Results';
+                
+                // 计算结果摘要
+                let resultCount = 0;
+                let sourceCount = 0;
+                if (data.results) {
+                    resultCount = Array.isArray(data.results) ? data.results.length : 0;
+                }
+                if (data.multi_source_results) {
+                    sourceCount = Array.isArray(data.multi_source_results) ? data.multi_source_results.length : 0;
+                    // 计算所有源的总结果数
+                    resultCount = data.multi_source_results.reduce((sum, sourceRes) => 
+                        sum + (Array.isArray(sourceRes.Results) ? sourceRes.Results.length : 0), 0);
+                }
+                
+                let apiEndpointHtml = '';
+                if (endpoint) {
+                    apiEndpointHtml = `<div class="api-endpoint">${endpoint}</div>`;
+                }
+                
+                let responseTimeHtml = '';
+                if (responseTime !== null) {
+                    responseTimeHtml = `
+                        <div class="summary-item">
+                            <span class="summary-label">响应时间</span>
+                            <span class="summary-value">${responseTime}ms</span>
+                        </div>`;
+                }
+                
+                return `
+                    <div class="result-card">
+                        <div class="result-header">
+                            <div class="result-title">${title}</div>
+                            <div class="result-source status-indicator status-${status}">${statusText}</div>
+                        </div>
+                        ${apiEndpointHtml}
+                        <div class="result-summary">
+                            <div class="summary-item">
+                                <span class="summary-label">HTTP状态码</span>
+                                <span class="summary-value">${statusCode}</span>
+                            </div>
+                            ${responseTimeHtml}
+                            <div class="summary-item">
+                                <span class="summary-label">结果数量</span>
+                                <span class="summary-value">${resultCount}</span>
+                            </div>
+                            <div class="summary-item">
+                                <span class="summary-label">数据源数量</span>
+                                <span class="summary-value">${sourceCount || 1}</span>
+                            </div>
+                        </div>
+                        <div class="result-content">响应数据:\n${JSON.stringify(data, null, 2)}</div>
+                    </div>
+                `;
+            },
+
+            displayResult(container, title, source, data, statusCode) {
+                container.innerHTML = this.createResultCard(title, source, data, statusCode);
+            },
+
+            // 测试函数
+            async testSingleSearch() {
+                const query = this.elements.searchQuery.value.trim();
+                if (!query) {
+                    alert('请输入搜索关键词');
+                    return;
+                }
+
+                const resultsDiv = this.elements.singleResults;
+                this.showLoading(resultsDiv, '正在搜索...');
+
+                try {
+                    const response = await fetch(`/search?q=${encodeURIComponent(query)}`);
+                    const data = await response.json();
+                    
+                    this.displayResult(resultsDiv, 'Docker Hub 搜索', 'docker.io', data, response.status);
+                } catch (error) {
+                    // 即使出现错误，也显示错误信息而不是隐藏结果
+                    this.showError(resultsDiv, 'Docker Hub 搜索', error);
+                }
+            },
+
+            async testMultiSeparateSearch() {
+                const query = this.elements.searchQuery.value.trim();
+                if (!query) {
+                    alert('请输入搜索关键词');
+                    return;
+                }
+
+                const resultsDiv = this.elements.multiSeparateResults;
+                this.showLoading(resultsDiv, '正在搜索多个源...');
+
+                try {
+                    const startTime = Date.now();
+                    const response = await fetch(`/search?q=${encodeURIComponent(query)}&multi_source=true`);
+                    const responseTime = Date.now() - startTime;
+                    const data = await response.json();
+                    
+                    console.log('多源分离搜索响应:', data); // 调试信息
+                    
+                    // 检查是否有错误
+                    if (data.error || data.Error) {
+                        resultsDiv.innerHTML = `<div class="result-card">
+                            <div class="result-header">
+                                <div class="result-title">多源分离搜索</div>
+                                <div class="result-source status-indicator status-error">Error</div>
+                            </div>
+                            <div class="result-summary">
+                                <div class="summary-item">
+                                    <span class="summary-label">HTTP状态码</span>
+                                    <span class="summary-value">${response.status}</span>
+                                </div>
+                                <div class="summary-item">
+                                    <span class="summary-label">响应时间</span>
+                                    <span class="summary-value">${responseTime}ms</span>
+                                </div>
+                            </div>
+                            <div class="result-content">服务器返回错误: ${data.error || data.Error}</div>
+                        </div>`;
+                        return;
+                    }
+                    
+                    if (data.multi_source_results && Array.isArray(data.multi_source_results)) {
+                        resultsDiv.innerHTML = '';
+                        
+                        // 显示总体摘要
+                        const totalSources = data.multi_source_results.length;
+                        const successfulSources = data.multi_source_results.filter(r => !(r.Error || r.error)).length;
+                        const totalResults = data.multi_source_results.reduce((sum, r) => 
+                            sum + (r.Results ? r.Results.length : r.results ? r.results.length : 0), 0);
+                        
+                        const summaryCard = document.createElement('div');
+                        summaryCard.className = 'result-card';
+                        summaryCard.innerHTML = `
+                            <div class="result-header">
+                                <div class="result-title">多源分离搜索 - 概览</div>
+                                <div class="result-source status-indicator status-success">Summary</div>
+                            </div>
+                            <div class="result-summary">
+                                <div class="summary-item">
+                                    <span class="summary-label">HTTP状态码</span>
+                                    <span class="summary-value">${response.status}</span>
+                                </div>
+                                <div class="summary-item">
+                                    <span class="summary-label">响应时间</span>
+                                    <span class="summary-value">${responseTime}ms</span>
+                                </div>
+                                <div class="summary-item">
+                                    <span class="summary-label">数据源数量</span>
+                                    <span class="summary-value">${totalSources}</span>
+                                </div>
+                                <div class="summary-item">
+                                    <span class="summary-label">成功源数</span>
+                                    <span class="summary-value">${successfulSources}</span>
+                                </div>
+                                <div class="summary-item">
+                                    <span class="summary-label">总结果数</span>
+                                    <span class="summary-value">${totalResults}</span>
+                                </div>
+                            </div>
+                        `;
+                        resultsDiv.appendChild(summaryCard);
+                        
+                        if (totalResults === 0 && successfulSources === 0) {
+                            const noResultsCard = document.createElement('div');
+                            noResultsCard.className = 'result-card';
+                            noResultsCard.innerHTML = `
+                                <div class="result-header">
+                                    <div class="result-title">提示</div>
+                                    <div class="result-source status-indicator status-error">无结果</div>
+                                </div>
+                                <div class="result-content">所有数据源均未返回结果。这可能是因为：
+                                    1. 搜索的镜像名称不存在
+                                    2. 网络连接问题导致API调用失败
+                                    3. 搜索词过于特殊，没有匹配项
+                                    4. 部分注册表暂时不可用
+                                    
+                                    请尝试使用更常见的搜索词，如 "nginx"、"redis" 或 "alpine"。
+                                </div>
+                            `;
+                            resultsDiv.appendChild(noResultsCard);
+                        }
+                        
+                        // 显示每个源的详细结果
+                        data.multi_source_results.forEach(result => {
+                            const title = `${result.Source || result.source || 'Unknown'} 搜索结果`;
+                            const hasError = result.Error || result.error;
+                            const status = hasError ? 'error' : (result.Results && result.Results.length > 0) || (result.results && result.results.length > 0) ? 'success' : 'pending';
+                            const statusText = hasError ? 'Error' : (result.Results && result.Results.length > 0) || (result.results && result.results.length > 0) ? 'Success' : 'No Results';
+                            const resultCount = result.Results ? result.Results.length : result.results ? result.results.length : 0;
+                            
+                            const resultCard = document.createElement('div');
+                            resultCard.className = 'result-card';
+                            resultCard.innerHTML = `
+                                <div class="result-header">
+                                    <div class="result-title">${title}</div>
+                                    <div class="result-source status-indicator status-${status}">${statusText}</div>
+                                </div>
+                                <div class="result-summary">
+                                    <div class="summary-item">
+                                        <span class="summary-label">结果数量</span>
+                                        <span class="summary-value">${resultCount}</span>
+                                    </div>
+                                    <div class="summary-item">
+                                        <span class="summary-label">计数</span>
+                                        <span class="summary-value">${result.Count || result.count || 0}</span>
+                                    </div>
+                                </div>
+                                <div class="result-content">${JSON.stringify(result, null, 2)}</div>
+                            `;
+                            resultsDiv.appendChild(resultCard);
+                        });
+                    } else {
+                        resultsDiv.innerHTML = `<div class="result-card">
+                            <div class="result-header">
+                                <div class="result-title">多源分离搜索</div>
+                                <div class="result-source status-indicator status-error">Error</div>
+                            </div>
+                            <div class="result-summary">
+                                <div class="summary-item">
+                                    <span class="summary-label">HTTP状态码</span>
+                                    <span class="summary-value">${response.status}</span>
+                                </div>
+                                <div class="summary-item">
+                                    <span class="summary-label">响应时间</span>
+                                    <span class="summary-value">${responseTime}ms</span>
+                                </div>
+                            </div>
+                            <div class="result-content">没有返回预期的数据格式。响应内容: ${JSON.stringify(data)}</div>
+                        </div>`;
+                    }
+                } catch (error) {
+                    console.error('多源分离搜索错误:', error); // 调试信息
+                    // 即使出现错误，也显示错误信息而不是隐藏结果
+                    this.showError(resultsDiv, '多源分离搜索', error);
+                }
+            },
+
+            async testMultiMergedSearch() {
+                const query = this.elements.searchQuery.value.trim();
+                if (!query) {
+                    alert('请输入搜索关键词');
+                    return;
+                }
+
+                const resultsDiv = this.elements.multiMergedResults;
+                this.showLoading(resultsDiv, '正在搜索...');
+
+                try {
+                    const startTime = Date.now();
+                    const response = await fetch(`/search?q=${encodeURIComponent(query)}&multi_source=true&merged=false`);
+                    const responseTime = Date.now() - startTime;
+                    const data = await response.json();
+                    
+                    console.log('多源合并搜索响应:', data); // 调试信息
+                    
+                    // 检查是否有错误
+                    if (data.error || data.Error) {
+                        resultsDiv.innerHTML = `<div class="result-card">
+                            <div class="result-header">
+                                <div class="result-title">多源合并搜索</div>
+                                <div class="result-source status-indicator status-error">Error</div>
+                            </div>
+                            <div class="result-summary">
+                                <div class="summary-item">
+                                    <span class="summary-label">HTTP状态码</span>
+                                    <span class="summary-value">${response.status}</span>
+                                </div>
+                                <div class="summary-item">
+                                    <span class="summary-label">响应时间</span>
+                                    <span class="summary-value">${responseTime}ms</span>
+                                </div>
+                            </div>
+                            <div class="result-content">服务器返回错误: ${data.error || data.Error}</div>
+                        </div>`;
+                        return;
+                    }
+                    
+                    // 计算结果摘要
+                    let resultCount = 0;
+                    if (data.results) {
+                        resultCount = Array.isArray(data.results) ? data.results.length : 0;
+                    }
+                    
+                    // 检查是否有结果
+                    const hasAnyResults = resultCount > 0;
+                    
+                    // 确定状态和文本
+                    const finalStatus = hasAnyResults ? 'success' : 'pending';
+                    const finalStatusText = hasAnyResults ? 'Success' : 'No Results';
+                    
+                    resultsDiv.innerHTML = `
+                        <div class="result-card">
+                            <div class="result-header">
+                                <div class="result-title">多源合并搜索</div>
+                                <div class="result-source status-indicator status-${finalStatus}">${finalStatusText}</div>
+                            </div>
+                            <div class="result-summary">
+                                <div class="summary-item">
+                                    <span class="summary-label">HTTP状态码</span>
+                                    <span class="summary-value">${response.status}</span>
+                                </div>
+                                <div class="summary-item">
+                                    <span class="summary-label">响应时间</span>
+                                    <span class="summary-value">${responseTime}ms</span>
+                                </div>
+                                <div class="summary-item">
+                                    <span class="summary-label">结果数量</span>
+                                    <span class="summary-value">${resultCount}</span>
+                                </div>
+                                <div class="summary-item">
+                                    <span class="summary-label">数据源数量</span>
+                                    <span class="summary-value">多个源</span>
+                                </div>
+                            </div>
+                            ${!hasAnyResults ? `
+                            <div class="result-content">所有数据源均未返回结果。这可能是因为：
+                                1. 搜索的镜像名称不存在
+                                2. 网络连接问题导致API调用失败
+                                3. 搜索词过于特殊，没有匹配项
+                                4. 部分注册表暂时不可用
+                                
+                                请尝试使用更常见的搜索词，如 "nginx"、"redis" 或 "alpine"。
+                            </div>` : `
+                            <div class="result-content">响应数据:\n${JSON.stringify(data, null, 2)}</div>`}
+                        </div>
+                    `;
+                } catch (error) {
+                    console.error('多源合并搜索错误:', error); // 调试信息
+                    // 即使出现错误，也显示错误信息而不是隐藏结果
+                    this.showError(resultsDiv, '多源合并搜索', error);
+                }
+            },
+
+            async testIndividualSources() {
+                const query = this.elements.searchQuery.value.trim();
+                if (!query) {
+                    alert('请输入搜索关键词');
+                    return;
+                }
+
+                const resultsDiv = this.elements.individualResults;
+                this.showLoading(resultsDiv, '正在测试各个源...');
+
+                // 测试每个源的独立端点
+                const sources = [
+                    { name: 'Docker Hub', endpoint: `/search?q=${encodeURIComponent(query)}&source=docker.io`, source: 'docker.io' },
+                    { name: 'GHCR', endpoint: `/search?q=${encodeURIComponent(query)}&source=ghcr.io`, source: 'ghcr.io' },
+                    { name: 'GCR', endpoint: `/search?q=${encodeURIComponent(query)}&source=gcr.io`, source: 'gcr.io' },
+                    { name: 'Quay.io', endpoint: `/search?q=${encodeURIComponent(query)}&source=quay.io`, source: 'quay.io' },
+                    { name: 'K8s Registry', endpoint: `/search?q=${encodeURIComponent(query)}&source=registry.k8s.io`, source: 'registry.k8s.io' }
+                ];
+
+                try {
+                    // 使用Promise.all并行处理所有请求
+                    const results = await Promise.all(
+                        sources.map(async (source) => {
+                            try {
+                                const startTime = Date.now();
+                                const response = await fetch(source.endpoint);
+                                const responseTime = Date.now() - startTime;
+                                const data = await response.json();
+                                
+                                // 计算该源的结果数量
+                                let resultCount = 0;
+                                if (data.results) {
+                                    resultCount = Array.isArray(data.results) ? data.results.length : 0;
+                                }
+                                if (data.multi_source_results) {
+                                    // 如果是多源结果，计算特定源的结果数
+                                    const sourceResult = data.multi_source_results.find(r => 
+                                        r.Source === source.source || r.source === source.source
+                                    );
+                                    if (sourceResult && sourceResult.Results) {
+                                        resultCount = sourceResult.Results.length;
+                                    }
+                                }
+                                
+                                const hasResults = resultCount > 0;
+                                const status = hasResults ? 'success' : 'error';
+                                const statusText = hasResults ? 'Success' : 'No Results';
+                                
+                                return {
+                                    source,
+                                    success: true,
+                                    response,
+                                    data,
+                                    responseTime,
+                                    status,
+                                    statusText,
+                                    resultCount
+                                };
+                            } catch (error) {
+                                return {
+                                    source,
+                                    success: false,
+                                    error
+                                };
+                            }
+                        })
+                    );
+
+                    // 显示所有结果
+                    resultsDiv.innerHTML = '';
+                    
+                    results.forEach(result => {
+                        const resultCard = document.createElement('div');
+                        resultCard.className = 'result-card';
+                        
+                        if (result.success) {
+                            resultCard.innerHTML = `
+                                <div class="result-header">
+                                    <div class="result-title">${result.source.name}</div>
+                                    <div class="result-source status-indicator status-${result.status}">${result.statusText}</div>
+                                </div>
+                                <div class="api-endpoint">${result.source.endpoint}</div>
+                                <div class="result-summary">
+                                    <div class="summary-item">
+                                        <span class="summary-label">HTTP状态码</span>
+                                        <span class="summary-value">${result.response.status}</span>
+                                    </div>
+                                    <div class="summary-item">
+                                        <span class="summary-label">响应时间</span>
+                                        <span class="summary-value">${result.responseTime}ms</span>
+                                    </div>
+                                    <div class="summary-item">
+                                        <span class="summary-label">结果数量</span>
+                                        <span class="summary-value">${result.resultCount}</span>
+                                    </div>
+                                </div>
+                                <div class="result-content">响应数据:\n${JSON.stringify(result.data, null, 2)}</div>
+                            `;
+                        } else {
+                            resultCard.innerHTML = `
+                                <div class="result-header">
+                                    <div class="result-title">${result.source.name}</div>
+                                    <div class="result-source status-indicator status-error">Error</div>
+                                </div>
+                                <div class="api-endpoint">${result.source.endpoint}</div>
+                                <div class="result-summary">
+                                    <div class="summary-item">
+                                        <span class="summary-label">错误信息</span>
+                                        <span class="summary-value">请求失败</span>
+                                    </div>
+                                </div>
+                                <div class="result-content">错误详情:\n${result.error.message}</div>
+                            `;
+                        }
+                        
+                        resultsDiv.appendChild(resultCard);
+                    });
+                } catch (error) {
+                    this.showError(resultsDiv, '独立源测试', error);
+                }
+            },
+
+            // URL参数解析函数
+            getUrlParams() {
+                const params = new URLSearchParams(window.location.search);
+                return {
+                    q: params.get('q') || '',
+                    page: params.get('page') || '1',
+                    page_size: params.get('page_size') || '25',
+                    multi_source: params.get('multi_source') !== null,
+                    merged: params.get('merged') !== null
+                };
+            },
+
+            // 构建API端点URL
+            buildApiUrl(params) {
+                let url = '/search?q=' + encodeURIComponent(params.q);
+                if (params.page) url += `&page=${params.page}`;
+                if (params.page_size) url += `&page_size=${params.page_size}`;
+                if (params.multi_source) url += '&multi_source=true';
+                if (params.merged) url += '&merged=true';
+                return url;
+            },
+
+            // 根据URL参数自动执行搜索
+            initFromUrlParams() {
+                // 检查URL是否包含我们关心的搜索参数
+                const urlParams = new URLSearchParams(window.location.search);
+                const hasSearchParams = urlParams.has('q') || urlParams.has('page') || urlParams.has('page_size') || 
+                                       urlParams.has('multi_source') || urlParams.has('merged');
+                                        
+                if (hasSearchParams) {
+                    const params = this.getUrlParams();
+                    if (params.q && params.q.trim() !== '') {
+                        this.elements.searchQuery.value = params.q;
+                        
+                        // 设置页面中的其他参数（检查元素是否存在）
+                        if (params.page && this.elements.searchPage) this.elements.searchPage.value = params.page;
+                        if (params.page_size && this.elements.searchPageSize) this.elements.searchPageSize.value = params.page_size;
+                        if (params.multi_source && this.elements.searchMultiSource) this.elements.searchMultiSource.checked = true;
+                        if (params.merged && this.elements.searchMerged) this.elements.searchMerged.checked = true;
+                        
+                        // 根据参数自动执行相应的搜索类型
+                        if (this.elements.searchPage && this.elements.searchPageSize && this.elements.searchMultiSource && this.elements.searchMerged) {
+                            setTimeout(() => {
+                                this.testWithParams(); // 使用带参数的搜索
+                            }, 100); // 稍微延时以确保UI元素已完全加载
+                        }
+                    }
+                }
+            },
+
+            // 更新浏览器URL而不刷新页面
+            updateUrl(params) {
+                const queryString = Object.keys(params)
+                    .filter(key => params[key] !== '' && params[key] !== false)
+                    .map(key => `${key}=${encodeURIComponent(params[key])}`)
+                    .join('&');
+                
+                const newUrl = queryString ? `?${queryString}` : '?';
+                window.history.replaceState({}, '', newUrl);
+            },
+
+            // 使用参数搜索函数
+            async testWithParams() {
+                const query = this.elements.searchQuery.value.trim();
+                if (!query) {
+                    alert('请输入搜索关键词');
+                    return;
+                }
+
+                const page = this.elements.searchPage.value || '1';
+                const pageSize = this.elements.searchPageSize.value || '25';
+                const multiSource = this.elements.searchMultiSource.checked;
+                const merged = this.elements.searchMerged.checked;
+
+                // 更新URL参数
+                const params = { q: query, page, page_size: pageSize };
+                if (multiSource) params.multi_source = true;
+                if (merged) params.merged = true;
+                this.updateUrl(params);
+
+                const resultsDiv = this.elements.singleResults;
+                this.showLoading(resultsDiv, '正在搜索...');
+
+                try {
+                    const startTime = Date.now();
+                    const apiUrl = this.buildApiUrl(params);
+                    const response = await fetch(apiUrl);
+                    const responseTime = Date.now() - startTime;
+                    const data = await response.json();
+                    
+                    resultsDiv.innerHTML = this.createResultCard('带参数搜索', '', data, response.status, responseTime, apiUrl);
+                } catch (error) {
+                    resultsDiv.innerHTML = `<div class="result-card">
+                        <div class="result-header">
+                            <div class="result-title">带参数搜索</div>
+                            <div class="result-source status-indicator status-error">Error</div>
+                        </div>
+                        <div class="api-endpoint">${this.buildApiUrl({q: query, page, page_size: pageSize, multi_source: multiSource, merged})}</div>
+                        <div class="result-content">${error.message}</div>
+                    </div>`;
+                }
+            }
+        };
+
+        // 为Tab切换添加对ApiTester方法的调用
         document.querySelectorAll('.tab').forEach(tab => {
             tab.addEventListener('click', () => {
                 // 移除所有活动标签
@@ -593,7 +1285,7 @@
                 }
                 
                 // 如果切换到某选项卡且对应内容区域为空，自动执行搜索
-                const query = document.getElementById('searchQuery').value.trim();
+                const query = ApiTester.elements.searchQuery.value.trim();
                 if (query && query !== '') {
                     // 检查对应的结果区域是否为空
                     let shouldAutoSearch = false;
@@ -621,13 +1313,13 @@
                              resultsContainer.querySelector('.loading'))) {
                             // 根据选项卡类型执行相应的搜索
                             if (tab.dataset.tab === 'multi-separate') {
-                                testMultiSeparateSearch();
+                                ApiTester.testMultiSeparateSearch();
                             } else if (tab.dataset.tab === 'multi-merged') {
-                                testMultiMergedSearch();
+                                ApiTester.testMultiMergedSearch();
                             } else if (tab.dataset.tab === 'single') {
-                                testSingleSearch();
+                                ApiTester.testSingleSearch();
                             } else if (tab.dataset.tab === 'individual') {
-                                testIndividualSources();
+                                ApiTester.testIndividualSources();
                             }
                         }
                     }
@@ -669,675 +1361,10 @@
             });
         });
 
-        // 测试函数
-        async function testSingleSearch() {
-            const query = document.getElementById('searchQuery').value.trim();
-            if (!query) {
-                alert('请输入搜索关键词');
-                return;
-            }
-
-            const resultsDiv = document.getElementById('singleResults');
-            resultsDiv.innerHTML = '<div class="loading"><div class="spinner"></div>正在搜索...</div>';
-
-            try {
-                const response = await fetch(`/search?q=${encodeURIComponent(query)}`);
-                const data = await response.json();
-                
-                displayResult(resultsDiv, 'Docker Hub 搜索', 'docker.io', data, response.status);
-            } catch (error) {
-                // 即使出现错误，也显示错误信息而不是隐藏结果
-                resultsDiv.innerHTML = `<div class="result-card">
-                    <div class="result-header">
-                        <div class="result-title">Docker Hub 搜索</div>
-                        <div class="result-source status-indicator status-error">Error</div>
-                    </div>
-                    <div class="result-content">${error.message}</div>
-                </div>`;
-            }
-        }
-
-        async function testMultiSeparateSearch() {
-            const query = document.getElementById('searchQuery').value.trim();
-            if (!query) {
-                alert('请输入搜索关键词');
-                return;
-            }
-
-            const resultsDiv = document.getElementById('multiSeparateResults');
-            resultsDiv.innerHTML = '<div class="loading"><div class="spinner"></div>正在搜索多个源...</div>';
-
-            try {
-                const startTime = Date.now();
-                const response = await fetch(`/search?q=${encodeURIComponent(query)}&multi_source=true`);
-                const responseTime = Date.now() - startTime;
-                const data = await response.json();
-                
-                console.log('多源分离搜索响应:', data); // 调试信息
-                
-                // 检查是否有错误
-                if (data.error || data.Error) {
-                    resultsDiv.innerHTML = `<div class="result-card">
-                        <div class="result-header">
-                            <div class="result-title">多源分离搜索</div>
-                            <div class="result-source status-indicator status-error">Error</div>
-                        </div>
-                        <div class="result-summary">
-                            <div class="summary-item">
-                                <span class="summary-label">HTTP状态码</span>
-                                <span class="summary-value">${response.status}</span>
-                            </div>
-                            <div class="summary-item">
-                                <span class="summary-label">响应时间</span>
-                                <span class="summary-value">${responseTime}ms</span>
-                            </div>
-                        </div>
-                        <div class="result-content">服务器返回错误: ${data.error || data.Error}</div>
-                    </div>`;
-                    return;
-                }
-                
-                if (data.multi_source_results && Array.isArray(data.multi_source_results)) {
-                    resultsDiv.innerHTML = '';
-                    
-                    // 显示总体摘要
-                    const totalSources = data.multi_source_results.length;
-                    const successfulSources = data.multi_source_results.filter(r => !(r.Error || r.error)).length;
-                    const totalResults = data.multi_source_results.reduce((sum, r) => 
-                        sum + (r.Results ? r.Results.length : r.results ? r.results.length : 0), 0);
-                    
-                    const summaryCard = document.createElement('div');
-                    summaryCard.className = 'result-card';
-                    summaryCard.innerHTML = `
-                        <div class="result-header">
-                            <div class="result-title">多源分离搜索 - 概览</div>
-                            <div class="result-source status-indicator status-success">Summary</div>
-                        </div>
-                        <div class="result-summary">
-                            <div class="summary-item">
-                                <span class="summary-label">HTTP状态码</span>
-                                <span class="summary-value">${response.status}</span>
-                            </div>
-                            <div class="summary-item">
-                                <span class="summary-label">响应时间</span>
-                                <span class="summary-value">${responseTime}ms</span>
-                            </div>
-                            <div class="summary-item">
-                                <span class="summary-label">数据源数量</span>
-                                <span class="summary-value">${totalSources}</span>
-                            </div>
-                            <div class="summary-item">
-                                <span class="summary-label">成功源数</span>
-                                <span class="summary-value">${successfulSources}</span>
-                            </div>
-                            <div class="summary-item">
-                                <span class="summary-label">总结果数</span>
-                                <span class="summary-value">${totalResults}</span>
-                            </div>
-                        </div>
-                    `;
-                    resultsDiv.appendChild(summaryCard);
-                    
-                    if (totalResults === 0 && successfulSources === 0) {
-                        const noResultsCard = document.createElement('div');
-                        noResultsCard.className = 'result-card';
-                        noResultsCard.innerHTML = `
-                            <div class="result-header">
-                                <div class="result-title">提示</div>
-                                <div class="result-source status-indicator status-error">无结果</div>
-                            </div>
-                            <div class="result-content">所有数据源均未返回结果。这可能是因为：
-                                1. 搜索的镜像名称不存在
-                                2. 网络连接问题导致API调用失败
-                                3. 搜索词过于特殊，没有匹配项
-                                4. 部分注册表暂时不可用
-                                
-                                请尝试使用更常见的搜索词，如 "nginx"、"redis" 或 "alpine"。
-                            </div>
-                        `;
-                        resultsDiv.appendChild(noResultsCard);
-                    }
-                    
-                    // 显示每个源的详细结果
-                    data.multi_source_results.forEach(result => {
-                        const title = `${result.Source || result.source || 'Unknown'} 搜索结果`;
-                        const hasError = result.Error || result.error;
-                        const status = hasError ? 'error' : (result.Results && result.Results.length > 0) || (result.results && result.results.length > 0) ? 'success' : 'pending';
-                        const statusText = hasError ? 'Error' : (result.Results && result.Results.length > 0) || (result.results && result.results.length > 0) ? 'Success' : 'No Results';
-                        const resultCount = result.Results ? result.Results.length : result.results ? result.results.length : 0;
-                        
-                        const resultCard = document.createElement('div');
-                        resultCard.className = 'result-card';
-                        resultCard.innerHTML = `
-                            <div class="result-header">
-                                <div class="result-title">${title}</div>
-                                <div class="result-source status-indicator status-${status}">${statusText}</div>
-                            </div>
-                            <div class="result-summary">
-                                <div class="summary-item">
-                                    <span class="summary-label">结果数量</span>
-                                    <span class="summary-value">${resultCount}</span>
-                                </div>
-                                <div class="summary-item">
-                                    <span class="summary-label">计数</span>
-                                    <span class="summary-value">${result.Count || result.count || 0}</span>
-                                </div>
-                            </div>
-                            <div class="result-content">${JSON.stringify(result, null, 2)}</div>
-                        `;
-                        resultsDiv.appendChild(resultCard);
-                    });
-                } else {
-                    resultsDiv.innerHTML = `<div class="result-card">
-                        <div class="result-header">
-                            <div class="result-title">多源分离搜索</div>
-                            <div class="result-source status-indicator status-error">Error</div>
-                        </div>
-                        <div class="result-summary">
-                            <div class="summary-item">
-                                <span class="summary-label">HTTP状态码</span>
-                                <span class="summary-value">${response.status}</span>
-                            </div>
-                            <div class="summary-item">
-                                <span class="summary-label">响应时间</span>
-                                <span class="summary-value">${responseTime}ms</span>
-                            </div>
-                        </div>
-                        <div class="result-content">没有返回预期的数据格式。响应内容: ${JSON.stringify(data)}</div>
-                    </div>`;
-                }
-            } catch (error) {
-                console.error('多源分离搜索错误:', error); // 调试信息
-                // 即使出现错误，也显示错误信息而不是隐藏结果
-                resultsDiv.innerHTML = `<div class="result-card">
-                    <div class="result-header">
-                        <div class="result-title">多源分离搜索</div>
-                        <div class="result-source status-indicator status-error">Error</div>
-                    </div>
-                    <div class="result-content">搜索发生错误: ${error.message}<br>请检查浏览器控制台获取更多详细信息。</div>
-                </div>`;
-            }
-        }
-
-        async function testMultiMergedSearch() {
-            const query = document.getElementById('searchQuery').value.trim();
-            if (!query) {
-                alert('请输入搜索关键词');
-                return;
-            }
-
-            const resultsDiv = document.getElementById('multiMergedResults');
-            resultsDiv.innerHTML = '<div class="loading"><div class="spinner"></div>正在搜索...</div>';
-
-            try {
-                const startTime = Date.now();
-                const response = await fetch(`/search?q=${encodeURIComponent(query)}&multi_source=true&merged=true`);
-                const responseTime = Date.now() - startTime;
-                const data = await response.json();
-                
-                console.log('多源合并搜索响应:', data); // 调试信息
-                
-                // 检查是否有错误
-                if (data.error || data.Error) {
-                    resultsDiv.innerHTML = `<div class="result-card">
-                        <div class="result-header">
-                            <div class="result-title">多源合并搜索</div>
-                            <div class="result-source status-indicator status-error">Error</div>
-                        </div>
-                        <div class="result-summary">
-                            <div class="summary-item">
-                                <span class="summary-label">HTTP状态码</span>
-                                <span class="summary-value">${response.status}</span>
-                            </div>
-                            <div class="summary-item">
-                                <span class="summary-label">响应时间</span>
-                                <span class="summary-value">${responseTime}ms</span>
-                            </div>
-                        </div>
-                        <div class="result-content">服务器返回错误: ${data.error || data.Error}</div>
-                    </div>`;
-                    return;
-                }
-                
-                // 计算结果摘要
-                let resultCount = 0;
-                if (data.results) {
-                    resultCount = Array.isArray(data.results) ? data.results.length : 0;
-                }
-                
-                // 检查是否有结果
-                const hasAnyResults = resultCount > 0;
-                
-                // 确定状态和文本
-                const finalStatus = hasAnyResults ? 'success' : 'pending';
-                const finalStatusText = hasAnyResults ? 'Success' : 'No Results';
-                
-                resultsDiv.innerHTML = `
-                    <div class="result-card">
-                        <div class="result-header">
-                            <div class="result-title">多源合并搜索</div>
-                            <div class="result-source status-indicator status-${finalStatus}">${finalStatusText}</div>
-                        </div>
-                        <div class="result-summary">
-                            <div class="summary-item">
-                                <span class="summary-label">HTTP状态码</span>
-                                <span class="summary-value">${response.status}</span>
-                            </div>
-                            <div class="summary-item">
-                                <span class="summary-label">响应时间</span>
-                                <span class="summary-value">${responseTime}ms</span>
-                            </div>
-                            <div class="summary-item">
-                                <span class="summary-label">结果数量</span>
-                                <span class="summary-value">${resultCount}</span>
-                            </div>
-                            <div class="summary-item">
-                                <span class="summary-label">数据源数量</span>
-                                <span class="summary-value">多个源</span>
-                            </div>
-                        </div>
-                        ${!hasAnyResults ? `
-                        <div class="result-content">所有数据源均未返回结果。这可能是因为：
-                            1. 搜索的镜像名称不存在
-                            2. 网络连接问题导致API调用失败
-                            3. 搜索词过于特殊，没有匹配项
-                            4. 部分注册表暂时不可用
-                            
-                            请尝试使用更常见的搜索词，如 "nginx"、"redis" 或 "alpine"。
-                        </div>` : `
-                        <div class="result-content">响应数据:\n${JSON.stringify(data, null, 2)}</div>`}
-                    </div>
-                `;
-            } catch (error) {
-                console.error('多源合并搜索错误:', error); // 调试信息
-                // 即使出现错误，也显示错误信息而不是隐藏结果
-                resultsDiv.innerHTML = `<div class="result-card">
-                    <div class="result-header">
-                        <div class="result-title">多源合并搜索</div>
-                        <div class="result-source status-indicator status-error">Error</div>
-                    </div>
-                    <div class="result-summary">
-                        <div class="summary-item">
-                            <span class="summary-label">错误类型</span>
-                            <span class="summary-value">${error.name}</span>
-                        </div>
-                    </div>
-                    <div class="result-content">搜索发生错误: ${error.message}<br>请检查浏览器控制台获取更多详细信息。</div>
-                </div>`;
-            }
-        }
-
-        async function testIndividualSources() {
-            const query = document.getElementById('searchQuery').value.trim();
-            if (!query) {
-                alert('请输入搜索关键词');
-                return;
-            }
-
-            const resultsDiv = document.getElementById('individualResults');
-            resultsDiv.innerHTML = '<div class="loading"><div class="spinner"></div>正在测试各个源...</div>';
-
-            // 测试每个源的独立端点
-            const sources = [
-                { name: 'Docker Hub', endpoint: `/search?q=${encodeURIComponent(query)}`, source: 'docker.io' },
-                { name: 'GHCR', endpoint: `/search?q=${encodeURIComponent(query)}&multi_source=true&merged=true`, source: 'ghcr.io' },
-                { name: 'GCR', endpoint: `/search?q=${encodeURIComponent(query)}&multi_source=true&merged=true`, source: 'gcr.io' },
-                { name: 'Quay.io', endpoint: `/search?q=${encodeURIComponent(query)}&multi_source=true&merged=true`, source: 'quay.io' },
-                { name: 'K8s Registry', endpoint: `/search?q=${encodeURIComponent(query)}&multi_source=true&merged=true`, source: 'registry.k8s.io' }
-            ];
-
-            resultsDiv.innerHTML = '';
-
-            for (const source of sources) {
-                try {
-                    const startTime = Date.now();
-                    const response = await fetch(source.endpoint);
-                    const responseTime = Date.now() - startTime;
-                    const data = await response.json();
-                    
-                    // 计算该源的结果数量
-                    let resultCount = 0;
-                    if (data.results) {
-                        resultCount = Array.isArray(data.results) ? data.results.length : 0;
-                    }
-                    if (data.multi_source_results) {
-                        // 如果是多源结果，计算特定源的结果数
-                        const sourceResult = data.multi_source_results.find(r => 
-                            r.Source === source.source || r.source === source.source
-                        );
-                        if (sourceResult && sourceResult.Results) {
-                            resultCount = sourceResult.Results.length;
-                        }
-                    }
-                    
-                    const hasResults = resultCount > 0;
-                    const status = hasResults ? 'success' : 'error';
-                    const statusText = hasResults ? 'Success' : 'No Results';
-                    
-                    const resultCard = document.createElement('div');
-                    resultCard.className = 'result-card';
-                    resultCard.innerHTML = `
-                        <div class="result-header">
-                            <div class="result-title">${source.name}</div>
-                            <div class="result-source status-indicator status-${status}">${statusText}</div>
-                        </div>
-                        <div class="api-endpoint">${source.endpoint}</div>
-                        <div class="result-summary">
-                            <div class="summary-item">
-                                <span class="summary-label">HTTP状态码</span>
-                                <span class="summary-value">${response.status}</span>
-                            </div>
-                            <div class="summary-item">
-                                <span class="summary-label">响应时间</span>
-                                <span class="summary-value">${responseTime}ms</span>
-                            </div>
-                            <div class="summary-item">
-                                <span class="summary-label">结果数量</span>
-                                <span class="summary-value">${resultCount}</span>
-                            </div>
-                        </div>
-                        <div class="result-content">响应数据:\n${JSON.stringify(data, null, 2)}</div>
-                    `;
-                    resultsDiv.appendChild(resultCard);
-                    
-                    // 短暂延迟，避免请求过于频繁
-                    await new Promise(resolve => setTimeout(resolve, 300));
-                } catch (error) {
-                    const resultCard = document.createElement('div');
-                    resultCard.className = 'result-card';
-                    resultCard.innerHTML = `
-                        <div class="result-header">
-                            <div class="result-title">${source.name}</div>
-                            <div class="result-source status-indicator status-error">Error</div>
-                        </div>
-                        <div class="api-endpoint">${source.endpoint}</div>
-                        <div class="result-summary">
-                            <div class="summary-item">
-                                <span class="summary-label">错误信息</span>
-                                <span class="summary-value">请求失败</span>
-                            </div>
-                        </div>
-                        <div class="result-content">错误详情:\n${error.message}</div>
-                    `;
-                    resultsDiv.appendChild(resultCard);
-                }
-            }
-        }
-
-        function displayResult(container, title, source, data, statusCode) {
-            const hasResults = data && ((Array.isArray(data.results) && data.results.length > 0) || 
-                                       (data.multi_source_results && data.multi_source_results.length > 0) ||
-                                       (Array.isArray(data) && data.length > 0));
-            const status = hasResults ? 'success' : 'error';
-            const statusText = hasResults ? 'Success' : 'No Results';
-            
-            // 计算结果摘要
-            let resultCount = 0;
-            let sourceCount = 0;
-            if (data.results) {
-                resultCount = Array.isArray(data.results) ? data.results.length : 0;
-            }
-            if (data.multi_source_results) {
-                sourceCount = Array.isArray(data.multi_source_results) ? data.multi_source_results.length : 0;
-                // 计算所有源的总结果数
-                resultCount = data.multi_source_results.reduce((sum, sourceRes) => 
-                    sum + (Array.isArray(sourceRes.Results) ? sourceRes.Results.length : 0), 0);
-            }
-            
-            container.innerHTML = `
-                <div class="result-card">
-                    <div class="result-header">
-                        <div class="result-title">${title}</div>
-                        <div class="result-source status-indicator status-${status}">${statusText}</div>
-                    </div>
-                    <div class="result-summary">
-                        <div class="summary-item">
-                            <span class="summary-label">HTTP状态码</span>
-                            <span class="summary-value">${statusCode}</span>
-                        </div>
-                        <div class="summary-item">
-                            <span class="summary-label">结果数量</span>
-                            <span class="summary-value">${resultCount}</span>
-                        </div>
-                        <div class="summary-item">
-                            <span class="summary-label">数据源数量</span>
-                            <span class="summary-value">${sourceCount || 1}</span>
-                        </div>
-                    </div>
-                    <div class="result-content">响应数据:\n${JSON.stringify(data, null, 2)}</div>
-                </div>
-            `;
-        }
-
-        // URL参数解析函数
-        function getUrlParams() {
-            const params = new URLSearchParams(window.location.search);
-            return {
-                q: params.get('q') || '',
-                page: params.get('page') || '1',
-                page_size: params.get('page_size') || '25',
-                multi_source: params.get('multi_source') !== null,
-                merged: params.get('merged') !== null
-            };
-        }
-
-        // 构建API端点URL
-        function buildApiUrl(params) {
-            let url = '/search?q=' + encodeURIComponent(params.q);
-            if (params.page) url += `&page=${params.page}`;
-            if (params.page_size) url += `&page_size=${params.page_size}`;
-            if (params.multi_source) url += '&multi_source=true';
-            if (params.merged) url += '&merged=true';
-            return url;
-        }
-
-        // 根据URL参数自动执行搜索
-        window.addEventListener('load', () => {
-            // 检查URL是否包含我们关心的搜索参数
-            const urlParams = new URLSearchParams(window.location.search);
-            const hasSearchParams = urlParams.has('q') || urlParams.has('page') || urlParams.has('page_size') || 
-                                   urlParams.has('multi_source') || urlParams.has('merged');
-                                    
-            if (hasSearchParams) {
-                const params = getUrlParams();
-                if (params.q && params.q.trim() !== '') {
-                    document.getElementById('searchQuery').value = params.q;
-                    
-                    // 设置页面中的其他参数
-                    if (params.page) document.getElementById('searchPage').value = params.page;
-                    if (params.page_size) document.getElementById('searchPageSize').value = params.page_size;
-                    if (params.multi_source) document.getElementById('searchMultiSource').checked = true;
-                    if (params.merged) document.getElementById('searchMerged').checked = true;
-                    
-                    // 根据参数自动执行相应的搜索类型（仅在页面加载时执行一次）
-                    setTimeout(() => {
-                        if (params.multi_source && params.merged) {
-                            testWithParams(); // 使用带参数的搜索
-                        } else if (params.multi_source) {
-                            testWithParams(); // 使用带参数的搜索
-                        } else {
-                            testWithParams(); // 使用带参数的搜索
-                        }
-                    }, 100); // 稍微延时以确保UI元素已完全加载
-                }
-            }
+        // 初始化ApiTester
+        document.addEventListener('DOMContentLoaded', () => {
+            ApiTester.init();
         });
-
-        // 更新浏览器URL而不刷新页面
-        function updateUrl(params) {
-            const queryString = Object.keys(params)
-                .filter(key => params[key] !== '' && params[key] !== false)
-                .map(key => `${key}=${encodeURIComponent(params[key])}`)
-                .join('&');
-            
-            const newUrl = queryString ? `?${queryString}` : '?';
-            window.history.replaceState({}, '', newUrl);
-        }
-
-        // 事件监听器
-        document.getElementById('testSingle').addEventListener('click', testSingleSearch);
-        document.getElementById('testMultiSeparate').addEventListener('click', testMultiSeparateSearch);
-        document.getElementById('testMultiMerged').addEventListener('click', testMultiMergedSearch);
-        document.getElementById('testAllSources').addEventListener('click', testIndividualSources);
-
-        // 回车键搜索
-        document.getElementById('searchQuery').addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') {
-                testSingleSearch();
-            }
-        });
-
-        // 添加高级搜索选项
-        document.querySelector('.search-section').insertAdjacentHTML('beforeend', `
-            <div class="form-group" style="margin-top: 1rem;">
-                <div class="input-group">
-                    <label for="searchPage">页码</label>
-                    <input type="number" id="searchPage" placeholder="页码，默认1" value="1" min="1">
-                </div>
-                <div class="input-group">
-                    <label for="searchPageSize">每页大小</label>
-                    <input type="number" id="searchPageSize" placeholder="每页结果数，默认25" value="25" min="1" max="100">
-                </div>
-                <div class="input-group" style="align-self: flex-end;">
-                    <label>
-                        <input type="checkbox" id="searchMultiSource"> 多源搜索
-                    </label>
-                </div>
-                <div class="input-group" style="align-self: flex-end;">
-                    <label>
-                        <input type="checkbox" id="searchMerged"> 合并结果
-                    </label>
-                </div>
-            </div>
-            <div class="btn-group" style="margin-top: 1rem;">
-                <button id="testWithParams">使用参数搜索</button>
-            </div>
-        `);
-
-        // 使用参数搜索函数
-        async function testWithParams() {
-            const query = document.getElementById('searchQuery').value.trim();
-            if (!query) {
-                alert('请输入搜索关键词');
-                return;
-            }
-
-            const page = document.getElementById('searchPage').value || '1';
-            const pageSize = document.getElementById('searchPageSize').value || '25';
-            const multiSource = document.getElementById('searchMultiSource').checked;
-            const merged = document.getElementById('searchMerged').checked;
-
-            // 更新URL参数
-            const params = { q: query, page, page_size: pageSize };
-            if (multiSource) params.multi_source = true;
-            if (merged) params.merged = true;
-            updateUrl(params);
-
-            const resultsDiv = document.getElementById('singleResults');
-            resultsDiv.innerHTML = '<div class="loading"><div class="spinner"></div>正在搜索...</div>';
-
-            try {
-                const startTime = Date.now();
-                const apiUrl = buildApiUrl(params);
-                const response = await fetch(apiUrl);
-                const responseTime = Date.now() - startTime;
-                const data = await response.json();
-                
-                const hasResults = data && ((Array.isArray(data.results) && data.results.length > 0) || 
-                                           (data.multi_source_results && data.multi_source_results.length > 0) ||
-                                           (Array.isArray(data) && data.length > 0));
-                const status = hasResults ? 'success' : 'error';
-                const statusText = hasResults ? 'Success' : 'No Results';
-                
-                // 计算结果摘要
-                let resultCount = 0;
-                let sourceCount = 0;
-                if (data.results) {
-                    resultCount = Array.isArray(data.results) ? data.results.length : 0;
-                }
-                if (data.multi_source_results) {
-                    sourceCount = Array.isArray(data.multi_source_results) ? data.multi_source_results.length : 0;
-                    // 计算所有源的总结果数
-                    resultCount = data.multi_source_results.reduce((sum, sourceRes) => 
-                        sum + (Array.isArray(sourceRes.Results) ? sourceRes.Results.length : 0), 0);
-                }
-                
-                resultsDiv.innerHTML = `
-                    <div class="result-card">
-                        <div class="result-header">
-                            <div class="result-title">带参数搜索</div>
-                            <div class="result-source status-indicator status-${status}">${statusText}</div>
-                        </div>
-                        <div class="api-endpoint">${apiUrl}</div>
-                        <div class="result-summary">
-                            <div class="summary-item">
-                                <span class="summary-label">HTTP状态码</span>
-                                <span class="summary-value">${response.status}</span>
-                            </div>
-                            <div class="summary-item">
-                                <span class="summary-label">响应时间</span>
-                                <span class="summary-value">${responseTime}ms</span>
-                            </div>
-                            <div class="summary-item">
-                                <span class="summary-label">结果数量</span>
-                                <span class="summary-value">${resultCount}</span>
-                            </div>
-                            <div class="summary-item">
-                                <span class="summary-label">数据源数量</span>
-                                <span class="summary-value">${sourceCount || 1}</span>
-                            </div>
-                        </div>
-                        <div class="result-content">响应数据:\n${JSON.stringify(data, null, 2)}</div>
-                    </div>
-                `;
-            } catch (error) {
-                resultsDiv.innerHTML = `<div class="result-card">
-                    <div class="result-header">
-                        <div class="result-title">带参数搜索</div>
-                        <div class="result-source status-indicator status-error">Error</div>
-                    </div>
-                    <div class="api-endpoint">${buildApiUrl({q: query, page, page_size: pageSize, multi_source: multiSource, merged})}</div>
-                    <div class="result-content">${error.message}</div>
-                </div>`;
-            }
-        }
-
-        // 主题切换功能
-        const themeToggle = document.getElementById('themeToggle');
-        const html = document.documentElement;
-                 
-        const savedTheme = localStorage.getItem('theme');
-        const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-        
-        if (savedTheme === 'dark' || (!savedTheme && prefersDark)) {
-            html.classList.add('dark');
-            themeToggle.textContent = '☀️';
-        }
-        
-        themeToggle.addEventListener('click', () => {
-            html.classList.toggle('dark');
-            const isDark = html.classList.contains('dark');
-            themeToggle.textContent = isDark ? '☀️' : '🌙';
-            localStorage.setItem('theme', isDark ? 'dark' : 'light');
-        });
-        
-        // 移动端菜单功能
-        const mobileMenuToggle = document.getElementById('mobileMenuToggle');
-        const navLinks = document.getElementById('navLinks');
-        
-        if (mobileMenuToggle && navLinks) {
-            mobileMenuToggle.addEventListener('click', () => {
-                navLinks.classList.toggle('active');
-                mobileMenuToggle.textContent = navLinks.classList.contains('active') ? '✕' : '☰';
-            });
-            
-            document.addEventListener('click', (e) => {
-                if (!e.target.closest('.navbar') && navLinks && navLinks.classList.contains('active')) {
-                    navLinks.classList.remove('active');
-                    mobileMenuToggle.textContent = '☰';
-                }
-            });
-        }
     </script>
 </body>
 </html>

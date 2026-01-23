@@ -12,9 +12,10 @@ import (
 	"sync"
 	"time"
 
-	"github.com/gin-gonic/gin"
 	"hubproxy/config"
 	"hubproxy/utils"
+
+	"github.com/gin-gonic/gin"
 )
 
 // SearchResult Docker Hub搜索结果
@@ -44,12 +45,12 @@ type Repository struct {
 
 // MultiSourceSearchResult 多源搜索结果
 type MultiSourceSearchResult struct {
-	Source    string       `json:"source"`
-	Count     int          `json:"count"`
-	Next      string       `json:"next"`
-	Previous  string       `json:"previous"`
-	Results   []Repository `json:"results"`
-	Error     string       `json:"error,omitempty"`
+	Source   string       `json:"source"`
+	Count    int          `json:"count"`
+	Next     string       `json:"next"`
+	Previous string       `json:"previous"`
+	Results  []Repository `json:"results"`
+	Error    string       `json:"error,omitempty"`
 }
 
 // TagInfo 标签信息
@@ -223,7 +224,7 @@ func searchGHCRByPackagesAPI(ctx context.Context, query string, page, pageSize i
 	// 直接检查是否存在指定的包
 	// 尝试直接构建包的路径并检查是否存在
 	repositories := make([]Repository, 0)
-	
+
 	// 检查是否是完整的包路径（如 BerriAI/litellm）
 	if strings.Contains(query, "/") {
 		parts := strings.Split(query, "/")
@@ -234,19 +235,19 @@ func searchGHCRByPackagesAPI(ctx context.Context, query string, page, pageSize i
 			if checkDirectPackageExists(ctx, owner, packageName) {
 				// 创建Repository对象
 				repo := Repository{
-					Name:        fmt.Sprintf("%s/%s", owner, packageName),
-					Description: "",
-					IsOfficial:  false,
-					IsAutomated: true,
-					StarCount:   0,
-					PullCount:   0,
-					RepoOwner:   owner,
-					LastUpdated: "",
-					Status:      1,
-					Organization: owner,
+					Name:          fmt.Sprintf("%s/%s", owner, packageName),
+					Description:   "",
+					IsOfficial:    false,
+					IsAutomated:   true,
+					StarCount:     0,
+					PullCount:     0,
+					RepoOwner:     owner,
+					LastUpdated:   "",
+					Status:        1,
+					Organization:  owner,
 					PullsLastWeek: 0,
-					Namespace:   owner,
-					Source:      "ghcr.io",
+					Namespace:     owner,
+					Source:        "ghcr.io",
 				}
 				repositories = append(repositories, repo)
 				return &SearchResult{
@@ -258,30 +259,30 @@ func searchGHCRByPackagesAPI(ctx context.Context, query string, page, pageSize i
 			}
 		}
 	}
-	
+
 	// 如果不是完整路径，尝试搜索仓库
 	apiURL := fmt.Sprintf("https://api.github.com/search/repositories?q=%s+in:name,description,readme", url.QueryEscape(query))
-	
+
 	req, err := http.NewRequestWithContext(ctx, "GET", apiURL, nil)
 	if err != nil {
 		return nil, fmt.Errorf("创建GitHub API请求失败: %v", err)
 	}
-	
+
 	// 设置适当的请求头
 	req.Header.Set("Accept", "application/vnd.github.v3+json")
 	req.Header.Set("User-Agent", "HubProxy")
-	
+
 	resp, err := utils.GetSearchHTTPClient().Do(req)
 	if err != nil {
 		return nil, fmt.Errorf("请求GitHub API失败: %v", err)
 	}
 	defer safeCloseResponseBody(resp.Body, "GitHub API响应体")
-	
+
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return nil, fmt.Errorf("读取GitHub API响应失败: %v", err)
 	}
-	
+
 	if resp.StatusCode != http.StatusOK {
 		// 如果GitHub API不可用，返回空结果而不是错误
 		return &SearchResult{
@@ -291,7 +292,7 @@ func searchGHCRByPackagesAPI(ctx context.Context, query string, page, pageSize i
 			Results:  []Repository{},
 		}, nil
 	}
-	
+
 	// 解析GitHub仓库搜索结果
 	var githubResult struct {
 		TotalCount int `json:"total_count"`
@@ -307,11 +308,11 @@ func searchGHCRByPackagesAPI(ctx context.Context, query string, page, pageSize i
 			UpdatedAt   string `json:"updated_at"`
 		} `json:"items"`
 	}
-	
+
 	if err := json.Unmarshal(body, &githubResult); err != nil {
 		return nil, fmt.Errorf("解析GitHub API响应失败: %v", err)
 	}
-	
+
 	// 现在对每个仓库尝试查找对应的容器包
 	// 计算分页范围
 	startIdx := (page - 1) * pageSize
@@ -323,37 +324,37 @@ func searchGHCRByPackagesAPI(ctx context.Context, query string, page, pageSize i
 			Results:  []Repository{},
 		}, nil
 	}
-	
+
 	endIdx := startIdx + pageSize
 	if endIdx > len(githubResult.Items) {
 		endIdx = len(githubResult.Items)
 	}
-	
+
 	selectedItems := githubResult.Items[startIdx:endIdx]
-	
+
 	for _, item := range selectedItems {
 		// 直接检查这个包是否存在
 		if checkDirectPackageExists(ctx, item.Owner.Login, item.Name) {
 			// 创建Repository对象
 			repo := Repository{
-				Name:        fmt.Sprintf("%s/%s", item.Owner.Login, item.Name),
-				Description: item.Description,
-				IsOfficial:  false,
-				IsAutomated: true,
-				StarCount:   item.Stars,
-				PullCount:   0,
-				RepoOwner:   item.Owner.Login,
-				LastUpdated: item.UpdatedAt,
-				Status:      1,
-				Organization: item.Owner.Login,
+				Name:          fmt.Sprintf("%s/%s", item.Owner.Login, item.Name),
+				Description:   item.Description,
+				IsOfficial:    false,
+				IsAutomated:   true,
+				StarCount:     item.Stars,
+				PullCount:     0,
+				RepoOwner:     item.Owner.Login,
+				LastUpdated:   item.UpdatedAt,
+				Status:        1,
+				Organization:  item.Owner.Login,
 				PullsLastWeek: 0,
-				Namespace:   item.Owner.Login,
-				Source:      "ghcr.io",
+				Namespace:     item.Owner.Login,
+				Source:        "ghcr.io",
 			}
 			repositories = append(repositories, repo)
 		}
 	}
-	
+
 	return &SearchResult{
 		Count:    len(repositories),
 		Next:     "",
@@ -366,21 +367,21 @@ func searchGHCRByPackagesAPI(ctx context.Context, query string, page, pageSize i
 func checkDirectPackageExists(ctx context.Context, owner, packageName string) bool {
 	// 直接构建包的URL并检查是否存在
 	packageURL := fmt.Sprintf("https://ghcr.io/v2/%s/%s/tags/list", owner, packageName)
-	
+
 	req, err := http.NewRequestWithContext(ctx, "GET", packageURL, nil)
 	if err != nil {
 		return false
 	}
-	
+
 	// 设置适当的请求头
 	req.Header.Set("User-Agent", "HubProxy")
-	
+
 	resp, err := utils.GetSearchHTTPClient().Do(req)
 	if err != nil {
 		return false
 	}
 	defer safeCloseResponseBody(resp.Body, "GHCR API响应体")
-	
+
 	// 检查响应状态码
 	// 如果返回200或401（需要认证但存在），则认为包存在
 	return resp.StatusCode == http.StatusOK || resp.StatusCode == http.StatusUnauthorized
@@ -389,13 +390,13 @@ func checkDirectPackageExists(ctx context.Context, owner, packageName string) bo
 // checkRepositoryForContainerPackage 检查仓库是否有容器包
 func checkRepositoryForContainerPackage(ctx context.Context, owner, repo string) (bool, string) {
 	fmt.Printf("检查仓库 %s/%s 是否有容器包\n", owner, repo)
-	
+
 	// 尝试用户和组织的接口
 	endpoints := []string{
 		fmt.Sprintf("https://api.github.com/users/%s/packages?package_type=container", owner),
 		fmt.Sprintf("https://api.github.com/orgs/%s/packages?package_type=container", owner),
 	}
-	
+
 	for _, packageURL := range endpoints {
 		fmt.Printf("尝试访问: %s\n", packageURL)
 		req, err := http.NewRequestWithContext(ctx, "GET", packageURL, nil)
@@ -403,49 +404,49 @@ func checkRepositoryForContainerPackage(ctx context.Context, owner, repo string)
 			fmt.Printf("创建请求失败: %v\n", err)
 			continue
 		}
-		
+
 		req.Header.Set("Accept", "application/vnd.github.v3+json")
 		req.Header.Set("User-Agent", "HubProxy")
-		
+
 		resp, err := utils.GetSearchHTTPClient().Do(req)
 		if err != nil {
 			fmt.Printf("请求失败: %v\n", err)
 			continue
 		}
 		defer safeCloseResponseBody(resp.Body, "GitHub Packages API响应体")
-		
+
 		body, err := io.ReadAll(resp.Body)
 		if err != nil {
 			fmt.Printf("读取响应失败: %v\n", err)
 			continue
 		}
-		
+
 		if resp.StatusCode != http.StatusOK {
 			fmt.Printf("响应状态码: %d, 响应内容: %s\n", resp.StatusCode, string(body))
 			continue
 		}
-		
+
 		fmt.Printf("成功获取包列表，响应长度: %d\n", len(body))
-		
+
 		// 解析包列表
 		var packages []struct {
-			Name       string `json:"name"`
+			Name        string `json:"name"`
 			PackageType string `json:"package_type"`
-			Owner      struct {
+			Owner       struct {
 				Login string `json:"login"`
 			} `json:"owner"`
 		}
-		
+
 		if err := json.Unmarshal(body, &packages); err != nil {
 			fmt.Printf("解析包列表失败: %v, 响应内容: %s\n", err, string(body))
 			continue
 		}
-		
+
 		fmt.Printf("解析到 %d 个包\n", len(packages))
 		for i, pkg := range packages {
 			fmt.Printf("第%d个包: %s/%s (类型: %s)\n", i+1, pkg.Owner.Login, pkg.Name, pkg.PackageType)
 		}
-		
+
 		// 查找匹配的包名
 		for _, pkg := range packages {
 			if strings.EqualFold(pkg.Name, repo) && strings.EqualFold(pkg.PackageType, "container") {
@@ -454,7 +455,7 @@ func checkRepositoryForContainerPackage(ctx context.Context, owner, repo string)
 			}
 		}
 	}
-	
+
 	fmt.Printf("未找到 %s/%s 的容器包\n", owner, repo)
 	return false, ""
 }
@@ -486,7 +487,7 @@ func searchK8sRegistry(ctx context.Context, query string, page, pageSize int) (*
 	params.Set("n", fmt.Sprintf("%d", 10000)) // 获取尽可能多的仓库
 
 	fullURL := baseURL + "?" + params.Encode()
-	
+
 	req, err := http.NewRequestWithContext(ctx, "GET", fullURL, nil)
 	if err != nil {
 		return nil, fmt.Errorf("创建K8s registry请求失败: %v", err)
@@ -517,7 +518,7 @@ func searchK8sRegistry(ctx context.Context, query string, page, pageSize int) (*
 	var catalog struct {
 		Repositories []string `json:"repositories"`
 	}
-	
+
 	if err := json.Unmarshal(body, &catalog); err != nil {
 		// 如果无法解析，也返回空结果
 		return &SearchResult{
@@ -578,7 +579,7 @@ func searchK8sRegistry(ctx context.Context, query string, page, pageSize int) (*
 
 	return &SearchResult{
 		Count:    len(filteredRepos), // 总数是过滤后的总数
-		Next:     "", // K8s registry不支持标准分页
+		Next:     "",                 // K8s registry不支持标准分页
 		Previous: "",
 		Results:  repositories,
 	}, nil
@@ -627,7 +628,7 @@ func searchGenericRegistry(ctx context.Context, source, endpoint, query string, 
 	}
 
 	req.Header.Set("Accept", "application/json")
-	
+
 	resp, err := utils.GetSearchHTTPClient().Do(req)
 	if err != nil {
 		return nil, fmt.Errorf("请求%s API失败: %v", source, err)
@@ -668,7 +669,7 @@ func searchGenericRegistry(ctx context.Context, source, endpoint, query string, 
 	}
 
 	var result *SearchResult
-	
+
 	if source == "quay.io" {
 		// Quay.io 特殊处理
 		var quayResult struct {
@@ -685,7 +686,7 @@ func searchGenericRegistry(ctx context.Context, source, endpoint, query string, 
 				Namespace   string `json:"namespace"`
 			} `json:"repositories"`
 		}
-		
+
 		if err := json.Unmarshal(body, &quayResult); err != nil {
 			// 如果解析失败，可能是HTML响应或其他格式，返回空结果
 			return &SearchResult{
@@ -700,47 +701,47 @@ func searchGenericRegistry(ctx context.Context, source, endpoint, query string, 
 		repos := make([]Repository, 0)
 		for _, app := range quayResult.Apps {
 			repo := Repository{
-				Name:        app.Name,
-				Description: app.Description,
-				IsOfficial:  false,
-				IsAutomated: false,
-				StarCount:   0,
-				PullCount:   0,
-				RepoOwner:   app.Owner,
-				LastUpdated: "",
-				Status:      1,
-				Organization: app.Owner,
+				Name:          app.Name,
+				Description:   app.Description,
+				IsOfficial:    false,
+				IsAutomated:   false,
+				StarCount:     0,
+				PullCount:     0,
+				RepoOwner:     app.Owner,
+				LastUpdated:   "",
+				Status:        1,
+				Organization:  app.Owner,
 				PullsLastWeek: 0,
-				Namespace:   app.Owner,
-				Source:      source,
+				Namespace:     app.Owner,
+				Source:        source,
 			}
 			repos = append(repos, repo)
 		}
-		
+
 		for _, repoData := range quayResult.Repositories {
 			repo := Repository{
-				Name:        repoData.Name,
-				Description: repoData.Description,
-				IsOfficial:  false,
-				IsAutomated: repoData.IsPublic,
-				StarCount:   0,
-				PullCount:   0,
-				RepoOwner:   repoData.Namespace,
-				LastUpdated: "",
-				Status:      1,
-				Organization: repoData.Namespace,
+				Name:          repoData.Name,
+				Description:   repoData.Description,
+				IsOfficial:    false,
+				IsAutomated:   repoData.IsPublic,
+				StarCount:     0,
+				PullCount:     0,
+				RepoOwner:     repoData.Namespace,
+				LastUpdated:   "",
+				Status:        1,
+				Organization:  repoData.Namespace,
 				PullsLastWeek: 0,
-				Namespace:   repoData.Namespace,
-				Source:      source,
+				Namespace:     repoData.Namespace,
+				Source:        source,
 			}
 			repos = append(repos, repo)
 		}
 
 		result = &SearchResult{
-			Count:   len(repos),
-			Next:    "",
+			Count:    len(repos),
+			Next:     "",
 			Previous: "",
-			Results: repos,
+			Results:  repos,
 		}
 	} else {
 		// 标准Docker Registry API格式
@@ -763,7 +764,7 @@ func searchGenericRegistry(ctx context.Context, source, endpoint, query string, 
 
 	// 缓存结果
 	searchCache.SetWithTTL(cacheKey, result, cacheTTL)
-	
+
 	return result, nil
 }
 
@@ -1156,18 +1157,18 @@ func sendErrorResponse(c *gin.Context, message string) {
 // searchMultiRegistries 并行搜索多个注册表
 func searchMultiRegistries(ctx context.Context, query string, page, pageSize int) ([]MultiSourceSearchResult, error) {
 	enabledRegistries := getEnabledRegistries()
-	
+
 	var results []MultiSourceSearchResult
-	
+
 	// 并发搜索所有启用的注册表
 	var wg sync.WaitGroup
 	resultChan := make(chan MultiSourceSearchResult, len(enabledRegistries))
-	
+
 	for domain := range enabledRegistries {
 		wg.Add(1)
 		go func(domain string) {
 			defer wg.Done()
-			
+
 			result, err := searchRegistryByDomain(ctx, domain, query, page, pageSize)
 			if err != nil {
 				resultChan <- MultiSourceSearchResult{
@@ -1184,27 +1185,27 @@ func searchMultiRegistries(ctx context.Context, query string, page, pageSize int
 					}
 				}
 				resultChan <- MultiSourceSearchResult{
-					Source:  domain,
-					Count:   result.Count,
-					Next:    result.Next,
+					Source:   domain,
+					Count:    result.Count,
+					Next:     result.Next,
 					Previous: result.Previous,
-					Results: result.Results,
+					Results:  result.Results,
 				}
 			}
 		}(domain)
 	}
-	
+
 	// 等待所有goroutine完成
 	go func() {
 		wg.Wait()
 		close(resultChan)
 	}()
-	
+
 	// 收集结果
 	for res := range resultChan {
 		results = append(results, res)
 	}
-	
+
 	return results, nil
 }
 
@@ -1214,7 +1215,7 @@ func searchMultiRegistriesMerged(ctx context.Context, query string, page, pageSi
 	if err != nil {
 		return nil, err
 	}
-	
+
 	return mergeSearchResults(multiResults), nil
 }
 
@@ -1230,10 +1231,42 @@ func RegisterSearchRoute(r *gin.Engine) {
 		// 检查是否需要多源搜索
 		multiSource := c.Query("multi_source") == "true" || c.Query("all_sources") == "true"
 		mergedResult := c.Query("merged") == "true"
-		
+
+		// 检查是否指定了特定源
+		source := c.Query("source")
+
 		page, pageSize := parsePaginationParams(c, defaultPageSize)
 
-		if multiSource {
+		if source != "" {
+			// 按指定源搜索
+			enabledRegistries := getEnabledRegistries()
+			// 特殊处理docker.io，因为它是默认的注册表，即使在配置中没有明确列出
+			if _, exists := enabledRegistries[source]; !exists && source != "docker.io" {
+				// 源不存在，返回错误
+				sendErrorResponse(c, "指定的源不存在或未启用")
+				return
+			}
+
+			// 搜索指定源
+			result, err := searchRegistryByDomain(c.Request.Context(), source, query, page, pageSize)
+			if err != nil {
+				// 即使有错误，也返回空结果而不是错误响应
+				c.JSON(http.StatusOK, &SearchResult{
+					Count:    0,
+					Next:     "",
+					Previous: "",
+					Results:  []Repository{},
+				})
+				return
+			}
+
+			// 确保返回的结果中包含正确的Source字段
+			for i := range result.Results {
+				result.Results[i].Source = source
+			}
+
+			c.JSON(http.StatusOK, result)
+		} else if multiSource {
 			// 多源搜索
 			if mergedResult {
 				// 返回合并后的结果
@@ -1248,13 +1281,13 @@ func RegisterSearchRoute(r *gin.Engine) {
 					})
 					return
 				}
-				
+
 				c.JSON(http.StatusOK, result)
 			} else {
 				// 返回各源的独立结果
 				results, _ := searchMultiRegistries(c.Request.Context(), query, page, pageSize)
 				// 忽略错误，因为searchMultiRegistries已经在内部处理了所有错误情况
-				
+
 				c.JSON(http.StatusOK, gin.H{
 					"multi_source_results": results,
 					"total_sources":        len(results),
@@ -1277,25 +1310,25 @@ func RegisterSearchRoute(r *gin.Engine) {
 
 	// 新增多源搜索专用路由
 	r.GET("/search/multi", func(c *gin.Context) {
-			query := c.Query("q")
-			if query == "" {
-				sendErrorResponse(c, "搜索关键词不能为空")
-				return
-			}
+		query := c.Query("q")
+		if query == "" {
+			sendErrorResponse(c, "搜索关键词不能为空")
+			return
+		}
 
-			page, pageSize := parsePaginationParams(c, defaultPageSize)
+		page, pageSize := parsePaginationParams(c, defaultPageSize)
 
-			results, _ := searchMultiRegistries(c.Request.Context(), query, page, pageSize)
-			// 忽略错误，因为searchMultiRegistries已经在内部处理了所有错误情况
+		results, _ := searchMultiRegistries(c.Request.Context(), query, page, pageSize)
+		// 忽略错误，因为searchMultiRegistries已经在内部处理了所有错误情况
 
-			c.JSON(http.StatusOK, gin.H{
-				"multi_source_results": results,
-				"total_sources":        len(results),
-				"query":                query,
-				"page":                 page,
-				"page_size":            pageSize,
-			})
+		c.JSON(http.StatusOK, gin.H{
+			"multi_source_results": results,
+			"total_sources":        len(results),
+			"query":                query,
+			"page":                 page,
+			"page_size":            pageSize,
 		})
+	})
 
 	r.GET("/tags/:namespace/:name", func(c *gin.Context) {
 		namespace := c.Param("namespace")
