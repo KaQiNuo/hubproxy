@@ -7,7 +7,6 @@ import (
 	"io"
 	"net/http"
 	"net/url"
-	"sort"
 	"strings"
 	"sync"
 	"time"
@@ -16,6 +15,9 @@ import (
 	"hubproxy/utils"
 
 	"github.com/gin-gonic/gin"
+	"hubproxy/utils"
+	"hubproxy/config"
+
 )
 
 // SearchResult Docker Hub搜索结果
@@ -1133,10 +1135,14 @@ func parsePaginationParams(c *gin.Context, defaultPageSize int) (page, pageSize 
 	pageSize = defaultPageSize
 
 	if p := c.Query("page"); p != "" {
-		fmt.Sscanf(p, "%d", &page)
+		if _, err := fmt.Sscanf(p, "%d", &page); err != nil {
+			fmt.Printf("解析page参数失败: %v\n", err)
+		}
 	}
 	if ps := c.Query("page_size"); ps != "" {
-		fmt.Sscanf(ps, "%d", &pageSize)
+		if _, err := fmt.Sscanf(ps, "%d", &pageSize); err != nil {
+			fmt.Printf("解析page_size参数失败: %v\n", err)
+		}
 	}
 
 	return page, pageSize

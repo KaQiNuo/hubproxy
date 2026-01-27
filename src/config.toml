@@ -3,6 +3,7 @@ host = "0.0.0.0"
 port = 5000
 fileSize = 2147483648
 enableH2C = false
+enableFrontend = true
 
 [rateLimit]
 requestLimit = 500
