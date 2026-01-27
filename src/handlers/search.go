@@ -7,6 +7,7 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"sort"
 	"strings"
 	"sync"
 	"time"
@@ -15,9 +16,6 @@ import (
 	"hubproxy/utils"
 
 	"github.com/gin-gonic/gin"
-	"hubproxy/utils"
-	"hubproxy/config"
-
 )
 
 // SearchResult Docker Hub搜索结果
