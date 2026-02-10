@@ -7,13 +7,13 @@ import (
 	"io"
 	"net/http"
 	"net/url"
-	"sort"
 	"strings"
 	"sync"
 	"time"
 
 	"hubproxy/config"
 	"hubproxy/utils"
+
 
 	"github.com/gin-gonic/gin"
 )
@@ -943,7 +943,7 @@ func searchDockerHubWithDepth(ctx context.Context, query string, page, pageSize 
 			}
 			return nil, fmt.Errorf("未找到相关镜像")
 		case http.StatusBadGateway, http.StatusServiceUnavailable:
-			return nil, fmt.Errorf("Docker Hub服务暂时不可用，请稍后重试")
+			return nil, fmt.Errorf("docker hub 服务暂时不可用，请稍后重试")
 		default:
 			return nil, fmt.Errorf("请求失败: 状态码=%d, 响应=%s", resp.StatusCode, string(body))
 		}
@@ -1133,10 +1133,14 @@ func parsePaginationParams(c *gin.Context, defaultPageSize int) (page, pageSize 
 	pageSize = defaultPageSize
 
 	if p := c.Query("page"); p != "" {
-		fmt.Sscanf(p, "%d", &page)
+		if _, err := fmt.Sscanf(p, "%d", &page); err != nil {
+			fmt.Printf("解析page参数失败: %v\n", err)
+		}
 	}
 	if ps := c.Query("page_size"); ps != "" {
-		fmt.Sscanf(ps, "%d", &pageSize)
+		if _, err := fmt.Sscanf(ps, "%d", &pageSize); err != nil {
+			fmt.Printf("解析page_size参数失败: %v\n", err)
+		}
 	}
 
 	return page, pageSize

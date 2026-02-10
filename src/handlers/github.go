@@ -129,7 +129,7 @@ func proxyGitHubWithRedirect(c *gin.Context, u string, redirectCount int) {
 			fmt.Printf("关闭响应体失败: %v\n", err)
 		}
 	}()
-	
+
 	// 检查并处理被阻止的内容类型
 	if c.Request.Method == "GET" {
 		if contentType := resp.Header.Get("Content-Type"); blockedContentTypes[strings.ToLower(strings.Split(contentType, ";")[0])] {
@@ -227,6 +227,8 @@ func proxyGitHubWithRedirect(c *gin.Context, u string, redirectCount int) {
 		c.Status(resp.StatusCode)
 
 		// 直接流式转发
-		io.Copy(c.Writer, resp.Body)
+		if _, err := io.Copy(c.Writer, resp.Body); err != nil {
+			fmt.Printf("转发响应体失败: %v\n", err)
+		}
 	}
 }
