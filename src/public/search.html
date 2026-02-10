@@ -1775,7 +1775,7 @@
             showLoading();
 
             try {
-                const response = await fetch(`http://localhost:5002/search?q=${encodeURIComponent(query)}&page=${currentPage}&page_size=10`);
+                const response = await fetch(`/search?q=${encodeURIComponent(query)}&page=${currentPage}&page_size=10`);
                 
                 // 尝试解析响应数据，即使响应状态不是 200
                 let data;
@@ -1820,7 +1820,7 @@
                 const controller = new AbortController();
                 const timeoutId = setTimeout(() => controller.abort(), 10000); // 10秒超时
 
-                const response = await fetch(`http://localhost:5002/search?q=${encodeURIComponent(query)}&page=${currentPage}&page_size=10&multi_source=true`, {
+                const response = await fetch(`/search?q=${encodeURIComponent(query)}&page=${currentPage}&page_size=10&multi_source=true`, {
                     signal: controller.signal
                 });
 
@@ -1889,7 +1889,7 @@
                 const controller = new AbortController();
                 const timeoutId = setTimeout(() => controller.abort(), 10000); // 10秒超时
 
-                const response = await fetch(`http://localhost:5002/search?q=${encodeURIComponent(query)}&page=${currentPage}&page_size=10&multi_source=true&merged=true`, {
+                const response = await fetch(`/search?q=${encodeURIComponent(query)}&page=${currentPage}&page_size=10&multi_source=true&merged=true`, {
                     signal: controller.signal
                 });
 
@@ -2200,7 +2200,7 @@
                     throw new Error('无效的镜像名称');
                 }
                 
-                const response = await fetch(`http://localhost:5002${apiPath}?page=${currentTagPage}&page_size=100&source=${encodeURIComponent(source)}`);
+                const response = await fetch(`${apiPath}?page=${currentTagPage}&page_size=100&source=${encodeURIComponent(source)}`);
                 if (!response.ok) {
                     const errorText = await response.text();
                     throw new Error(errorText || '获取标签信息失败');
