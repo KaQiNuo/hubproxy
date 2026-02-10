@@ -1315,6 +1315,7 @@
 
         <div class="back-to-search">← 返回搜索结果</div>
 
+
         <div class="tag-list" id="tagList">
             <div class="pagination" id="tagPagination" style="display: none;">
                 <button id="tagPrevPage" disabled>上一页</button>
@@ -1324,7 +1325,6 @@
     </div>
 
     <div id="toast"></div>
-
     <script>
         // 格式化工具函数
         const formatUtils = {
@@ -1702,7 +1702,6 @@
         }
 
         // 分页更新函数
-        const updateSearchPagination = () => updatePagination();
         const updateTagPagination = () => updatePagination({
             currentPage: currentTagPage,
             totalPages: totalTagPages,
