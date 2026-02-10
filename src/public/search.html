@@ -1326,6 +1326,113 @@
 
     <div id="toast"></div>
     <script>
+        // 搜索配置常量
+        const SEARCH_CONFIG = {
+            defaultPageSize: 10,
+            tagPageSize: 100,
+            requestTimeout: 10000,
+            maxRetries: 3,
+            retryDelay: 1000,
+            cacheTTL: 5 * 60 * 1000,
+            maxDisplayPages: 100
+        };
+
+        // 源名称标准化映射
+        const SOURCE_NAME_MAP = {
+            'docker.io': 'dockerhub',
+            'ghcr.io': 'ghcr',
+            'gcr.io': 'gcr',
+            'quay.io': 'quay',
+            'registry.k8s.io': 'k8s'
+        };
+
+        // 搜索请求缓存
+        const searchCache = new Map();
+
+        /**
+         * 标准化源名称
+         * @param {string} source - 原始源名称
+         * @returns {string} 标准化后的源名称
+         */
+        function normalizeSourceName(source) {
+            const normalizedSource = (source || '').toString().toLowerCase();
+            return SOURCE_NAME_MAP[normalizedSource] || normalizedSource;
+        }
+
+        /**
+         * 构建搜索请求URL
+         * @param {Object} params - 查询参数对象
+         * @returns {string} 编码后的URL查询字符串
+         */
+        function buildSearchParams(params) {
+            const searchParams = new URLSearchParams();
+            
+            if (params.q) searchParams.set('q', params.q);
+            if (params.page) searchParams.set('page', params.page);
+            if (params.pageSize) searchParams.set('page_size', params.pageSize);
+            if (params.multiSource) searchParams.set('multi_source', 'true');
+            if (params.merged) searchParams.set('merged', 'true');
+            
+            return searchParams.toString();
+        }
+
+        /**
+         * 获取带缓存的搜索数据
+         * @param {string} url - 请求URL
+         * @param {Object} options - fetch选项
+         * @returns {Promise<Object>} 搜索结果数据
+         */
+        async function performCachedSearch(url, options = {}) {
+            const cacheKey = url;
+            const cached = searchCache.get(cacheKey);
+            
+            if (cached && Date.now() - cached.timestamp < SEARCH_CONFIG.cacheTTL) {
+                return cached.data;
+            }
+
+            const response = await fetch(url, options);
+            
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+            }
+            
+            const data = await response.json();
+            searchCache.set(cacheKey, { data, timestamp: Date.now() });
+            
+            return data;
+        }
+
+        // 请求控制器
+        let pendingRequestController = null;
+
+        /**
+         * 防抖函数
+         * @param {Function} func - 要防抖的函数
+         * @param {number} wait - 等待时间（毫秒）
+         * @returns {Function} 防抖后的函数
+         */
+        function debounce(func, wait = 300) {
+            let timeout;
+            return function executedFunction(...args) {
+                const later = () => {
+                    clearTimeout(timeout);
+                    func.apply(this, args);
+                };
+                clearTimeout(timeout);
+                timeout = setTimeout(later, wait);
+            };
+        }
+
+        /**
+         * 取消当前挂起的请求
+         */
+        function cancelPendingRequest() {
+            if (pendingRequestController) {
+                pendingRequestController.abort();
+                pendingRequestController = null;
+            }
+        }
+
         // 格式化工具函数
         const formatUtils = {
             formatNumber(num) {
@@ -1773,31 +1880,40 @@
 
             currentQuery = query;
             showLoading();
+            cancelPendingRequest();
 
             try {
-                const response = await fetch(`/search?q=${encodeURIComponent(query)}&page=${currentPage}&page_size=10`);
+                pendingRequestController = new AbortController();
+                const timeoutId = setTimeout(() => pendingRequestController.abort(), SEARCH_CONFIG.requestTimeout);
                 
-                // 尝试解析响应数据，即使响应状态不是 200
-                let data;
-                try {
-                    data = await response.json();
-                } catch (jsonError) {
-                    console.error('JSON 解析错误:', jsonError);
-                    data = { results: [] };
-                }
+                const searchParams = buildSearchParams({
+                    q: query,
+                    page: currentPage,
+                    pageSize: SEARCH_CONFIG.defaultPageSize
+                });
+                
+                const response = await fetch(`/search?${searchParams}`, {
+                    signal: pendingRequestController.signal
+                });
+                
+                clearTimeout(timeoutId);
+                pendingRequestController = null;
+                
+                const data = await response.json();
                 
                 totalPages = data.total_pages || 1;
                 displaySearchResults(data.results || []);
                 updateSearchPagination();
-                
-                // 如果响应状态不是 200，显示警告消息
-                if (!response.ok) {
-                    console.warn('搜索响应状态不是 200:', response.status);
-                    showToast('搜索可能不完整，请稍后重试');
-                }
             } catch (error) {
                 console.error('搜索错误:', error);
-                showToast('搜索失败，请稍后重试');
+                pendingRequestController = null;
+                if (error.name === 'AbortError') {
+                    return;
+                } else if (error.message.includes('HTTP')) {
+                    showToast('搜索服务暂时不可用，请稍后重试');
+                } else {
+                    showToast('搜索失败，请稍后重试');
+                }
                 document.getElementById('searchResults').innerHTML = '<div class="error-message">搜索失败，请稍后重试</div>';
             } finally {
                 hideLoading();
@@ -1814,59 +1930,51 @@
 
             currentQuery = query;
             showLoading();
+            cancelPendingRequest();
 
             try {
-                // 为每个请求设置超时
-                const controller = new AbortController();
-                const timeoutId = setTimeout(() => controller.abort(), 10000); // 10秒超时
+                pendingRequestController = new AbortController();
+                const timeoutId = setTimeout(() => pendingRequestController.abort(), SEARCH_CONFIG.requestTimeout);
 
-                const response = await fetch(`/search?q=${encodeURIComponent(query)}&page=${currentPage}&page_size=10&multi_source=true`, {
-                    signal: controller.signal
+                const searchParams = buildSearchParams({
+                    q: query,
+                    page: currentPage,
+                    pageSize: SEARCH_CONFIG.defaultPageSize,
+                    multiSource: true
+                });
+
+                const response = await fetch(`/search?${searchParams}`, {
+                    signal: pendingRequestController.signal
                 });
 
                 clearTimeout(timeoutId);
-
-                // 尝试解析响应数据，即使响应状态不是 200
-                let data;
-                try {
-                    data = await response.json();
-                } catch (jsonError) {
-                    console.error('JSON 解析错误:', jsonError);
-                    data = { multi_source_results: [] };
-                }
+                pendingRequestController = null;
+                const data = await response.json();
                 
-                // 处理多源搜索结果
                 const multiSourceResults = {};
                 if (data.multi_source_results && Array.isArray(data.multi_source_results)) {
                     data.multi_source_results.forEach(result => {
-                        // 标准化源名称
-                        let sourceName = result.source;
-                        if (sourceName === 'docker.io') sourceName = 'dockerhub';
-                        else if (sourceName === 'ghcr.io') sourceName = 'ghcr';
-                        else if (sourceName === 'gcr.io') sourceName = 'gcr';
-                        else if (sourceName === 'quay.io') sourceName = 'quay';
-                        else if (sourceName === 'registry.k8s.io') sourceName = 'k8s';
-                        
+                        const sourceName = normalizeSourceName(result.source);
                         multiSourceResults[sourceName] = result.Results || [];
                     });
                 }
-                
-                // 如果响应状态不是 200，显示警告消息
-                if (!response.ok) {
-                    console.warn('搜索响应状态不是 200:', response.status);
-                    showToast('搜索可能不完整，请稍后重试');
-                }
 
-                // 显示结果
                 displaySeparateSearchResults(multiSourceResults);
                 updatePagination({
                     currentPage: currentPage,
-                    totalPages: 1, // 多源搜索暂时不支持分页
+                    totalPages: 1,
                     prefix: 'separate'
                 });
             } catch (error) {
                 console.error('搜索错误:', error);
-                showToast('搜索失败，请稍后重试');
+                pendingRequestController = null;
+                if (error.name === 'AbortError') {
+                    return;
+                } else if (error.message.includes('HTTP')) {
+                    showToast('搜索服务暂时不可用，请稍后重试');
+                } else {
+                    showToast('搜索失败，请稍后重试');
+                }
                 document.getElementById('separateResults').innerHTML = '<div class="error-message">搜索失败，请稍后重试</div>';
             } finally {
                 hideLoading();
@@ -1883,45 +1991,46 @@
 
             currentQuery = query;
             showLoading();
+            cancelPendingRequest();
 
             try {
-                // 为每个请求设置超时
-                const controller = new AbortController();
-                const timeoutId = setTimeout(() => controller.abort(), 10000); // 10秒超时
+                pendingRequestController = new AbortController();
+                const timeoutId = setTimeout(() => pendingRequestController.abort(), SEARCH_CONFIG.requestTimeout);
 
-                const response = await fetch(`/search?q=${encodeURIComponent(query)}&page=${currentPage}&page_size=10&multi_source=true&merged=true`, {
-                    signal: controller.signal
+                const searchParams = buildSearchParams({
+                    q: query,
+                    page: currentPage,
+                    pageSize: SEARCH_CONFIG.defaultPageSize,
+                    multiSource: true,
+                    merged: true
+                });
+
+                const response = await fetch(`/search?${searchParams}`, {
+                    signal: pendingRequestController.signal
                 });
 
                 clearTimeout(timeoutId);
-
-                // 尝试解析响应数据，即使响应状态不是 200
-                let data;
-                try {
-                    data = await response.json();
-                } catch (jsonError) {
-                    console.error('JSON 解析错误:', jsonError);
-                    data = { results: [] };
-                }
+                pendingRequestController = null;
+                const data = await response.json();
                 
                 const allResults = data.results || [];
                 
-                // 如果响应状态不是 200，显示警告消息
-                if (!response.ok) {
-                    console.warn('搜索响应状态不是 200:', response.status);
-                    showToast('搜索可能不完整，请稍后重试');
-                }
-
-                // 显示结果
                 displayMergedSearchResults(allResults);
                 updatePagination({
                     currentPage: currentPage,
-                    totalPages: 1, // 多源搜索暂时不支持分页
+                    totalPages: 1,
                     prefix: 'merged'
                 });
             } catch (error) {
                 console.error('搜索错误:', error);
-                showToast('搜索失败，请稍后重试');
+                pendingRequestController = null;
+                if (error.name === 'AbortError') {
+                    return;
+                } else if (error.message.includes('HTTP')) {
+                    showToast('搜索服务暂时不可用，请稍后重试');
+                } else {
+                    showToast('搜索失败，请稍后重试');
+                }
                 document.getElementById('mergedResults').innerHTML = '<div class="error-message">搜索失败，请稍后重试</div>';
             } finally {
                 hideLoading();
@@ -2183,24 +2292,37 @@
         // 加载标签页面
         async function loadTagPage() {
             showLoading();
+            cancelPendingRequest();
             try {
                 const namespace = currentRepo.namespace;
                 const name = currentRepo.name;
                 const source = currentRepo.source;
                 
-                // 构建正确的 API 路径，确保命名空间和仓库名称正确处理
                 let apiPath = '';
                 if (namespace && name) {
-                    // 对于有命名空间的镜像
                     apiPath = `/tags/${encodeURIComponent(namespace)}/${encodeURIComponent(name)}`;
                 } else if (name) {
-                    // 对于没有命名空间的镜像
                     apiPath = `/tags/${encodeURIComponent(name)}`;
                 } else {
                     throw new Error('无效的镜像名称');
                 }
                 
-                const response = await fetch(`${apiPath}?page=${currentTagPage}&page_size=100&source=${encodeURIComponent(source)}`);
+                pendingRequestController = new AbortController();
+                const timeoutId = setTimeout(() => pendingRequestController.abort(), SEARCH_CONFIG.requestTimeout);
+                
+                const tagParams = new URLSearchParams({
+                    page: currentTagPage,
+                    page_size: SEARCH_CONFIG.tagPageSize,
+                    source: source
+                });
+                
+                const response = await fetch(`${apiPath}?${tagParams.toString()}`, {
+                    signal: pendingRequestController.signal
+                });
+                
+                clearTimeout(timeoutId);
+                pendingRequestController = null;
+                
                 if (!response.ok) {
                     const errorText = await response.text();
                     throw new Error(errorText || '获取标签信息失败');
@@ -2208,12 +2330,9 @@
 
                 const data = await response.json();
                 
-                // 改进的总页数计算：使用更准确的分页策略
                 if (data.has_more) {
-                    // 如果还有更多页面，至少有当前页+1页，但可能更多
                     totalTagPages = Math.max(currentTagPage + 1, totalTagPages);
                 } else {
-                    // 如果没有更多页面，当前页就是最后一页
                     totalTagPages = currentTagPage;
                 }
                 
@@ -2221,13 +2340,17 @@
                 updateTagPagination();
             } catch (error) {
                 console.error('加载标签错误:', error);
-                // 处理 GHCR 401 Unauthorized 错误
-                if (error.message.includes('401') || error.message.includes('UNAUTHORIZED')) {
+                pendingRequestController = null;
+                if (error.name === 'AbortError') {
+                    return;
+                } else if (error.message.includes('401') || error.message.includes('UNAUTHORIZED')) {
                     showToast('获取 GHCR 标签信息需要认证，请先运行 docker login ghcr.io');
                     document.getElementById('tagList').innerHTML = `<div class="error-message">获取 GHCR 标签信息需要认证，请先运行 docker login ghcr.io</div>`;
                 } else if (error.message.includes('403') || error.message.includes('FORBIDDEN')) {
                     showToast('获取标签信息被拒绝，请检查镜像权限');
                     document.getElementById('tagList').innerHTML = `<div class="error-message">获取标签信息被拒绝，请检查镜像权限</div>`;
+                } else if (error.message.includes('HTTP')) {
+                    showToast('标签服务暂时不可用，请稍后重试');
                 } else {
                     showToast(error.message || '获取标签信息失败，请稍后重试');
                     document.getElementById('tagList').innerHTML = `<div class="error-message">${error.message || '获取标签信息失败，请稍后重试'}</div>`;
