@@ -1058,6 +1058,7 @@
             
             .nav-links.active {
                 transform: translateY(0);
+                animation: slideIn 0.3s ease-out;
             }
             
             .mobile-menu-toggle {
@@ -1150,6 +1151,41 @@
             h1 {
                 font-size: 2rem;
             }
+        }
+
+        /* Docker pull 命令样式 */
+        .docker-pull-command {
+            background-color: var(--input);
+            padding: 10px 15px;
+            border-radius: 5px;
+            font-family: monospace;
+            margin-top: 10px;
+            position: relative;
+            font-size: 0.9rem;
+        }
+
+        .docker-pull-command .copy-button {
+            position: absolute;
+            right: 5px;
+            top: 5px;
+            background: var(--primary);
+            color: var(--primary-foreground);
+            border: none;
+            padding: 2px 8px;
+            border-radius: 3px;
+            cursor: pointer;
+            font-size: 0.8rem;
+        }
+
+        /* 错误消息样式 */
+        .error-message {
+            color: #dc3545;
+            font-size: 0.9rem;
+            margin-top: 10px;
+            padding: 10px;
+            background-color: rgba(220, 53, 69, 0.1);
+            border-radius: 5px;
+            border-left: 3px solid #dc3545;
         }
     </style>
 </head>
@@ -1279,15 +1315,6 @@
 
         <div class="back-to-search">← 返回搜索结果</div>
 
-        <div class="search-results">
-            <div id="searchResults"></div>
-            
-            <div class="pagination">
-                <button id="prevPage" disabled>上一页</button>
-                <button id="nextPage" disabled>下一页</button>
-            </div>
-        </div>
-
         <div class="tag-list" id="tagList">
             <div class="pagination" id="tagPagination" style="display: none;">
                 <button id="tagPrevPage" disabled>上一页</button>
@@ -1299,6 +1326,7 @@
     <div id="toast"></div>
 
     <script>
+        // 格式化工具函数
         const formatUtils = {
             formatNumber(num) {
                 if (num >= 1000000000) return (num / 1000000000).toFixed(1) + 'B+';
@@ -1379,29 +1407,81 @@
             controls.style.display = checkbox.checked ? 'block' : 'none';
         }
 
+        // 选项卡切换
+        document.querySelectorAll('.tab-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                // 移除所有选项卡的active类
+                document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+                document.querySelectorAll('.tab-pane').forEach(pane => pane.classList.remove('active'));
+                
+                // 添加当前选项卡的active类
+                btn.classList.add('active');
+                const tabId = btn.getAttribute('data-tab');
+                document.getElementById(`${tabId}Tab`).classList.add('active');
+            });
+        });
+
         document.getElementById('searchButton').addEventListener('click', () => {
             currentPage = 1;
-            performSearch();
+            // 根据当前选中的选项卡执行相应的搜索
+            const activeTab = document.querySelector('.tab-btn.active');
+            if (activeTab) {
+                const tabId = activeTab.getAttribute('data-tab');
+                switch(tabId) {
+                    case 'single':
+                        performSingleSearch();
+                        break;
+                    case 'separate':
+                        performSeparateSearch();
+                        break;
+                    case 'merged':
+                        performMergedSearch();
+                        break;
+                    default:
+                        performSingleSearch();
+                }
+            } else {
+                performSingleSearch();
+            }
         });
 
         document.getElementById('searchInput').addEventListener('keypress', (e) => {
             if (e.key === 'Enter') {
                 currentPage = 1;
-                performSearch();
+                // 根据当前选中的选项卡执行相应的搜索
+                const activeTab = document.querySelector('.tab-btn.active');
+                if (activeTab) {
+                    const tabId = activeTab.getAttribute('data-tab');
+                    switch(tabId) {
+                        case 'single':
+                            performSingleSearch();
+                            break;
+                        case 'separate':
+                            performSeparateSearch();
+                            break;
+                        case 'merged':
+                            performMergedSearch();
+                            break;
+                        default:
+                            performSingleSearch();
+                    }
+                } else {
+                    performSingleSearch();
+                }
             }
         });
 
         document.getElementById('prevPage').addEventListener('click', () => {
             if (currentPage > 1) {
                 currentPage--;
-                performSearch();
+                performSingleSearch();
             }
         });
 
         document.getElementById('nextPage').addEventListener('click', () => {
             if (currentPage < totalPages) {
                 currentPage++;
-                performSearch();
+                performSingleSearch();
             }
         });
 
@@ -1420,6 +1500,26 @@
                 if (currentTagPage < totalTagPages) {
                     currentTagPage++;
                     loadTagPage();
+                }
+            } else if (e.target.id === 'separatePrevPage') {
+                if (currentPage > 1) {
+                    currentPage--;
+                    performSeparateSearch();
+                }
+            } else if (e.target.id === 'separateNextPage') {
+                if (currentPage < totalPages) {
+                    currentPage++;
+                    performSeparateSearch();
+                }
+            } else if (e.target.id === 'mergedPrevPage') {
+                if (currentPage > 1) {
+                    currentPage--;
+                    performMergedSearch();
+                }
+            } else if (e.target.id === 'mergedNextPage') {
+                if (currentPage < totalPages) {
+                    currentPage++;
+                    performMergedSearch();
                 }
             }
         });
@@ -1536,27 +1636,66 @@
                 loadTagPage();
             } else {
                 currentPage = inputPage;
-                performSearch();
+                const activeTab = document.querySelector('.tab-btn.active');
+                if (activeTab) {
+                    const tabId = activeTab.getAttribute('data-tab');
+                    switch(tabId) {
+                        case 'single':
+                            performSingleSearch();
+                            break;
+                        case 'separate':
+                            performSeparateSearch();
+                            break;
+                        case 'merged':
+                            performMergedSearch();
+                            break;
+                        default:
+                            performSingleSearch();
+                    }
+                } else {
+                    performSingleSearch();
+                }
             }
         }
 
         // 统一仓库信息处理
         function parseRepositoryInfo(repo) {
-            const namespace = repo.namespace || (repo.is_official ? 'library' : '');
+            // 获取命名空间
+            let namespace = repo.namespace || repo.repo_owner || '';
+            if (!namespace && repo.is_official) {
+                namespace = 'library';
+            }
+            
+            // 获取名称
             let name = repo.name || repo.repo_name || '';
             
             // 清理名称，确保不包含命名空间前缀
             if (name.includes('/')) {
                 const parts = name.split('/');
+                // 如果没有命名空间，使用第一部分作为命名空间
+                if (!namespace && parts.length > 1) {
+                    namespace = parts[0];
+                }
+                // 使用最后一部分作为名称
                 name = parts[parts.length - 1];
             }
             
+            // 对于官方镜像，确保名称不包含 library/ 前缀
             const cleanName = name.replace(/^library\//, '');
-            const fullRepoName = repo.is_official ? cleanName : `${namespace}/${cleanName}`;
+            
+            // 构建完整的仓库名称
+            let fullRepoName = '';
+            if (repo.is_official) {
+                fullRepoName = cleanName;
+            } else if (namespace) {
+                fullRepoName = `${namespace}/${cleanName}`;
+            } else {
+                fullRepoName = cleanName;
+            }
             
             return {
                 namespace,
-                name,
+                name: cleanName,
                 cleanName,
                 fullRepoName
             };
@@ -1584,199 +1723,6 @@
             document.querySelector('.search-container').style.display = 'none';
         }
 
-        async function performSearch() {
-            const query = document.getElementById('searchInput').value.trim();
-            if (!query) {
-                showToast('请输入搜索关键词');
-                return;
-            }
-
-            currentQuery = query;
-            showLoading();
-
-            try {
-                let searchQuery = query;
-                let targetRepo = '';
-                if (query.includes('/')) {
-                    const [namespace, repo] = query.split('/');
-                    searchQuery = namespace;
-                    targetRepo = repo.toLowerCase();
-                }
-
-                // 构建搜索URL
-                let searchUrl = `/search?q=${encodeURIComponent(searchQuery)}&page=${currentPage}&page_size=25`;
-                
-                // 检查是否启用多源搜索
-                const multiSourceCheckbox = document.getElementById('multiSourceCheckbox');
-                if (multiSourceCheckbox.checked) {
-                    searchUrl += '&multi_source=true';
-                    
-                    // 获取结果格式
-                    const resultFormat = document.querySelector('input[name="resultFormat"]:checked');
-                    if (resultFormat && resultFormat.value === 'merged') {
-                        searchUrl += '&merged=true';
-                    }
-                }
-
-                const response = await fetch(searchUrl);
-                const data = await response.json();
-
-                if (!response.ok) {
-                    throw new Error(data.error || '搜索请求失败');
-                }
-                
-                // 处理多源搜索结果
-                let results = [];
-                let totalCount = 0;
-                
-                if (multiSourceCheckbox.checked && data.multi_source_results) {
-                    // 处理多源结果
-                    const resultFormat = document.querySelector('input[name="resultFormat"]:checked');
-                    if (resultFormat && resultFormat.value === 'merged') {
-                        // 如果是合并结果，直接使用results数组
-                        results = data.results || [];
-                        totalCount = data.count || 0;
-                    } else {
-                        // 如果是分离结果，需要合并所有源的结果
-                        results = [];
-                        // 确保multi_source_results是一个数组
-                        const multiResults = Array.isArray(data.multi_source_results) ? data.multi_source_results : [];
-                        multiResults.forEach(sourceResult => {
-                            // 检查sourceResult是否存在且有Results属性
-                            if (sourceResult && sourceResult.Results && Array.isArray(sourceResult.Results)) {
-                                if (!sourceResult.Error) {
-                                    // 为每个结果添加源信息
-                                    sourceResult.Results.forEach(repo => {
-                                        if (repo) {
-                                            repo.source = sourceResult.Source || sourceResult.source || 'docker.io';
-                                        }
-                                    });
-                                    results = results.concat(sourceResult.Results.filter(r => r)); // 过滤掉undefined
-                                }
-                            }
-                        });
-                        totalCount = results.length;
-                    }
-                } else {
-                    // 单源搜索结果
-                    results = data.results || [];
-                    totalCount = data.count || 0;
-                }
-                
-                totalPages = Math.min(Math.ceil(totalCount / 25), 100);
-                updatePagination();
-                
-                displayResults(results, targetRepo);
-            } catch (error) {
-                console.error('搜索错误:', error);
-                showToast(error.message || '搜索失败，请稍后重试');
-            } finally {
-                hideLoading();
-            }
-        }
-
-        function displayResults(results, targetRepo = '') {
-            const resultsContainer = document.getElementById('searchResults');
-            resultsContainer.innerHTML = '';
-
-            if (!results || results.length === 0) {
-                resultsContainer.innerHTML = '<div class="text-center">未找到相关镜像</div>';
-                return;
-            }
-
-            results.sort((a, b) => {
-                if (targetRepo) {
-                    const aName = (a.name || a.repo_name || '').toLowerCase();
-                    const bName = (b.name || b.repo_name || '').toLowerCase();
-                    const aMatch = aName === targetRepo || aName.endsWith('/' + targetRepo);
-                    const bMatch = bName === targetRepo || bName.endsWith('/' + targetRepo);
-                    
-                    if (aMatch && !bMatch) return -1;
-                    if (!aMatch && bMatch) return 1;
-                }
-                
-                if (a.is_official !== b.is_official) {
-                    return b.is_official - a.is_official;
-                }
-                
-                return b.pull_count - a.pull_count;
-            });
-
-            results.forEach(result => {
-                const card = document.createElement('div');
-                card.className = 'result-card';
-                
-                let displayName = '';
-                if (result.is_official) {
-                    displayName = (result.name || result.repo_name || '').replace('library/', '');
-                } else {
-                    const name = result.name || result.repo_name || '';
-                    displayName = result.namespace ? `${result.namespace}/${name}` : name;
-                }
-
-                const description = result.short_description || '暂无描述';
-                const starCount = result.star_count || 0;
-                const pullCount = result.pull_count || 0;
-                const pullsLastWeek = result.pulls_last_week || 0;
-                const lastUpdated = result.last_updated || '';
-                const organization = result.affiliation || '';
-                const source = result.source || result.Source || 'docker.io'; // 默认来源，兼容大小写
-
-                const badges = [];
-                if (result.is_official) badges.push('<span class="badge badge-official">官方</span>');
-                if (organization) badges.push(`<span class="badge badge-organization">By ${organization}</span>`);
-                
-                // 添加来源徽章
-                const sourceBadge = getSourceBadge(source);
-                badges.push(sourceBadge);
-
-                const stats = [];
-                if (starCount > 0) stats.push(`<span class="meta-item">⭐ ${formatUtils.formatNumber(starCount)}</span>`);
-                if (pullCount > 0) stats.push(`<span class="meta-item">⬇️ ${formatUtils.formatNumber(pullCount)}+</span>`);
-
-                card.innerHTML = `
-                    <div class="result-card-header">
-                        <div class="result-card-title-section">
-                            <div class="result-title">
-                                ${displayName}
-                            </div>
-                            <div class="result-badges">
-                                ${badges.join(' ')}
-                            </div>
-                        </div>
-                    </div>
-                    <div class="result-description">${description}</div>
-                    <div class="result-meta">
-                        <div class="meta-stats">
-                            ${stats.join(' ')}
-                            ${lastUpdated ? `<span class="meta-item">更新于 ${formatUtils.formatTimeAgo(lastUpdated)}</span>` : ''}
-                        </div>
-                        ${pullsLastWeek > 0 ? `
-                        <div class="meta-pulls">
-                            <div>本周拉取次数</div>
-                            <div class="pulls-count">${formatUtils.formatNumber(pullsLastWeek)}</div>
-                        </div>
-                        ` : ''}
-                    </div>
-                `;
-
-                card.addEventListener('click', () => {
-                    currentRepo = result;
-                    const namespace = result.namespace || (result.is_official ? 'library' : '');
-                    const name = result.name || result.repo_name || '';
-                    const repoName = name.replace('library/', '');
-                    if (!namespace || !repoName) {
-                        showToast('无效的仓库信息');
-                        return;
-                    }
-                    loadTags(namespace, repoName);
-                });
-
-                resultsContainer.appendChild(card);
-            });
-        }
-
-        // 获取来源徽章
         function getSourceBadge(source) {
             // 标准化来源字符串，转换为小写
             const normalizedSource = (source || '').toString().toLowerCase();
@@ -1818,36 +1764,444 @@
             return `<span class="source-badge ${className}">${displayText}</span>`;
         }
 
-        // 内存管理
-        
-        async function loadTags(namespace, name) {
-            currentTagPage = 1;
-            await loadTagPage(namespace, name);
+        // 执行单一搜索
+        async function performSingleSearch() {
+            const query = document.getElementById('searchInput').value.trim();
+            if (!query) {
+                showToast('请输入搜索关键词');
+                return;
+            }
+
+            currentQuery = query;
+            showLoading();
+
+            try {
+                const response = await fetch(`http://localhost:5002/search?q=${encodeURIComponent(query)}&page=${currentPage}&page_size=10`);
+                
+                // 尝试解析响应数据，即使响应状态不是 200
+                let data;
+                try {
+                    data = await response.json();
+                } catch (jsonError) {
+                    console.error('JSON 解析错误:', jsonError);
+                    data = { results: [] };
+                }
+                
+                totalPages = data.total_pages || 1;
+                displaySearchResults(data.results || []);
+                updateSearchPagination();
+                
+                // 如果响应状态不是 200，显示警告消息
+                if (!response.ok) {
+                    console.warn('搜索响应状态不是 200:', response.status);
+                    showToast('搜索可能不完整，请稍后重试');
+                }
+            } catch (error) {
+                console.error('搜索错误:', error);
+                showToast('搜索失败，请稍后重试');
+                document.getElementById('searchResults').innerHTML = '<div class="error-message">搜索失败，请稍后重试</div>';
+            } finally {
+                hideLoading();
+            }
         }
 
-        async function loadTagPage(namespace = null, name = null) {
+        // 执行多源分离搜索
+        async function performSeparateSearch() {
+            const query = document.getElementById('searchInput').value.trim();
+            if (!query) {
+                showToast('请输入搜索关键词');
+                return;
+            }
+
+            currentQuery = query;
+            showLoading();
+
+            try {
+                // 为每个请求设置超时
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 10000); // 10秒超时
+
+                const response = await fetch(`http://localhost:5002/search?q=${encodeURIComponent(query)}&page=${currentPage}&page_size=10&multi_source=true`, {
+                    signal: controller.signal
+                });
+
+                clearTimeout(timeoutId);
+
+                // 尝试解析响应数据，即使响应状态不是 200
+                let data;
+                try {
+                    data = await response.json();
+                } catch (jsonError) {
+                    console.error('JSON 解析错误:', jsonError);
+                    data = { multi_source_results: [] };
+                }
+                
+                // 处理多源搜索结果
+                const multiSourceResults = {};
+                if (data.multi_source_results && Array.isArray(data.multi_source_results)) {
+                    data.multi_source_results.forEach(result => {
+                        // 标准化源名称
+                        let sourceName = result.source;
+                        if (sourceName === 'docker.io') sourceName = 'dockerhub';
+                        else if (sourceName === 'ghcr.io') sourceName = 'ghcr';
+                        else if (sourceName === 'gcr.io') sourceName = 'gcr';
+                        else if (sourceName === 'quay.io') sourceName = 'quay';
+                        else if (sourceName === 'registry.k8s.io') sourceName = 'k8s';
+                        
+                        multiSourceResults[sourceName] = result.Results || [];
+                    });
+                }
+                
+                // 如果响应状态不是 200，显示警告消息
+                if (!response.ok) {
+                    console.warn('搜索响应状态不是 200:', response.status);
+                    showToast('搜索可能不完整，请稍后重试');
+                }
+
+                // 显示结果
+                displaySeparateSearchResults(multiSourceResults);
+                updatePagination({
+                    currentPage: currentPage,
+                    totalPages: 1, // 多源搜索暂时不支持分页
+                    prefix: 'separate'
+                });
+            } catch (error) {
+                console.error('搜索错误:', error);
+                showToast('搜索失败，请稍后重试');
+                document.getElementById('separateResults').innerHTML = '<div class="error-message">搜索失败，请稍后重试</div>';
+            } finally {
+                hideLoading();
+            }
+        }
+
+        // 执行多源合并搜索
+        async function performMergedSearch() {
+            const query = document.getElementById('searchInput').value.trim();
+            if (!query) {
+                showToast('请输入搜索关键词');
+                return;
+            }
+
+            currentQuery = query;
+            showLoading();
+
+            try {
+                // 为每个请求设置超时
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 10000); // 10秒超时
+
+                const response = await fetch(`http://localhost:5002/search?q=${encodeURIComponent(query)}&page=${currentPage}&page_size=10&multi_source=true&merged=true`, {
+                    signal: controller.signal
+                });
+
+                clearTimeout(timeoutId);
+
+                // 尝试解析响应数据，即使响应状态不是 200
+                let data;
+                try {
+                    data = await response.json();
+                } catch (jsonError) {
+                    console.error('JSON 解析错误:', jsonError);
+                    data = { results: [] };
+                }
+                
+                const allResults = data.results || [];
+                
+                // 如果响应状态不是 200，显示警告消息
+                if (!response.ok) {
+                    console.warn('搜索响应状态不是 200:', response.status);
+                    showToast('搜索可能不完整，请稍后重试');
+                }
+
+                // 显示结果
+                displayMergedSearchResults(allResults);
+                updatePagination({
+                    currentPage: currentPage,
+                    totalPages: 1, // 多源搜索暂时不支持分页
+                    prefix: 'merged'
+                });
+            } catch (error) {
+                console.error('搜索错误:', error);
+                showToast('搜索失败，请稍后重试');
+                document.getElementById('mergedResults').innerHTML = '<div class="error-message">搜索失败，请稍后重试</div>';
+            } finally {
+                hideLoading();
+            }
+        }
+
+        // 显示单一搜索结果
+        function displaySearchResults(results) {
+            const container = document.getElementById('searchResults');
+            if (!container) return;
+
+            // 确保 results 是一个数组
+            const resultsArray = Array.isArray(results) ? results : [];
+
+            if (resultsArray.length === 0) {
+                container.innerHTML = '<div class="error-message">没有找到匹配的镜像</div>';
+                return;
+            }
+
+            let html = '';
+            resultsArray.forEach(repo => {
+                const repoInfo = parseRepositoryInfo(repo);
+                const source = repo.source || 'docker.io';
+                
+                // 生成 Docker pull 命令
+                let pullCommand = '';
+                if (source === 'ghcr.io' || source === 'GHCR' || source === 'ghcr') {
+                    pullCommand = `docker pull ghcr.io/${repoInfo.fullRepoName}`;
+                } else if (source === 'gcr.io' || source === 'GCR' || source === 'gcr') {
+                    pullCommand = `docker pull gcr.io/${repoInfo.fullRepoName}`;
+                } else if (source === 'quay.io' || source === 'Quay' || source === 'quay') {
+                    pullCommand = `docker pull quay.io/${repoInfo.fullRepoName}`;
+                } else if (source === 'registry.k8s.io' || source === 'K8s' || source === 'k8s') {
+                    pullCommand = `docker pull registry.k8s.io/${repoInfo.fullRepoName}`;
+                } else {
+                    pullCommand = `docker pull ${repoInfo.fullRepoName}`;
+                }
+
+                html += `
+                    <div class="result-card" onclick="loadTags('${repoInfo.namespace}', '${repoInfo.name}', this, '${source}')">
+                        <div class="result-card-header">
+                            <div class="result-card-title-section">
+                                <h3 class="result-title">
+                                    ${repoInfo.fullRepoName}
+                                    ${getSourceBadge(source)}
+                                </h3>
+                                ${repo.description ? `<p class="result-description">${repo.description}</p>` : ''}
+                                <div class="result-badges">
+                                    ${repo.is_official ? '<span class="badge badge-official">官方</span>' : ''}
+                                    ${repo.is_automated ? '<span class="badge badge-automated">自动构建</span>' : ''}
+                                </div>
+                                <div class="docker-pull-command">
+                                    ${pullCommand}
+                                    <button class="copy-button" onclick="event.stopPropagation(); copyToClipboard('${pullCommand}')">复制</button>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="result-meta">
+                            <div class="meta-stats">
+                                <span class="meta-item">
+                                    <span class="icon">📥</span>
+                                    拉取次数: ${formatUtils.formatNumber(repo.pull_count || 0)}
+                                </span>
+                                ${repo.last_updated ? `
+                                    <span class="meta-item">
+                                        <span class="icon">📅</span>
+                                        最后更新: ${formatUtils.formatTimeAgo(repo.last_updated)}
+                                    </span>
+                                ` : ''}
+                            </div>
+                            <div class="meta-pulls">
+                                <div class="pulls-label">拉取次数</div>
+                                <div class="pulls-count">${formatUtils.formatNumber(repo.pull_count || 0)}</div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+
+            container.innerHTML = html;
+        }
+
+        // 显示多源分离搜索结果
+        function displaySeparateSearchResults(multiSourceResults) {
+            const container = document.getElementById('separateResults');
+            if (!container) return;
+
+            let html = '';
+            
+            // 遍历每个源的结果
+            for (const [source, results] of Object.entries(multiSourceResults)) {
+                // 确保 results 是一个数组
+                const resultsArray = Array.isArray(results) ? results : [];
+                if (resultsArray.length === 0) continue;
+
+                html += `
+                    <div class="source-result-section">
+                        <div class="source-result-header">
+                            ${getSourceBadge(source)}
+                        </div>
+                `;
+
+                resultsArray.forEach(repo => {
+                    const repoInfo = parseRepositoryInfo(repo);
+                    
+                    // 生成 Docker pull 命令
+                    let pullCommand = '';
+                    if (source === 'ghcr' || source === 'ghcr.io' || source === 'GHCR') {
+                        pullCommand = `docker pull ghcr.io/${repoInfo.fullRepoName}`;
+                    } else if (source === 'gcr' || source === 'gcr.io' || source === 'GCR') {
+                        pullCommand = `docker pull gcr.io/${repoInfo.fullRepoName}`;
+                    } else if (source === 'quay' || source === 'quay.io' || source === 'Quay') {
+                        pullCommand = `docker pull quay.io/${repoInfo.fullRepoName}`;
+                    } else if (source === 'k8s' || source === 'registry.k8s.io' || source === 'K8s') {
+                        pullCommand = `docker pull registry.k8s.io/${repoInfo.fullRepoName}`;
+                    } else {
+                        pullCommand = `docker pull ${repoInfo.fullRepoName}`;
+                    }
+
+                    html += `
+                        <div class="result-card" onclick="loadTags('${repoInfo.namespace}', '${repoInfo.name}', this, '${source}')">
+                            <div class="result-card-header">
+                                <div class="result-card-title-section">
+                                    <h3 class="result-title">
+                                        ${repoInfo.fullRepoName}
+                                    </h3>
+                                    ${repo.description ? `<p class="result-description">${repo.description}</p>` : ''}
+                                    <div class="result-badges">
+                                        ${repo.is_official ? '<span class="badge badge-official">官方</span>' : ''}
+                                        ${repo.is_automated ? '<span class="badge badge-automated">自动构建</span>' : ''}
+                                    </div>
+                                    <div class="docker-pull-command">
+                                        ${pullCommand}
+                                        <button class="copy-button" onclick="event.stopPropagation(); copyToClipboard('${pullCommand}')">复制</button>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="result-meta">
+                                <div class="meta-stats">
+                                    <span class="meta-item">
+                                        <span class="icon">📥</span>
+                                        拉取次数: ${formatUtils.formatNumber(repo.pull_count || 0)}
+                                    </span>
+                                    ${repo.last_updated ? `
+                                        <span class="meta-item">
+                                            <span class="icon">📅</span>
+                                            最后更新: ${formatUtils.formatTimeAgo(repo.last_updated)}
+                                        </span>
+                                    ` : ''}
+                                </div>
+                                <div class="meta-pulls">
+                                    <div class="pulls-label">拉取次数</div>
+                                    <div class="pulls-count">${formatUtils.formatNumber(repo.pull_count || 0)}</div>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                });
+
+                html += `</div>`;
+            }
+
+            if (html === '') {
+                html = '<div class="error-message">没有找到匹配的镜像</div>';
+            }
+
+            container.innerHTML = html;
+        }
+
+        // 显示多源合并搜索结果
+        function displayMergedSearchResults(results) {
+            const container = document.getElementById('mergedResults');
+            if (!container) return;
+
+            // 确保 results 是一个数组
+            const resultsArray = Array.isArray(results) ? results : [];
+
+            if (resultsArray.length === 0) {
+                container.innerHTML = '<div class="error-message">没有找到匹配的镜像</div>';
+                return;
+            }
+
+            let html = '';
+            resultsArray.forEach(repo => {
+                const repoInfo = parseRepositoryInfo(repo);
+                const source = repo.source || 'docker.io';
+                
+                // 生成 Docker pull 命令
+                let pullCommand = '';
+                if (source === 'ghcr.io' || source === 'GHCR' || source === 'ghcr') {
+                    pullCommand = `docker pull ghcr.io/${repoInfo.fullRepoName}`;
+                } else if (source === 'gcr.io' || source === 'GCR' || source === 'gcr') {
+                    pullCommand = `docker pull gcr.io/${repoInfo.fullRepoName}`;
+                } else if (source === 'quay.io' || source === 'Quay' || source === 'quay') {
+                    pullCommand = `docker pull quay.io/${repoInfo.fullRepoName}`;
+                } else if (source === 'registry.k8s.io' || source === 'K8s' || source === 'k8s') {
+                    pullCommand = `docker pull registry.k8s.io/${repoInfo.fullRepoName}`;
+                } else {
+                    pullCommand = `docker pull ${repoInfo.fullRepoName}`;
+                }
+
+                html += `
+                    <div class="result-card" onclick="loadTags('${repoInfo.namespace}', '${repoInfo.name}', this, '${source}')">
+                        <div class="result-card-header">
+                            <div class="result-card-title-section">
+                                <h3 class="result-title">
+                                    ${repoInfo.fullRepoName}
+                                    ${getSourceBadge(source)}
+                                </h3>
+                                ${repo.description ? `<p class="result-description">${repo.description}</p>` : ''}
+                                <div class="result-badges">
+                                    ${repo.is_official ? '<span class="badge badge-official">官方</span>' : ''}
+                                    ${repo.is_automated ? '<span class="badge badge-automated">自动构建</span>' : ''}
+                                </div>
+                                <div class="docker-pull-command">
+                                    ${pullCommand}
+                                    <button class="copy-button" onclick="event.stopPropagation(); copyToClipboard('${pullCommand}')">复制</button>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="result-meta">
+                            <div class="meta-stats">
+                                <span class="meta-item">
+                                    <span class="icon">📥</span>
+                                    拉取次数: ${formatUtils.formatNumber(repo.pull_count || 0)}
+                                </span>
+                                ${repo.last_updated ? `
+                                    <span class="meta-item">
+                                        <span class="icon">📅</span>
+                                        最后更新: ${formatUtils.formatTimeAgo(repo.last_updated)}
+                                    </span>
+                                ` : ''}
+                            </div>
+                            <div class="meta-pulls">
+                                <div class="pulls-label">拉取次数</div>
+                                <div class="pulls-count">${formatUtils.formatNumber(repo.pull_count || 0)}</div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+
+            container.innerHTML = html;
+        }
+
+        // 加载标签
+        async function loadTags(namespace, name, element, source) {
+            // 保存当前仓库信息
+            currentRepo = {
+                namespace,
+                name,
+                source
+            };
+            
+            currentTagPage = 1;
+            await loadTagPage();
+        }
+
+        // 加载标签页面
+        async function loadTagPage() {
             showLoading();
             try {
-                // 如果传入了新的namespace和name，更新currentRepo
+                const namespace = currentRepo.namespace;
+                const name = currentRepo.name;
+                const source = currentRepo.source;
+                
+                // 构建正确的 API 路径，确保命名空间和仓库名称正确处理
+                let apiPath = '';
                 if (namespace && name) {
-                    // 清理旧数据，防止内存泄露
-                    cleanupOldTagData();
+                    // 对于有命名空间的镜像
+                    apiPath = `/tags/${encodeURIComponent(namespace)}/${encodeURIComponent(name)}`;
+                } else if (name) {
+                    // 对于没有命名空间的镜像
+                    apiPath = `/tags/${encodeURIComponent(name)}`;
+                } else {
+                    throw new Error('无效的镜像名称');
                 }
-
-                // 获取当前仓库信息
-                const repoInfo = parseRepositoryInfo(currentRepo);
-                const currentNamespace = namespace || repoInfo.namespace;
-                const currentName = name || repoInfo.name;
                 
-                // 调试日志
-                console.log(`loadTagPage: namespace=${currentNamespace}, name=${currentName}, page=${currentTagPage}`);
-                
-                if (!currentNamespace || !currentName) {
-                    showToast('命名空间和镜像名称不能为空');
-                    return;
-                }
-
-                const response = await fetch(`/tags/${encodeURIComponent(currentNamespace)}/${encodeURIComponent(currentName)}?page=${currentTagPage}&page_size=100`);
+                const response = await fetch(`http://localhost:5002${apiPath}?page=${currentTagPage}&page_size=100&source=${encodeURIComponent(source)}`);
                 if (!response.ok) {
                     const errorText = await response.text();
                     throw new Error(errorText || '获取标签信息失败');
@@ -1864,524 +2218,137 @@
                     totalTagPages = currentTagPage;
                 }
                 
-                displayTags(data.tags, data.has_more);
+                displayTags(data.tags || [], data.has_more);
                 updateTagPagination();
-                
-                if (namespace && name) {
-                    showTagList();
-                }
             } catch (error) {
                 console.error('加载标签错误:', error);
-                showToast(error.message || '获取标签信息失败，请稍后重试');
+                // 处理 GHCR 401 Unauthorized 错误
+                if (error.message.includes('401') || error.message.includes('UNAUTHORIZED')) {
+                    showToast('获取 GHCR 标签信息需要认证，请先运行 docker login ghcr.io');
+                    document.getElementById('tagList').innerHTML = `<div class="error-message">获取 GHCR 标签信息需要认证，请先运行 docker login ghcr.io</div>`;
+                } else if (error.message.includes('403') || error.message.includes('FORBIDDEN')) {
+                    showToast('获取标签信息被拒绝，请检查镜像权限');
+                    document.getElementById('tagList').innerHTML = `<div class="error-message">获取标签信息被拒绝，请检查镜像权限</div>`;
+                } else {
+                    showToast(error.message || '获取标签信息失败，请稍后重试');
+                    document.getElementById('tagList').innerHTML = `<div class="error-message">${error.message || '获取标签信息失败，请稍后重试'}</div>`;
+                }
             } finally {
                 hideLoading();
             }
         }
 
+        // 显示标签
+        function displayTags(tags, hasMore = false) {
+            const tagList = document.getElementById('tagList');
+            const repoInfo = {
+                fullRepoName: `${currentRepo.namespace}/${currentRepo.name}`
+            };
+            const source = currentRepo.source;
+            
+            let header = `
+                <div class="tag-header">
+                    <div class="tag-info">
+                        <div class="tag-title">
+                            ${repoInfo.fullRepoName}
+                            ${getSourceBadge(source)}
+                        </div>
+                        <div class="tag-description">
+                            标签列表
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            let tagsHtml = '';
+            if (tags.length === 0) {
+                tagsHtml = '<div class="error-message">没有找到标签</div>';
+            } else {
+                tags.forEach(tag => {
+                    // 生成 Docker pull 命令
+                    let pullCommand = '';
+                    if (source === 'ghcr' || source === 'ghcr.io' || source === 'GHCR') {
+                        pullCommand = `docker pull ghcr.io/${repoInfo.fullRepoName}:${tag.name}`;
+                    } else if (source === 'gcr' || source === 'gcr.io' || source === 'GCR') {
+                        pullCommand = `docker pull gcr.io/${repoInfo.fullRepoName}:${tag.name}`;
+                    } else if (source === 'quay' || source === 'quay.io' || source === 'Quay') {
+                        pullCommand = `docker pull quay.io/${repoInfo.fullRepoName}:${tag.name}`;
+                    } else if (source === 'k8s' || source === 'registry.k8s.io' || source === 'K8s') {
+                        pullCommand = `docker pull registry.k8s.io/${repoInfo.fullRepoName}:${tag.name}`;
+                    } else {
+                        pullCommand = `docker pull ${repoInfo.fullRepoName}:${tag.name}`;
+                    }
+
+                    tagsHtml += `
+                        <div class="tag-item">
+                            <div class="tag-name">${tag.name}</div>
+                            <div class="tag-meta">
+                                ${tag.size ? `大小: ${formatUtils.formatSize(tag.size)} | ` : ''}
+                                ${tag.last_updated ? `最后更新: ${formatUtils.formatTimeAgo(tag.last_updated)}` : ''}
+                            </div>
+                            <div class="docker-pull-command">
+                                ${pullCommand}
+                                <button class="copy-button" onclick="copyToClipboard('${pullCommand}')">复制</button>
+                            </div>
+                            ${tag.architectures ? `
+                                <div class="tag-architectures">
+                                    ${tag.architectures.map(arch => `<span class="arch-item">${arch}</span>`).join('')}
+                                </div>
+                            ` : ''}
+                        </div>
+                    `;
+                });
+            }
+
+            tagList.innerHTML = `
+                ${header}
+                <div class="tags-container">
+                    ${tagsHtml}
+                </div>
+                <div class="pagination" id="tagPagination">
+                    <button id="tagPrevPage" disabled>上一页</button>
+                    <button id="tagNextPage" disabled>下一页</button>
+                </div>
+            `;
+            showTagList();
+        }
+
+        // 复制到剪贴板
+        function copyToClipboard(text) {
+            navigator.clipboard.writeText(text).then(() => {
+                showToast('复制成功');
+            }).catch(err => {
+                console.error('复制失败:', err);
+                showToast('复制失败，请手动复制');
+            });
+        }
+
+        // 清理旧标签数据
         function cleanupOldTagData() {
             // 清理全局变量，释放内存
             if (window.currentPageTags) {
                 window.currentPageTags.length = 0;
                 window.currentPageTags = null;
             }
-            
-            // 清理DOM缓存
-            const tagsContainer = document.getElementById('tagsContainer');
-            if (tagsContainer) {
-                tagsContainer.innerHTML = '';
-            }
         }
 
-        function displayTags(tags, hasMore = false) {
-            const tagList = document.getElementById('tagList');
-            const repoInfo = parseRepositoryInfo(currentRepo);
-            const { fullRepoName } = repoInfo;
-            
-            let header = `
-                <div class="tag-header">
-                    <div class="tag-info">
-                        <div class="tag-title">
-                            ${fullRepoName}
-                            ${currentRepo.is_official ? '<span class="badge badge-official">官方</span>' : ''}
-                            ${currentRepo.affiliation ? `<span class="badge badge-organization">By ${currentRepo.affiliation}</span>` : ''}
-                        </div>
-                        <div class="tag-description">${currentRepo.short_description || '暂无描述'}</div>
-                        <div class="tag-meta">
-                            ${currentRepo.star_count > 0 ? `<span class="meta-item">⭐ ${formatUtils.formatNumber(currentRepo.star_count)}</span>` : ''}
-                            ${currentRepo.pull_count > 0 ? `<span class="meta-item">⬇️ ${formatUtils.formatNumber(currentRepo.pull_count)}+</span>` : ''}
-                            ${currentRepo.last_updated ? `<span class="meta-item">更新于 ${formatUtils.formatTimeAgo(currentRepo.last_updated)}</span>` : ''}
-                        </div>
-                        <div class="tag-pull-command">
-                            docker pull ${fullRepoName}
-                            <button class="copy-button" onclick="copyToClipboard('docker pull ${fullRepoName}')">复制</button>
-                        </div>
-                    </div>
-                </div>
-                <div class="tag-search-container">
-                    <input type="text" class="tag-search-input" placeholder="输入关键词搜索标签，支持模糊匹配..." oninput="filterTags(this.value)">
-                    <button class="tag-search-clear" onclick="clearTagSearch()">×</button>
-                </div>
-                <div id="tagsContainer"></div>
-                <div class="pagination" id="tagPagination" style="display: none;">
-                    <button id="tagPrevPage" disabled>上一页</button>
-                    <button id="tagNextPage" disabled>下一页</button>
-                </div>
-            `;
-
-            tagList.innerHTML = header;
-            
-            // 存储当前页标签数据
-            window.currentPageTags = tags;
-            renderFilteredTags(tags);
-        }
-
-        function renderFilteredTags(filteredTags) {
-            const tagsContainer = document.getElementById('tagsContainer');
-            const repoInfo = parseRepositoryInfo(currentRepo);
-            const { fullRepoName } = repoInfo;
-
-            if (filteredTags.length === 0) {
-                tagsContainer.innerHTML = '<div class="text-center" style="padding: 20px;">未找到匹配的标签</div>';
-                return;
-            }
-
-            // 渐进式渲染：分批处理大数据集
-            const BATCH_SIZE = 50;
-            
-            if (filteredTags.length <= BATCH_SIZE) {
-                // 小数据集：直接渲染
-                renderTagsBatch(filteredTags, fullRepoName, tagsContainer, true);
-            } else {
-                // 大数据集：分批渲染
-                tagsContainer.innerHTML = ''; // 清空容器
-                let currentBatch = 0;
-                
-                function renderNextBatch() {
-                    const start = currentBatch * BATCH_SIZE;
-                    const end = Math.min(start + BATCH_SIZE, filteredTags.length);
-                    const batch = filteredTags.slice(start, end);
-                    
-                    renderTagsBatch(batch, fullRepoName, tagsContainer, false);
-                    
-                    currentBatch++;
-                    if (end < filteredTags.length) {
-                        // 使用requestAnimationFrame确保UI响应性
-                        requestAnimationFrame(renderNextBatch);
-                    }
-                }
-                
-                renderNextBatch();
-            }
-        }
-
-        function renderTagsBatch(tags, fullRepoName, container, replaceContent = false) {
-            const tagsHtml = tags.map(tag => {
-                const vulnIndicators = Object.entries(tag.vulnerabilities || {})
-                    .map(([level, count]) => count > 0 ? `<span class="vulnerability-dot vulnerability-${level.toLowerCase()}" title="${level}: ${count}"></span>` : '')
-                    .join('');
-
-                const images = tag.images || [];
-                const architectures = images.map(img => {
-                    const arch = `${img.os}/${img.architecture}${img.variant ? '/' + img.variant : ''}`;
-                    const size = formatUtils.formatSize(img.size);
-                    return `<div class="arch-item" title="大小: ${size}">${arch}</div>`;
-                }).join('');
-
-                return `
-                    <div class="tag-item">
-                        <div class="tag-name">
-                            ${tag.name}
-                            ${vulnIndicators ? `<div class="vulnerability-indicator">${vulnIndicators}</div>` : ''}
-                        </div>
-                        <div class="tag-meta">
-                            <span>最后更新: ${formatUtils.formatTimeAgo(tag.last_updated)}</span>
-                            ${tag.last_pusher ? `<span>由 ${tag.last_pusher} 推送</span>` : ''}
-                            ${tag.full_size ? `<span>大小: ${formatUtils.formatSize(tag.full_size)}</span>` : ''}
-                        </div>
-                        <div class="tag-pull-command">
-                            docker pull ${fullRepoName}:${tag.name}
-                            <button class="copy-button" onclick="copyToClipboard('docker pull ${fullRepoName}:${tag.name}')">复制</button>
-                        </div>
-                        ${architectures ? `<div class="tag-architectures">${architectures}</div>` : ''}
-                    </div>
-                `;
-            }).join('');
-
-            if (replaceContent) {
-                container.innerHTML = tagsHtml;
-            } else {
-                container.insertAdjacentHTML('beforeend', tagsHtml);
-            }
-        }
-
-        function filterTags(searchText) {
-            if (!window.currentPageTags) return;
-
-            const searchLower = searchText.toLowerCase();
-            let filteredTags;
-
-            if (!searchText) {
-                filteredTags = window.currentPageTags;
-            } else {
-                const scoredTags = window.currentPageTags.map(tag => {
-                    const name = tag.name.toLowerCase();
-                    let score = 0;
-
-                    if (name === searchLower) {
-                        score += 100;
-                    }
-                    else if (name.startsWith(searchLower)) {
-                        score += 50;
-                    }
-                    else if (name.includes(searchLower)) {
-                        score += 30;
-                    }
-                    else if (searchLower.split(/\s+/).some(word => name.includes(word))) {
-                        score += 10;
-                    }
-
-                    return { tag, score };
-                }).filter(item => item.score > 0);
-
-                scoredTags.sort((a, b) => b.score - a.score);
-                filteredTags = scoredTags.map(item => item.tag);
-            }
-
-            renderFilteredTags(filteredTags);
-        }
-
-        function clearTagSearch() {
-            const searchInput = document.querySelector('.tag-search-input');
-            if (searchInput) {
-                searchInput.value = '';
-                filterTags('');
-            }
-        }
-
-
-
-        function copyToClipboard(text) {
-            navigator.clipboard.writeText(text).then(() => {
-                showToast('已复制到剪贴板');
-            }).catch(() => {
-                showToast('复制失败');
-            });
-        }
-
-        const urlParams = new URLSearchParams(window.location.search);
-        const initialQuery = urlParams.get('q');
-        if (initialQuery) {
-            document.getElementById('searchInput').value = initialQuery;
-            performSingleSearch(); // 默认执行单一搜索
-        } else {
-            // 如果没有初始查询，也可以执行一次默认的单一搜索（可选）
-            // performSingleSearch();
-        }
-        
-        // 初始化多源搜索参数选择
-        document.getElementById('multiSourceCheckbox').addEventListener('change', toggleMultiSourceOptions);
-
-        const themeToggle = document.getElementById('themeToggle');
-        const html = document.documentElement;
-                 
-        const savedTheme = localStorage.getItem('theme');
-        const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-        
-        if (savedTheme === 'dark' || (!savedTheme && prefersDark)) {
-            html.classList.add('dark');
-            themeToggle.textContent = '☀️';
-        }
-        
-        themeToggle.addEventListener('click', () => {
-            html.classList.toggle('dark');
-            const isDark = html.classList.contains('dark');
-            themeToggle.textContent = isDark ? '☀️' : '🌙';
-            localStorage.setItem('theme', isDark ? 'dark' : 'light');
+        // 主题切换
+        document.getElementById('themeToggle').addEventListener('click', () => {
+            document.body.classList.toggle('dark');
+            const icon = document.getElementById('themeToggle');
+            icon.textContent = document.body.classList.contains('dark') ? '☀️' : '🌙';
         });
-        
-        const mobileMenuToggle = document.getElementById('mobileMenuToggle');
-        const navLinks = document.getElementById('navLinks');
-        
-        mobileMenuToggle.addEventListener('click', () => {
-            navLinks.classList.toggle('active');
-            mobileMenuToggle.textContent = navLinks.classList.contains('active') ? '✕' : '☰';
+
+        // 移动菜单切换
+        document.getElementById('mobileMenuToggle').addEventListener('click', () => {
+            document.getElementById('navLinks').classList.toggle('active');
         });
-        
-        // 选项卡切换功能
-        document.querySelectorAll('.tab-btn').forEach(button => {
-            button.addEventListener('click', () => {
-                // 移除所有活动状态
-                document.querySelectorAll('.tab-btn').forEach(btn => {
-                    btn.classList.remove('active');
-                });
-                document.querySelectorAll('.tab-pane').forEach(pane => {
-                    pane.classList.remove('active');
-                });
-                
-                // 设置当前按钮为活动状态
-                button.classList.add('active');
-                
-                // 显示对应的选项卡内容
-                const tabId = button.getAttribute('data-tab');
-                document.getElementById(`${tabId}Tab`).classList.add('active');
-                
-                // 执行对应选项卡的搜索
-                switch(tabId) {
-                    case 'single':
-                        performSingleSearch();
-                        break;
-                    case 'separate':
-                        performSeparateSearch();
-                        break;
-                    case 'merged':
-                        performMergedSearch();
-                        break;
-                }
-            });
-        });
-        
-        // 修改原来的搜索函数，使其可以指定结果容器
-        function displayResults(results, targetRepo = '', containerId = 'searchResults') {
-            const resultsContainer = document.getElementById(containerId);
-            resultsContainer.innerHTML = '';
 
-            if (!results || results.length === 0) {
-                resultsContainer.innerHTML = '<div class="text-center">未找到相关镜像</div>';
-                return;
-            }
-
-            results.sort((a, b) => {
-                if (targetRepo) {
-                    const aName = (a.name || a.repo_name || '').toLowerCase();
-                    const bName = (b.name || b.repo_name || '').toLowerCase();
-                    const aMatch = aName === targetRepo || aName.endsWith('/' + targetRepo);
-                    const bMatch = bName === targetRepo || bName.endsWith('/' + targetRepo);
-                    
-                    if (aMatch && !bMatch) return -1;
-                    if (!aMatch && bMatch) return 1;
-                }
-                
-                if (a.is_official !== b.is_official) {
-                    return b.is_official - a.is_official;
-                }
-                
-                return b.pull_count - a.pull_count;
-            });
-
-            results.forEach(result => {
-                const card = document.createElement('div');
-                card.className = 'result-card';
-                
-                let displayName = '';
-                if (result.is_official) {
-                    displayName = (result.name || result.repo_name || '').replace('library/', '');
-                } else {
-                    const name = result.name || result.repo_name || '';
-                    displayName = result.namespace ? `${result.namespace}/${name}` : name;
-                }
-
-                const description = result.short_description || '暂无描述';
-                const starCount = result.star_count || 0;
-                const pullCount = result.pull_count || 0;
-                const pullsLastWeek = result.pulls_last_week || 0;
-                const lastUpdated = result.last_updated || '';
-                const organization = result.affiliation || '';
-                const source = result.source || result.Source || 'docker.io'; // 默认来源，兼容大小写
-
-                const badges = [];
-                if (result.is_official) badges.push('<span class="badge badge-official">官方</span>');
-                if (organization) badges.push(`<span class="badge badge-organization">By ${organization}</span>`);
-                
-                // 添加来源徽章
-                const sourceBadge = getSourceBadge(source);
-                badges.push(sourceBadge);
-
-                const stats = [];
-                if (starCount > 0) stats.push(`<span class="meta-item">⭐ ${formatUtils.formatNumber(starCount)}</span>`);
-                if (pullCount > 0) stats.push(`<span class="meta-item">⬇️ ${formatUtils.formatNumber(pullCount)}+</span>`);
-
-                card.innerHTML = `
-                    <div class="result-card-header">
-                        <div class="result-card-title-section">
-                            <div class="result-title">
-                                ${displayName}
-                            </div>
-                            <div class="result-badges">
-                                ${badges.join(' ')}
-                            </div>
-                        </div>
-                    </div>
-                    <div class="result-description">${description}</div>
-                    <div class="result-meta">
-                        <div class="meta-stats">
-                            ${stats.join(' ')}
-                            ${lastUpdated ? `<span class="meta-item">更新于 ${formatUtils.formatTimeAgo(lastUpdated)}</span>` : ''}
-                        </div>
-                        ${pullsLastWeek > 0 ? `
-                        <div class="meta-pulls">
-                            <div>本周拉取次数</div>
-                            <div class="pulls-count">${formatUtils.formatNumber(pullsLastWeek)}</div>
-                        </div>
-                        ` : ''}
-                    </div>
-                `;
-
-                card.addEventListener('click', () => {
-                    currentRepo = result;
-                    const namespace = result.namespace || (result.is_official ? 'library' : '');
-                    const name = result.name || result.repo_name || '';
-                    const repoName = name.replace('library/', '');
-                    if (!namespace || !repoName) {
-                        showToast('无效的仓库信息');
-                        return;
-                    }
-                    loadTags(namespace, repoName);
-                });
-
-                resultsContainer.appendChild(card);
-            });
+        // 初始化主题
+        if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+            document.body.classList.add('dark');
+            document.getElementById('themeToggle').textContent = '☀️';
         }
-        
-        // 修改performSearch函数，使其支持多个结果容器
-        async function performSearch(targetContainer = 'searchResults') {
-            const query = document.getElementById('searchInput').value.trim();
-            if (!query) {
-                showToast('请输入搜索关键词');
-                return;
-            }
-
-            currentQuery = query;
-            showLoading();
-
-            try {
-                let searchQuery = query;
-                let targetRepo = '';
-                if (query.includes('/')) {
-                    const [namespace, repo] = query.split('/');
-                    searchQuery = namespace;
-                    targetRepo = repo.toLowerCase();
-                }
-
-                // 构建搜索URL
-                let searchUrl = `/search?q=${encodeURIComponent(searchQuery)}&page=${currentPage}&page_size=25`;
-                
-                // 检查是否启用多源搜索
-                const multiSourceCheckbox = document.getElementById('multiSourceCheckbox');
-                if (multiSourceCheckbox.checked) {
-                    searchUrl += '&multi_source=true';
-                    
-                    // 获取结果格式
-                    const resultFormat = document.querySelector('input[name="resultFormat"]:checked');
-                    if (resultFormat && resultFormat.value === 'merged') {
-                        searchUrl += '&merged=true';
-                    }
-                }
-
-                const response = await fetch(searchUrl);
-                const data = await response.json();
-
-                if (!response.ok) {
-                    throw new Error(data.error || '搜索请求失败');
-                }
-                
-                // 处理多源搜索结果
-                let results = [];
-                let totalCount = 0;
-                
-                if (multiSourceCheckbox.checked && data.multi_source_results) {
-                    // 处理多源结果
-                    const resultFormat = document.querySelector('input[name="resultFormat"]:checked');
-                    if (resultFormat && resultFormat.value === 'merged') {
-                        // 如果是合并结果，直接使用results数组
-                        results = data.results || [];
-                        totalCount = data.count || 0;
-                    } else {
-                        // 如果是分离结果，需要合并所有源的结果
-                        results = [];
-                        // 确保multi_source_results是一个数组
-                        const multiResults = Array.isArray(data.multi_source_results) ? data.multi_source_results : [];
-                        multiResults.forEach(sourceResult => {
-                            // 检查sourceResult是否存在且有Results属性
-                            if (sourceResult && sourceResult.Results && Array.isArray(sourceResult.Results)) {
-                                if (!sourceResult.Error) {
-                                    // 为每个结果添加源信息
-                                    sourceResult.Results.forEach(repo => {
-                                        if (repo) {
-                                            repo.source = sourceResult.Source || sourceResult.source || 'docker.io';
-                                        }
-                                    });
-                                    results = results.concat(sourceResult.Results.filter(r => r)); // 过滤掉undefined
-                                }
-                            }
-                        });
-                        totalCount = results.length;
-                    }
-                } else {
-                    // 单源搜索结果
-                    results = data.results || [];
-                    totalCount = data.count || 0;
-                }
-                
-                totalPages = Math.min(Math.ceil(totalCount / 25), 100);
-                
-                // 根据目标容器更新对应的分页控件
-                if (targetContainer === 'searchResults') {
-                    updatePagination();
-                } else if (targetContainer === 'separateResults') {
-                    // 为分离结果设置分页（如果需要的话）
-                    updatePagination({ prefix: 'separate' });
-                } else if (targetContainer === 'mergedResults') {
-                    // 为合并结果设置分页（如果需要的话）
-                    updatePagination({ prefix: 'merged' });
-                }
-                
-                displayResults(results, targetRepo, targetContainer);
-            } catch (error) {
-                console.error('搜索错误:', error);
-                showToast(error.message || '搜索失败，请稍后重试');
-            } finally {
-                hideLoading();
-            }
-        }
-        
-        // 单一搜索功能
-        function performSingleSearch() {
-            // 单一搜索逻辑已经在performSearch中实现
-            // 只需确保不启用多源搜索即可
-            document.getElementById('multiSourceCheckbox').checked = false;
-            toggleMultiSourceOptions(); // 隐藏多源选项
-            performSearch('searchResults'); // 调用原有的搜索函数，指定结果容器
-        }
-        
-        // 多源分离搜索功能
-        function performSeparateSearch() {
-            document.getElementById('multiSourceCheckbox').checked = true;
-            toggleMultiSourceOptions(); // 显示多源选项
-            
-            // 选择"显示各源独立结果"单选框
-            document.querySelector('input[value="separate"]').checked = true;
-            
-            performSearch('separateResults'); // 调用搜索函数，指定结果容器
-        }
-        
-        // 多源合并搜索功能
-        function performMergedSearch() {
-            document.getElementById('multiSourceCheckbox').checked = true;
-            toggleMultiSourceOptions(); // 显示多源选项
-            
-            // 选择"合并结果"单选框
-            document.querySelector('input[value="merged"]').checked = true;
-            
-            performSearch('mergedResults'); // 调用搜索函数，指定结果容器
-        }
-
-        document.addEventListener('click', (e) => {
-            if (!e.target.closest('.navbar') && navLinks.classList.contains('active')) {
-                navLinks.classList.remove('active');
-                mobileMenuToggle.textContent = '☰';
-            }
-        });
     </script>
-    </main>
 </body>
-</html> 
+</html>

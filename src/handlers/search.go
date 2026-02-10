@@ -484,7 +484,7 @@ func searchK8sRegistry(ctx context.Context, query string, page, pageSize int) (*
 	// 由于没有直接的搜索API，我们获取仓库列表并进行客户端过滤
 	baseURL := "https://registry.k8s.io/v2/_catalog"
 	params := url.Values{}
-	params.Set("n", fmt.Sprintf("%d", 10000)) // 获取尽可能多的仓库
+	params.Set("n", fmt.Sprintf("%d", 1000)) // 减少获取的仓库数量，提高响应速度
 
 	fullURL := baseURL + "?" + params.Encode()
 
@@ -493,15 +493,32 @@ func searchK8sRegistry(ctx context.Context, query string, page, pageSize int) (*
 		return nil, fmt.Errorf("创建K8s registry请求失败: %v", err)
 	}
 
+	// 设置超时时间为5秒
+	ctxWithTimeout, cancel := context.WithTimeout(ctx, 5*time.Second)
+	defer cancel()
+	req = req.WithContext(ctxWithTimeout)
+
 	resp, err := utils.GetSearchHTTPClient().Do(req)
 	if err != nil {
-		return nil, fmt.Errorf("请求K8s registry API失败: %v", err)
+		// 如果请求失败，返回空结果而不是错误，避免影响整体搜索
+		return &SearchResult{
+			Count:    0,
+			Next:     "",
+			Previous: "",
+			Results:  []Repository{},
+		}, nil
 	}
 	defer safeCloseResponseBody(resp.Body, "k8s registry响应体")
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return nil, fmt.Errorf("读取K8s registry响应失败: %v", err)
+		// 如果读取失败，返回空结果而不是错误
+		return &SearchResult{
+			Count:    0,
+			Next:     "",
+			Previous: "",
+			Results:  []Repository{},
+		}, nil
 	}
 
 	if resp.StatusCode != http.StatusOK {
@@ -1023,7 +1040,7 @@ func isRetryableError(err error) bool {
 }
 
 // getRepositoryTags 获取仓库标签信息
-func getRepositoryTags(ctx context.Context, namespace, name string, page, pageSize int) ([]TagInfo, bool, error) {
+func getRepositoryTags(ctx context.Context, namespace, name string, page, pageSize int, source string) ([]TagInfo, bool, error) {
 	if namespace == "" || name == "" {
 		return nil, false, fmt.Errorf("无效输入：命名空间和名称不能为空")
 	}
@@ -1035,22 +1052,52 @@ func getRepositoryTags(ctx context.Context, namespace, name string, page, pageSi
 		pageSize = 100
 	}
 
-	cacheKey := fmt.Sprintf("tags:%s:%s:page_%d", namespace, name, page)
+	cacheKey := fmt.Sprintf("tags:%s:%s:%s:page_%d", source, namespace, name, page)
 	if cached, ok := searchCache.Get(cacheKey); ok {
 		result := cached.(TagPageResult)
 		return result.Tags, result.HasMore, nil
 	}
 
-	baseURL := fmt.Sprintf("https://registry.hub.docker.com/v2/repositories/%s/%s/tags", namespace, name)
+	// 根据镜像源选择不同的 API 端点
+	var baseURL string
+	switch strings.ToLower(source) {
+	case "ghcr.io", "ghcr":
+		// GitHub Container Registry
+		baseURL = fmt.Sprintf("https://ghcr.io/v2/%s/%s/tags/list", namespace, name)
+	case "docker.io", "docker hub":
+		// Docker Hub
+		baseURL = fmt.Sprintf("https://registry.hub.docker.com/v2/repositories/%s/%s/tags", namespace, name)
+	case "gcr.io", "gcr":
+		// Google Container Registry
+		baseURL = fmt.Sprintf("https://gcr.io/v2/%s/%s/tags/list", namespace, name)
+	case "quay.io", "quay":
+		// Quay.io
+		baseURL = fmt.Sprintf("https://quay.io/v2/%s/%s/tags/list", namespace, name)
+	case "registry.k8s.io", "k8s", "kubernetes":
+		// Kubernetes Registry
+		baseURL = fmt.Sprintf("https://registry.k8s.io/v2/%s/%s/tags/list", namespace, name)
+	default:
+		// 默认使用 Docker Hub
+		baseURL = fmt.Sprintf("https://registry.hub.docker.com/v2/repositories/%s/%s/tags", namespace, name)
+	}
+
 	params := url.Values{}
 	params.Set("page", fmt.Sprintf("%d", page))
 	params.Set("page_size", fmt.Sprintf("%d", pageSize))
-	params.Set("ordering", "last_updated")
+
+	// 对于 Docker Hub，添加排序参数
+	if strings.ToLower(source) == "docker.io" || strings.ToLower(source) == "docker hub" || source == "" {
+		params.Set("ordering", "last_updated")
+	}
 
 	fullURL := baseURL + "?" + params.Encode()
 
 	pageResult, err := fetchTagPage(ctx, fullURL, 3)
 	if err != nil {
+		// 检查是否是 GHCR 的 401 未授权错误
+		if strings.Contains(err.Error(), "401") && (strings.ToLower(source) == "ghcr.io" || strings.ToLower(source) == "ghcr") {
+			return nil, false, fmt.Errorf("获取 GHCR 标签失败：需要认证。请使用 'docker login ghcr.io' 命令登录后再尝试")
+		}
 		return nil, false, fmt.Errorf("获取标签失败: %v", err)
 	}
 
@@ -1108,21 +1155,49 @@ func fetchTagPage(ctx context.Context, url string, maxRetries int) (*struct {
 			return nil, fmt.Errorf("请求失败: %v", lastErr)
 		}
 
-		var result struct {
+		// 尝试解析为 Docker Hub 格式
+		var dockerHubResult struct {
 			Count    int       `json:"count"`
 			Next     string    `json:"next"`
 			Previous string    `json:"previous"`
 			Results  []TagInfo `json:"results"`
 		}
-		if err := json.Unmarshal(body, &result); err != nil {
-			lastErr = err
-			if retry < maxRetries-1 {
-				continue
-			}
-			return nil, fmt.Errorf("解析响应失败: %v", err)
+		if err := json.Unmarshal(body, &dockerHubResult); err == nil {
+			return &dockerHubResult, nil
 		}
 
-		return &result, nil
+		// 尝试解析为其他镜像源的格式（如 GHCR.io）
+		var otherResult struct {
+			Name string   `json:"name"`
+			Tags []string `json:"tags"`
+		}
+		if err := json.Unmarshal(body, &otherResult); err == nil {
+			// 转换为统一的格式
+			results := make([]TagInfo, 0, len(otherResult.Tags))
+			for _, tagName := range otherResult.Tags {
+				results = append(results, TagInfo{
+					Name: tagName,
+				})
+			}
+			return &struct {
+				Count    int       `json:"count"`
+				Next     string    `json:"next"`
+				Previous string    `json:"previous"`
+				Results  []TagInfo `json:"results"`
+			}{
+				Count:    len(results),
+				Next:     "",
+				Previous: "",
+				Results:  results,
+			}, nil
+		}
+
+		// 如果都解析失败，返回错误
+		lastErr = fmt.Errorf("无法解析响应格式")
+		if retry < maxRetries-1 {
+			continue
+		}
+		return nil, fmt.Errorf("解析响应失败: %v", lastErr)
 	}
 
 	return nil, lastErr
@@ -1337,6 +1412,7 @@ func RegisterSearchRoute(r *gin.Engine) {
 	r.GET("/tags/:namespace/:name", func(c *gin.Context) {
 		namespace := c.Param("namespace")
 		name := c.Param("name")
+		source := c.Query("source")
 
 		if namespace == "" || name == "" {
 			sendErrorResponse(c, "命名空间和名称不能为空")
@@ -1345,7 +1421,7 @@ func RegisterSearchRoute(r *gin.Engine) {
 
 		page, pageSize := parsePaginationParams(c, 100)
 
-		tags, hasMore, err := getRepositoryTags(c.Request.Context(), namespace, name, page, pageSize)
+		tags, hasMore, err := getRepositoryTags(c.Request.Context(), namespace, name, page, pageSize, source)
 		if err != nil {
 			sendErrorResponse(c, err.Error())
 			return

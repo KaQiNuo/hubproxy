@@ -1,0 +1,33 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "provider": {
+    "myprovider": {
+      "npm": "@ai-sdk/openai-compatible",
+      "name": "custom-ai",
+      "options": {
+        "baseURL": "https://tp.ailaboabroad.biz/v1",
+        "apiKey": "sk-zoByKbQ8l9gF7f3KsQgLBhTj8pvlzyLHivxCTRBVZ0u4ILvTXl"
+      },
+      "models": {
+        "gemini-3-flash-preview": {
+          "name": "gemini-3-flash-preview"
+        },
+        "gemini-2.5-pro": {
+          "name": "gemini-2.5-pro"
+        },
+        "gemini-3-pro-preview": {
+          "name": "gemini-3-pro-preview"
+        },
+        "gpt-5.2": {
+          "name": "gpt-5.2"
+        },
+        "gpt-5-codex": {
+          "name": "gpt-5-codex"
+        },
+        "claude-sonnet-4-5-20250929": {
+          "name": "claude-sonnet-4-5-20250929"
+        }
+      }
+    }
+  }
+}
