@@ -1692,19 +1692,23 @@
 
             const prevButtonId = prefix ? `${prefix}PrevPage` : 'prevPage';
             const nextButtonId = prefix ? `${prefix}NextPage` : 'nextPage';
-            const paginationId = prefix ? `${prefix}Pagination` : '.pagination';
 
             const prevButton = document.getElementById(prevButtonId);
             const nextButton = document.getElementById(nextButtonId);
-            const paginationDiv = prefix ? document.getElementById(paginationId) : document.querySelector(paginationId);
             
-            if (!prevButton || !nextButton || !paginationDiv) {
-                return; // 静默处理，避免控制台警告
+            if (!prevButton || !nextButton) {
+                return;
+            }
+            
+            const paginationDiv = prevButton.parentElement;
+            
+            if (!paginationDiv) {
+                return;
             }
             
             // 更新按钮状态
             prevButton.disabled = page <= 1;
-            nextButton.disabled = page >= total;
+            nextButton.disabled = page >= total || total === 0;
             
             // 更新或创建页面信息
             const pageInfoId = prefix ? `${prefix}PageInfo` : 'pageInfo';
@@ -1716,7 +1720,13 @@
             }
             
             updatePageInfo(pageInfo, page, total, prefix);
-            paginationDiv.style.display = total > 1 ? 'flex' : 'none';
+            
+            // 只有多于1页时才显示分页
+            if (total > 1) {
+                paginationDiv.style.display = 'flex';
+            } else {
+                paginationDiv.style.display = 'none';
+            }
         }
 
         // 创建页面信息元素
@@ -1937,7 +1947,10 @@
                 
                 totalPages = data.total_pages || 1;
                 displaySearchResults(data.results || []);
-                updateSearchPagination();
+                updatePagination({
+                    currentPage: currentPage,
+                    totalPages: totalPages
+                });
             } catch (error) {
                 pendingRequestController = null;
                 if (error.name === 'AbortError') {
@@ -2083,6 +2096,10 @@
 
             if (resultsArray.length === 0) {
                 container.innerHTML = '<div class="error-message">没有找到匹配的镜像</div>';
+                updatePagination({
+                    currentPage: 1,
+                    totalPages: 0
+                });
                 return;
             }
 
@@ -2221,6 +2238,11 @@
 
             if (!hasResults) {
                 container.innerHTML = '<div class="error-message">没有找到匹配的镜像</div>';
+                updatePagination({
+                    currentPage: 1,
+                    totalPages: 0,
+                    prefix: 'separate'
+                });
                 return;
             }
 
@@ -2237,6 +2259,11 @@
 
             if (resultsArray.length === 0) {
                 container.innerHTML = '<div class="error-message">没有找到匹配的镜像</div>';
+                updatePagination({
+                    currentPage: 1,
+                    totalPages: 0,
+                    prefix: 'merged'
+                });
                 return;
             }
 
