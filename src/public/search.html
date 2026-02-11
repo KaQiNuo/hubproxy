@@ -1433,6 +1433,40 @@
             }
         }
 
+        /**
+         * 生成 Docker pull 命令
+         * @param {string} fullRepoName - 完整的仓库名称
+         * @param {string} source - 镜像源
+         * @param {string} tag - 标签（可选）
+         * @returns {string} Docker pull 命令
+         */
+        function generatePullCommand(fullRepoName, source, tag = '') {
+            const normalizedSource = normalizeSourceName(source);
+            const repoWithTag = tag ? `${fullRepoName}:${tag}` : fullRepoName;
+            
+            const sourcePrefixes = {
+                'ghcr': 'ghcr.io',
+                'gcr': 'gcr.io',
+                'quay': 'quay.io',
+                'k8s': 'registry.k8s.io',
+                'dockerhub': ''
+            };
+            
+            const prefix = sourcePrefixes[normalizedSource] || '';
+            return prefix ? `docker pull ${prefix}/${repoWithTag}` : `docker pull ${repoWithTag}`;
+        }
+
+        /**
+         * 安全地构建 DOM 元素
+         * @param {string} html - HTML 字符串
+         * @returns {DocumentFragment} 文档片段
+         */
+        function createDocumentFromHTML(html) {
+            const template = document.createElement('template');
+            template.innerHTML = html;
+            return template.content;
+        }
+
         // 格式化工具函数
         const formatUtils = {
             formatNumber(num) {
@@ -1905,11 +1939,12 @@
                 displaySearchResults(data.results || []);
                 updateSearchPagination();
             } catch (error) {
-                console.error('搜索错误:', error);
                 pendingRequestController = null;
                 if (error.name === 'AbortError') {
                     return;
-                } else if (error.message.includes('HTTP')) {
+                }
+                console.error('搜索错误:', error);
+                if (error.message.includes('HTTP')) {
                     showToast('搜索服务暂时不可用，请稍后重试');
                 } else {
                     showToast('搜索失败，请稍后重试');
@@ -1955,7 +1990,7 @@
                 if (data.multi_source_results && Array.isArray(data.multi_source_results)) {
                     data.multi_source_results.forEach(result => {
                         const sourceName = normalizeSourceName(result.source);
-                        multiSourceResults[sourceName] = result.Results || [];
+                        multiSourceResults[sourceName] = result.results || [];
                     });
                 }
 
@@ -1966,11 +2001,12 @@
                     prefix: 'separate'
                 });
             } catch (error) {
-                console.error('搜索错误:', error);
                 pendingRequestController = null;
                 if (error.name === 'AbortError') {
                     return;
-                } else if (error.message.includes('HTTP')) {
+                }
+                console.error('搜索错误:', error);
+                if (error.message.includes('HTTP')) {
                     showToast('搜索服务暂时不可用，请稍后重试');
                 } else {
                     showToast('搜索失败，请稍后重试');
@@ -2022,11 +2058,12 @@
                     prefix: 'merged'
                 });
             } catch (error) {
-                console.error('搜索错误:', error);
                 pendingRequestController = null;
                 if (error.name === 'AbortError') {
                     return;
-                } else if (error.message.includes('HTTP')) {
+                }
+                console.error('搜索错误:', error);
+                if (error.message.includes('HTTP')) {
                     showToast('搜索服务暂时不可用，请稍后重试');
                 } else {
                     showToast('搜索失败，请稍后重试');
@@ -2042,7 +2079,6 @@
             const container = document.getElementById('searchResults');
             if (!container) return;
 
-            // 确保 results 是一个数组
             const resultsArray = Array.isArray(results) ? results : [];
 
             if (resultsArray.length === 0) {
@@ -2050,67 +2086,61 @@
                 return;
             }
 
-            let html = '';
+            const fragment = document.createDocumentFragment();
+            
             resultsArray.forEach(repo => {
                 const repoInfo = parseRepositoryInfo(repo);
                 const source = repo.source || 'docker.io';
+                const pullCommand = generatePullCommand(repoInfo.fullRepoName, source);
+                const normalizedSource = normalizeSourceName(source);
                 
-                // 生成 Docker pull 命令
-                let pullCommand = '';
-                if (source === 'ghcr.io' || source === 'GHCR' || source === 'ghcr') {
-                    pullCommand = `docker pull ghcr.io/${repoInfo.fullRepoName}`;
-                } else if (source === 'gcr.io' || source === 'GCR' || source === 'gcr') {
-                    pullCommand = `docker pull gcr.io/${repoInfo.fullRepoName}`;
-                } else if (source === 'quay.io' || source === 'Quay' || source === 'quay') {
-                    pullCommand = `docker pull quay.io/${repoInfo.fullRepoName}`;
-                } else if (source === 'registry.k8s.io' || source === 'K8s' || source === 'k8s') {
-                    pullCommand = `docker pull registry.k8s.io/${repoInfo.fullRepoName}`;
-                } else {
-                    pullCommand = `docker pull ${repoInfo.fullRepoName}`;
-                }
-
-                html += `
-                    <div class="result-card" onclick="loadTags('${repoInfo.namespace}', '${repoInfo.name}', this, '${source}')">
-                        <div class="result-card-header">
-                            <div class="result-card-title-section">
-                                <h3 class="result-title">
-                                    ${repoInfo.fullRepoName}
-                                    ${getSourceBadge(source)}
-                                </h3>
-                                ${repo.description ? `<p class="result-description">${repo.description}</p>` : ''}
-                                <div class="result-badges">
-                                    ${repo.is_official ? '<span class="badge badge-official">官方</span>' : ''}
-                                    ${repo.is_automated ? '<span class="badge badge-automated">自动构建</span>' : ''}
-                                </div>
-                                <div class="docker-pull-command">
-                                    ${pullCommand}
-                                    <button class="copy-button" onclick="event.stopPropagation(); copyToClipboard('${pullCommand}')">复制</button>
-                                </div>
+                const card = document.createElement('div');
+                card.className = 'result-card';
+                card.onclick = () => loadTags(repoInfo.namespace, repoInfo.name, card, source);
+                
+                card.innerHTML = `
+                    <div class="result-card-header">
+                        <div class="result-card-title-section">
+                            <h3 class="result-title">
+                                ${repoInfo.fullRepoName}
+                                ${getSourceBadge(source)}
+                            </h3>
+                            ${repo.description ? `<p class="result-description">${repo.description}</p>` : ''}
+                            <div class="result-badges">
+                                ${repo.is_official ? '<span class="badge badge-official">官方</span>' : ''}
+                                ${repo.is_automated ? '<span class="badge badge-automated">自动构建</span>' : ''}
                             </div>
-                        </div>
-                        <div class="result-meta">
-                            <div class="meta-stats">
-                                <span class="meta-item">
-                                    <span class="icon">📥</span>
-                                    拉取次数: ${formatUtils.formatNumber(repo.pull_count || 0)}
-                                </span>
-                                ${repo.last_updated ? `
-                                    <span class="meta-item">
-                                        <span class="icon">📅</span>
-                                        最后更新: ${formatUtils.formatTimeAgo(repo.last_updated)}
-                                    </span>
-                                ` : ''}
-                            </div>
-                            <div class="meta-pulls">
-                                <div class="pulls-label">拉取次数</div>
-                                <div class="pulls-count">${formatUtils.formatNumber(repo.pull_count || 0)}</div>
+                            <div class="docker-pull-command">
+                                ${pullCommand}
+                                <button class="copy-button" onclick="event.stopPropagation(); copyToClipboard('${pullCommand}')">复制</button>
                             </div>
                         </div>
                     </div>
+                    <div class="result-meta">
+                        <div class="meta-stats">
+                            <span class="meta-item">
+                                <span class="icon">📥</span>
+                                拉取次数: ${formatUtils.formatNumber(repo.pull_count || 0)}
+                            </span>
+                            ${repo.last_updated ? `
+                                <span class="meta-item">
+                                    <span class="icon">📅</span>
+                                    最后更新: ${formatUtils.formatTimeAgo(repo.last_updated)}
+                                </span>
+                            ` : ''}
+                        </div>
+                        <div class="meta-pulls">
+                            <div class="pulls-label">拉取次数</div>
+                            <div class="pulls-count">${formatUtils.formatNumber(repo.pull_count || 0)}</div>
+                        </div>
+                    </div>
                 `;
+                
+                fragment.appendChild(card);
             });
 
-            container.innerHTML = html;
+            container.innerHTML = '';
+            container.appendChild(fragment);
         }
 
         // 显示多源分离搜索结果
@@ -2118,127 +2148,38 @@
             const container = document.getElementById('separateResults');
             if (!container) return;
 
-            let html = '';
+            const fragment = document.createDocumentFragment();
+            let hasResults = false;
             
-            // 遍历每个源的结果
             for (const [source, results] of Object.entries(multiSourceResults)) {
-                // 确保 results 是一个数组
                 const resultsArray = Array.isArray(results) ? results : [];
                 if (resultsArray.length === 0) continue;
-
-                html += `
-                    <div class="source-result-section">
-                        <div class="source-result-header">
-                            ${getSourceBadge(source)}
-                        </div>
+                
+                hasResults = true;
+                
+                const section = document.createElement('div');
+                section.className = 'source-result-section';
+                section.innerHTML = `
+                    <div class="source-result-header">
+                        ${getSourceBadge(source)}
+                    </div>
                 `;
-
+                
+                const sectionFragment = document.createDocumentFragment();
+                
                 resultsArray.forEach(repo => {
                     const repoInfo = parseRepositoryInfo(repo);
+                    const pullCommand = generatePullCommand(repoInfo.fullRepoName, source);
                     
-                    // 生成 Docker pull 命令
-                    let pullCommand = '';
-                    if (source === 'ghcr' || source === 'ghcr.io' || source === 'GHCR') {
-                        pullCommand = `docker pull ghcr.io/${repoInfo.fullRepoName}`;
-                    } else if (source === 'gcr' || source === 'gcr.io' || source === 'GCR') {
-                        pullCommand = `docker pull gcr.io/${repoInfo.fullRepoName}`;
-                    } else if (source === 'quay' || source === 'quay.io' || source === 'Quay') {
-                        pullCommand = `docker pull quay.io/${repoInfo.fullRepoName}`;
-                    } else if (source === 'k8s' || source === 'registry.k8s.io' || source === 'K8s') {
-                        pullCommand = `docker pull registry.k8s.io/${repoInfo.fullRepoName}`;
-                    } else {
-                        pullCommand = `docker pull ${repoInfo.fullRepoName}`;
-                    }
-
-                    html += `
-                        <div class="result-card" onclick="loadTags('${repoInfo.namespace}', '${repoInfo.name}', this, '${source}')">
-                            <div class="result-card-header">
-                                <div class="result-card-title-section">
-                                    <h3 class="result-title">
-                                        ${repoInfo.fullRepoName}
-                                    </h3>
-                                    ${repo.description ? `<p class="result-description">${repo.description}</p>` : ''}
-                                    <div class="result-badges">
-                                        ${repo.is_official ? '<span class="badge badge-official">官方</span>' : ''}
-                                        ${repo.is_automated ? '<span class="badge badge-automated">自动构建</span>' : ''}
-                                    </div>
-                                    <div class="docker-pull-command">
-                                        ${pullCommand}
-                                        <button class="copy-button" onclick="event.stopPropagation(); copyToClipboard('${pullCommand}')">复制</button>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="result-meta">
-                                <div class="meta-stats">
-                                    <span class="meta-item">
-                                        <span class="icon">📥</span>
-                                        拉取次数: ${formatUtils.formatNumber(repo.pull_count || 0)}
-                                    </span>
-                                    ${repo.last_updated ? `
-                                        <span class="meta-item">
-                                            <span class="icon">📅</span>
-                                            最后更新: ${formatUtils.formatTimeAgo(repo.last_updated)}
-                                        </span>
-                                    ` : ''}
-                                </div>
-                                <div class="meta-pulls">
-                                    <div class="pulls-label">拉取次数</div>
-                                    <div class="pulls-count">${formatUtils.formatNumber(repo.pull_count || 0)}</div>
-                                </div>
-                            </div>
-                        </div>
-                    `;
-                });
-
-                html += `</div>`;
-            }
-
-            if (html === '') {
-                html = '<div class="error-message">没有找到匹配的镜像</div>';
-            }
-
-            container.innerHTML = html;
-        }
-
-        // 显示多源合并搜索结果
-        function displayMergedSearchResults(results) {
-            const container = document.getElementById('mergedResults');
-            if (!container) return;
-
-            // 确保 results 是一个数组
-            const resultsArray = Array.isArray(results) ? results : [];
-
-            if (resultsArray.length === 0) {
-                container.innerHTML = '<div class="error-message">没有找到匹配的镜像</div>';
-                return;
-            }
-
-            let html = '';
-            resultsArray.forEach(repo => {
-                const repoInfo = parseRepositoryInfo(repo);
-                const source = repo.source || 'docker.io';
-                
-                // 生成 Docker pull 命令
-                let pullCommand = '';
-                if (source === 'ghcr.io' || source === 'GHCR' || source === 'ghcr') {
-                    pullCommand = `docker pull ghcr.io/${repoInfo.fullRepoName}`;
-                } else if (source === 'gcr.io' || source === 'GCR' || source === 'gcr') {
-                    pullCommand = `docker pull gcr.io/${repoInfo.fullRepoName}`;
-                } else if (source === 'quay.io' || source === 'Quay' || source === 'quay') {
-                    pullCommand = `docker pull quay.io/${repoInfo.fullRepoName}`;
-                } else if (source === 'registry.k8s.io' || source === 'K8s' || source === 'k8s') {
-                    pullCommand = `docker pull registry.k8s.io/${repoInfo.fullRepoName}`;
-                } else {
-                    pullCommand = `docker pull ${repoInfo.fullRepoName}`;
-                }
-
-                html += `
-                    <div class="result-card" onclick="loadTags('${repoInfo.namespace}', '${repoInfo.name}', this, '${source}')">
+                    const card = document.createElement('div');
+                    card.className = 'result-card';
+                    card.onclick = () => loadTags(repoInfo.namespace, repoInfo.name, card, source);
+                    
+                    card.innerHTML = `
                         <div class="result-card-header">
                             <div class="result-card-title-section">
                                 <h3 class="result-title">
                                     ${repoInfo.fullRepoName}
-                                    ${getSourceBadge(source)}
                                 </h3>
                                 ${repo.description ? `<p class="result-description">${repo.description}</p>` : ''}
                                 <div class="result-badges">
@@ -2269,11 +2210,90 @@
                                 <div class="pulls-count">${formatUtils.formatNumber(repo.pull_count || 0)}</div>
                             </div>
                         </div>
+                    `;
+                    
+                    sectionFragment.appendChild(card);
+                });
+                
+                section.appendChild(sectionFragment);
+                fragment.appendChild(section);
+            }
+
+            if (!hasResults) {
+                container.innerHTML = '<div class="error-message">没有找到匹配的镜像</div>';
+                return;
+            }
+
+            container.innerHTML = '';
+            container.appendChild(fragment);
+        }
+
+        // 显示多源合并搜索结果
+        function displayMergedSearchResults(results) {
+            const container = document.getElementById('mergedResults');
+            if (!container) return;
+
+            const resultsArray = Array.isArray(results) ? results : [];
+
+            if (resultsArray.length === 0) {
+                container.innerHTML = '<div class="error-message">没有找到匹配的镜像</div>';
+                return;
+            }
+
+            const fragment = document.createDocumentFragment();
+            
+            resultsArray.forEach(repo => {
+                const repoInfo = parseRepositoryInfo(repo);
+                const source = repo.source || 'docker.io';
+                const pullCommand = generatePullCommand(repoInfo.fullRepoName, source);
+                
+                const card = document.createElement('div');
+                card.className = 'result-card';
+                card.onclick = () => loadTags(repoInfo.namespace, repoInfo.name, card, source);
+                
+                card.innerHTML = `
+                    <div class="result-card-header">
+                        <div class="result-card-title-section">
+                            <h3 class="result-title">
+                                ${repoInfo.fullRepoName}
+                                ${getSourceBadge(source)}
+                            </h3>
+                            ${repo.description ? `<p class="result-description">${repo.description}</p>` : ''}
+                            <div class="result-badges">
+                                ${repo.is_official ? '<span class="badge badge-official">官方</span>' : ''}
+                                ${repo.is_automated ? '<span class="badge badge-automated">自动构建</span>' : ''}
+                            </div>
+                            <div class="docker-pull-command">
+                                ${pullCommand}
+                                <button class="copy-button" onclick="event.stopPropagation(); copyToClipboard('${pullCommand}')">复制</button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="result-meta">
+                        <div class="meta-stats">
+                            <span class="meta-item">
+                                <span class="icon">📥</span>
+                                拉取次数: ${formatUtils.formatNumber(repo.pull_count || 0)}
+                            </span>
+                            ${repo.last_updated ? `
+                                <span class="meta-item">
+                                    <span class="icon">📅</span>
+                                    最后更新: ${formatUtils.formatTimeAgo(repo.last_updated)}
+                                </span>
+                            ` : ''}
+                        </div>
+                        <div class="meta-pulls">
+                            <div class="pulls-label">拉取次数</div>
+                            <div class="pulls-count">${formatUtils.formatNumber(repo.pull_count || 0)}</div>
+                        </div>
                     </div>
                 `;
+                
+                fragment.appendChild(card);
             });
 
-            container.innerHTML = html;
+            container.innerHTML = '';
+            container.appendChild(fragment);
         }
 
         // 加载标签
@@ -2339,11 +2359,12 @@
                 displayTags(data.tags || [], data.has_more);
                 updateTagPagination();
             } catch (error) {
-                console.error('加载标签错误:', error);
                 pendingRequestController = null;
                 if (error.name === 'AbortError') {
                     return;
-                } else if (error.message.includes('401') || error.message.includes('UNAUTHORIZED')) {
+                }
+                console.error('加载标签错误:', error);
+                if (error.message.includes('401') || error.message.includes('UNAUTHORIZED')) {
                     showToast('获取 GHCR 标签信息需要认证，请先运行 docker login ghcr.io');
                     document.getElementById('tagList').innerHTML = `<div class="error-message">获取 GHCR 标签信息需要认证，请先运行 docker login ghcr.io</div>`;
                 } else if (error.message.includes('403') || error.message.includes('FORBIDDEN')) {
@@ -2368,7 +2389,7 @@
             };
             const source = currentRepo.source;
             
-            let header = `
+            const header = `
                 <div class="tag-header">
                     <div class="tag-info">
                         <div class="tag-title">
@@ -2382,56 +2403,61 @@
                 </div>
             `;
 
-            let tagsHtml = '';
             if (tags.length === 0) {
-                tagsHtml = '<div class="error-message">没有找到标签</div>';
-            } else {
-                tags.forEach(tag => {
-                    // 生成 Docker pull 命令
-                    let pullCommand = '';
-                    if (source === 'ghcr' || source === 'ghcr.io' || source === 'GHCR') {
-                        pullCommand = `docker pull ghcr.io/${repoInfo.fullRepoName}:${tag.name}`;
-                    } else if (source === 'gcr' || source === 'gcr.io' || source === 'GCR') {
-                        pullCommand = `docker pull gcr.io/${repoInfo.fullRepoName}:${tag.name}`;
-                    } else if (source === 'quay' || source === 'quay.io' || source === 'Quay') {
-                        pullCommand = `docker pull quay.io/${repoInfo.fullRepoName}:${tag.name}`;
-                    } else if (source === 'k8s' || source === 'registry.k8s.io' || source === 'K8s') {
-                        pullCommand = `docker pull registry.k8s.io/${repoInfo.fullRepoName}:${tag.name}`;
-                    } else {
-                        pullCommand = `docker pull ${repoInfo.fullRepoName}:${tag.name}`;
-                    }
-
-                    tagsHtml += `
-                        <div class="tag-item">
-                            <div class="tag-name">${tag.name}</div>
-                            <div class="tag-meta">
-                                ${tag.size ? `大小: ${formatUtils.formatSize(tag.size)} | ` : ''}
-                                ${tag.last_updated ? `最后更新: ${formatUtils.formatTimeAgo(tag.last_updated)}` : ''}
-                            </div>
-                            <div class="docker-pull-command">
-                                ${pullCommand}
-                                <button class="copy-button" onclick="copyToClipboard('${pullCommand}')">复制</button>
-                            </div>
-                            ${tag.architectures ? `
-                                <div class="tag-architectures">
-                                    ${tag.architectures.map(arch => `<span class="arch-item">${arch}</span>`).join('')}
-                                </div>
-                            ` : ''}
-                        </div>
-                    `;
-                });
+                tagList.innerHTML = `
+                    ${header}
+                    <div class="tags-container">
+                        <div class="error-message">没有找到标签</div>
+                    </div>
+                `;
+                showTagList();
+                return;
             }
 
-            tagList.innerHTML = `
-                ${header}
-                <div class="tags-container">
-                    ${tagsHtml}
-                </div>
-                <div class="pagination" id="tagPagination">
-                    <button id="tagPrevPage" disabled>上一页</button>
-                    <button id="tagNextPage" disabled>下一页</button>
-                </div>
+            const fragment = document.createDocumentFragment();
+            
+            tags.forEach(tag => {
+                const pullCommand = generatePullCommand(repoInfo.fullRepoName, source, tag.name);
+                
+                const tagItem = document.createElement('div');
+                tagItem.className = 'tag-item';
+                tagItem.innerHTML = `
+                    <div class="tag-name">${tag.name}</div>
+                    <div class="tag-meta">
+                        ${tag.size ? `大小: ${formatUtils.formatSize(tag.size)} | ` : ''}
+                        ${tag.last_updated ? `最后更新: ${formatUtils.formatTimeAgo(tag.last_updated)}` : ''}
+                    </div>
+                    <div class="docker-pull-command">
+                        ${pullCommand}
+                        <button class="copy-button" onclick="copyToClipboard('${pullCommand}')">复制</button>
+                    </div>
+                    ${tag.architectures ? `
+                        <div class="tag-architectures">
+                            ${tag.architectures.map(arch => `<span class="arch-item">${arch}</span>`).join('')}
+                        </div>
+                    ` : ''}
+                `;
+                
+                fragment.appendChild(tagItem);
+            });
+
+            const tagsContainer = document.createElement('div');
+            tagsContainer.className = 'tags-container';
+            tagsContainer.appendChild(fragment);
+
+            const pagination = document.createElement('div');
+            pagination.className = 'pagination';
+            pagination.id = 'tagPagination';
+            pagination.innerHTML = `
+                <button id="tagPrevPage" disabled>上一页</button>
+                <button id="tagNextPage" disabled>下一页</button>
             `;
+
+            tagList.innerHTML = '';
+            tagList.appendChild(createDocumentFromHTML(header));
+            tagList.appendChild(tagsContainer);
+            tagList.appendChild(pagination);
+            
             showTagList();
         }
 
