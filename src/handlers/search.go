@@ -1466,7 +1466,7 @@ func (ps *ParallelSearcher) SearchWithSource(ctx context.Context, domains []stri
 // 并行搜索多个注册表
 func searchMultiRegistries(ctx context.Context, query string, page, pageSize int) ([]MultiSourceSearchResult, error) {
 	searcher := NewParallelSearcher()
-	searcher.searchTimeout = 20 * time.Second
+	searcher.searchTimeout = 100 * time.Second
 
 	enabledRegistries := getEnabledRegistries()
 	domains := make([]string, 0, len(enabledRegistries))
@@ -1474,7 +1474,13 @@ func searchMultiRegistries(ctx context.Context, query string, page, pageSize int
 		domains = append(domains, domain)
 	}
 
+	fmt.Printf("🔍 开始并行搜索 %d 个注册表源: %v\n", len(domains), domains)
+	startTime := time.Now()
+
 	results, errors := searcher.SearchWithSource(ctx, domains, query, page, pageSize)
+
+	elapsed := time.Since(startTime)
+	fmt.Printf("✅ 搜索完成，耗时: %.2fs，成功: %d，失败: %d\n", elapsed.Seconds(), len(results), len(errors))
 
 	multiResults := make([]MultiSourceSearchResult, 0, len(results))
 	for domain, result := range results {
