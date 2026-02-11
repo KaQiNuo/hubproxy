@@ -177,7 +177,7 @@ func handleManifestRequest(c *gin.Context, imageRef, reference string) {
 	if utils.IsCacheEnabled() && c.Request.Method == http.MethodGet {
 		cacheKey := utils.BuildManifestCacheKey(imageRef, reference)
 
-		if cachedItem := utils.GlobalCache.Get(cacheKey); cachedItem != nil {
+		if cachedItem := utils.GlobalCache.GetCachedItem(cacheKey); cachedItem != nil {
 			utils.WriteCachedResponse(c, cachedItem)
 			return
 		}
@@ -473,7 +473,7 @@ func handleUpstreamManifestRequest(c *gin.Context, imageRef, reference string, m
 	if utils.IsCacheEnabled() && c.Request.Method == http.MethodGet {
 		cacheKey := utils.BuildManifestCacheKey(imageRef, reference)
 
-		if cachedItem := utils.GlobalCache.Get(cacheKey); cachedItem != nil {
+		if cachedItem := utils.GlobalCache.GetCachedItem(cacheKey); cachedItem != nil {
 			utils.WriteCachedResponse(c, cachedItem)
 			return
 		}

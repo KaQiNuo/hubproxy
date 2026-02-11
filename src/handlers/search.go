@@ -1030,11 +1030,24 @@ func isRetryableError(err error) bool {
 		return false
 	}
 
-	if strings.Contains(err.Error(), "timeout") ||
-		strings.Contains(err.Error(), "connection refused") ||
-		strings.Contains(err.Error(), "no such host") ||
-		strings.Contains(err.Error(), "too many requests") {
-		return true
+	errStr := err.Error()
+	retryablePatterns := []string{
+		"connection refused",
+		"connection reset",
+		"connection timeout",
+		"no such host",
+		"temporary failure",
+		"server misbehaving",
+		"too many requests",
+		"service unavailable",
+		"bad gateway",
+		"gateway timeout",
+	}
+
+	for _, pattern := range retryablePatterns {
+		if strings.Contains(strings.ToLower(errStr), pattern) {
+			return true
+		}
 	}
 
 	return false
@@ -1046,68 +1059,82 @@ func getRepositoryTags(ctx context.Context, namespace, name string, page, pageSi
 		return nil, false, fmt.Errorf("无效输入：命名空间和名称不能为空")
 	}
 
-	if page <= 0 {
-		page = 1
-	}
-	if pageSize <= 0 || pageSize > 100 {
-		pageSize = 100
-	}
+	page, pageSize = validatePaginationParams(page, pageSize)
 
-	cacheKey := fmt.Sprintf("tags:%s:%s:%s:page_%d", source, namespace, name, page)
+	cacheKey := fmt.Sprintf("tags:%s:%s:%s:%d:%d", source, namespace, name, page, pageSize)
+
 	if cached, ok := searchCache.Get(cacheKey); ok {
-		result := cached.(TagPageResult)
-		return result.Tags, result.HasMore, nil
+		return cached.([]TagInfo), true, nil
 	}
 
-	// 根据镜像源选择不同的 API 端点
-	var baseURL string
-	switch strings.ToLower(source) {
-	case "ghcr.io", "ghcr":
-		// GitHub Container Registry
-		baseURL = fmt.Sprintf("https://ghcr.io/v2/%s/%s/tags/list", namespace, name)
-	case "docker.io", "docker hub":
-		// Docker Hub
-		baseURL = fmt.Sprintf("https://registry.hub.docker.com/v2/repositories/%s/%s/tags", namespace, name)
-	case "gcr.io", "gcr":
-		// Google Container Registry
-		baseURL = fmt.Sprintf("https://gcr.io/v2/%s/%s/tags/list", namespace, name)
-	case "quay.io", "quay":
-		// Quay.io
-		baseURL = fmt.Sprintf("https://quay.io/v2/%s/%s/tags/list", namespace, name)
-	case "registry.k8s.io", "k8s", "kubernetes":
-		// Kubernetes Registry
-		baseURL = fmt.Sprintf("https://registry.k8s.io/v2/%s/%s/tags/list", namespace, name)
-	default:
-		// 默认使用 Docker Hub
-		baseURL = fmt.Sprintf("https://registry.hub.docker.com/v2/repositories/%s/%s/tags", namespace, name)
-	}
-
-	params := url.Values{}
-	params.Set("page", fmt.Sprintf("%d", page))
-	params.Set("page_size", fmt.Sprintf("%d", pageSize))
-
-	// 对于 Docker Hub，添加排序参数
-	if strings.ToLower(source) == "docker.io" || strings.ToLower(source) == "docker hub" || source == "" {
-		params.Set("ordering", "last_updated")
-	}
-
-	fullURL := baseURL + "?" + params.Encode()
-
-	pageResult, err := fetchTagPage(ctx, fullURL, 3)
+	searchURL := buildSearchURL(source, namespace, name, page, pageSize)
+	tags, hasMore, err := fetchTagsFromAPI(ctx, searchURL, source)
 	if err != nil {
-		// 检查是否是 GHCR 的 401 未授权错误
-		if strings.Contains(err.Error(), "401") && (strings.ToLower(source) == "ghcr.io" || strings.ToLower(source) == "ghcr") {
-			return nil, false, fmt.Errorf("获取 GHCR 标签失败：需要认证。请使用 'docker login ghcr.io' 命令登录后再尝试")
-		}
+		return nil, false, err
+	}
+
+	searchCache.SetWithTTL(cacheKey, tags, 30*time.Minute)
+
+	return tags, hasMore, nil
+}
+
+func fetchTagsFromAPI(ctx context.Context, searchURL, source string) ([]TagInfo, bool, error) {
+	tags, err := fetchAllTagsWithPagination(ctx, searchURL)
+	if err != nil {
 		return nil, false, fmt.Errorf("获取标签失败: %v", err)
 	}
 
-	hasMore := pageResult.Next != ""
+	return tags, false, nil
+}
 
-	result := TagPageResult{Tags: pageResult.Results, HasMore: hasMore}
-	searchCache.SetWithTTL(cacheKey, result, 30*time.Minute)
+func buildSearchURL(source, namespace, name string, page, pageSize int) string {
+	baseURL := "https://hub.docker.com/v2/repositories"
 
-	return pageResult.Results, hasMore, nil
+	switch source {
+	case "ghcr.io":
+		return fmt.Sprintf("https://ghcr.io/v2/%s/%s/tags/list", namespace, name)
+	case "gcr.io":
+		return fmt.Sprintf("https://gcr.io/v2/%s/%s/tags/list", namespace, name)
+	case "quay.io":
+		return fmt.Sprintf("https://quay.io/api/v1/repository/%s/%s/tag", namespace, name)
+	case "registry.k8s.io":
+		return fmt.Sprintf("https://registry.k8s.io/v2/%s/%s/tags/list", namespace, name)
+	default:
+		return fmt.Sprintf("%s/%s/%s/tags?page=%d&page_size=%d", baseURL, namespace, name, page, pageSize)
+	}
+}
+
+func fetchAllTagsWithPagination(ctx context.Context, url string) ([]TagInfo, error) {
+	var allTags []TagInfo
+	nextURL := url
+	maxPages := 10
+
+	for nextURL != "" && maxPages > 0 {
+		maxPages--
+
+		pageResult, err := fetchTagPage(ctx, nextURL, 3)
+		if err != nil {
+			if strings.Contains(err.Error(), "404") || strings.Contains(err.Error(), "not found") {
+				return []TagInfo{}, nil
+			}
+			return nil, fmt.Errorf("获取标签页失败: %v", err)
+		}
+
+		allTags = append(allTags, pageResult.Results...)
+		nextURL = pageResult.Next
+	}
+
+	return allTags, nil
+}
+
+func validatePaginationParams(page, pageSize int) (int, int) {
+	if page < 1 {
+		page = 1
+	}
+	if pageSize < 1 || pageSize > 100 {
+		pageSize = 25
+	}
+	return page, pageSize
 }
 
 func fetchTagPage(ctx context.Context, url string, maxRetries int) (*struct {
@@ -1234,69 +1261,264 @@ func sendErrorResponse(c *gin.Context, message string) {
 	c.JSON(http.StatusBadRequest, gin.H{"error": message})
 }
 
-// searchMultiRegistries 并行搜索多个注册表
-func searchMultiRegistries(ctx context.Context, query string, page, pageSize int) ([]MultiSourceSearchResult, error) {
+type ParallelSearcher struct {
+	searchTimeout   time.Duration
+	maxRetries      int
+	maxConcurrent   int
+	failFastOnError bool
+}
+
+func NewParallelSearcher() *ParallelSearcher {
+	return &ParallelSearcher{
+		searchTimeout:   30 * time.Second,
+		maxRetries:      2,
+		maxConcurrent:   5,
+		failFastOnError: false,
+	}
+}
+
+func (ps *ParallelSearcher) SearchAllSources(ctx context.Context, query string, page, pageSize int) (*SearchResult, error) {
+	ctx, cancel := context.WithTimeout(ctx, ps.searchTimeout)
+	defer cancel()
+
 	enabledRegistries := getEnabledRegistries()
-
-	var results []MultiSourceSearchResult
-
-	// 并发搜索所有启用的注册表
-	var wg sync.WaitGroup
-	resultChan := make(chan MultiSourceSearchResult, len(enabledRegistries))
-
+	domains := make([]string, 0, len(enabledRegistries))
 	for domain := range enabledRegistries {
+		domains = append(domains, domain)
+	}
+
+	resultChan := make(chan *SearchResult, len(domains))
+	errChan := make(chan error, len(domains))
+	semaphore := make(chan struct{}, ps.maxConcurrent)
+
+	var wg sync.WaitGroup
+
+	for _, domain := range domains {
 		wg.Add(1)
 		go func(domain string) {
 			defer wg.Done()
+			
+			select {
+			case <-ctx.Done():
+				return
+			case semaphore <- struct{}{}:
+			}
 
-			result, err := searchRegistryByDomain(ctx, domain, query, page, pageSize)
+			defer func() { <-semaphore }()
+
+			result, err := ps.searchWithRetry(ctx, domain, query, page, pageSize)
 			if err != nil {
-				resultChan <- MultiSourceSearchResult{
-					Source:  domain,
-					Error:   err.Error(),
-					Count:   0,
-					Results: []Repository{},
+				select {
+				case errChan <- err:
+				case <-ctx.Done():
 				}
-			} else {
-				// 确保结果中有源信息
+				return
+			}
+
+			select {
+			case resultChan <- result:
+			case <-ctx.Done():
+			}
+		}(domain)
+	}
+
+	go func() {
+		wg.Wait()
+		close(resultChan)
+		close(errChan)
+	}()
+
+	var allResults []Repository
+	totalCount := 0
+	errors := make([]error, 0)
+
+	for {
+		select {
+		case result, ok := <-resultChan:
+			if !ok {
+				resultChan = nil
+				continue
+			}
+			if result != nil {
+				allResults = append(allResults, result.Results...)
+				totalCount += result.Count
+			}
+		case err, ok := <-errChan:
+			if !ok {
+				errChan = nil
+				continue
+			}
+			if err != nil {
+				errors = append(errors, err)
+			}
+		case <-ctx.Done():
+			if len(allResults) == 0 && len(errors) > 0 {
+				return nil, errors[0]
+			}
+			return &SearchResult{
+				Count:    totalCount,
+				Next:     "",
+				Previous: "",
+				Results:  allResults,
+			}, nil
+		}
+
+		if resultChan == nil && errChan == nil {
+			break
+		}
+	}
+
+	if len(allResults) == 0 && len(errors) > 0 {
+		return nil, errors[0]
+	}
+
+	return &SearchResult{
+		Count:    totalCount,
+		Next:     "",
+		Previous: "",
+		Results:  allResults,
+	}, nil
+}
+
+func (ps *ParallelSearcher) searchWithRetry(ctx context.Context, domain, query string, page, pageSize int) (*SearchResult, error) {
+	var lastErr error
+
+	for retry := 0; retry <= ps.maxRetries; retry++ {
+		if retry > 0 {
+			select {
+			case <-ctx.Done():
+				return nil, ctx.Err()
+			case <-time.After(time.Duration(retry) * 500 * time.Millisecond):
+			}
+		}
+
+		result, err := searchRegistryByDomain(ctx, domain, query, page, pageSize)
+		if err == nil {
+			if result != nil {
 				for i := range result.Results {
 					if result.Results[i].Source == "" {
 						result.Results[i].Source = domain
 					}
 				}
-				resultChan <- MultiSourceSearchResult{
-					Source:   domain,
-					Count:    result.Count,
-					Next:     result.Next,
-					Previous: result.Previous,
-					Results:  result.Results,
-				}
+			}
+			return result, nil
+		}
+
+		lastErr = err
+
+		if !isRetryableError(err) {
+			break
+		}
+	}
+
+	return nil, lastErr
+}
+
+func (ps *ParallelSearcher) SearchWithSource(ctx context.Context, domains []string, query string, page, pageSize int) (map[string]*SearchResult, []error) {
+	ctx, cancel := context.WithTimeout(ctx, ps.searchTimeout)
+	defer cancel()
+
+	results := make(map[string]*SearchResult)
+	var errors []error
+	var mu sync.Mutex
+
+	semaphore := make(chan struct{}, ps.maxConcurrent)
+	var wg sync.WaitGroup
+
+	for _, domain := range domains {
+		wg.Add(1)
+		go func(domain string) {
+			defer wg.Done()
+
+			select {
+			case <-ctx.Done():
+				return
+			case semaphore <- struct{}{}:
+			}
+
+			defer func() { <-semaphore }()
+
+			result, err := ps.searchWithRetry(ctx, domain, query, page, pageSize)
+
+			mu.Lock()
+			defer mu.Unlock()
+
+			if err != nil {
+				errors = append(errors, fmt.Errorf("%s: %w", domain, err))
+			} else if result != nil {
+				results[domain] = result
 			}
 		}(domain)
 	}
 
-	// 等待所有goroutine完成
 	go func() {
 		wg.Wait()
-		close(resultChan)
 	}()
 
-	// 收集结果
-	for res := range resultChan {
-		results = append(results, res)
+	select {
+	case <-ctx.Done():
+		return results, errors
+	case <-time.After(ps.searchTimeout):
+		return results, errors
 	}
-
-	return results, nil
 }
 
-// searchMultiRegistriesMerged 并行搜索多个注册表并合并结果
-func searchMultiRegistriesMerged(ctx context.Context, query string, page, pageSize int) (*SearchResult, error) {
-	multiResults, err := searchMultiRegistries(ctx, query, page, pageSize)
-	if err != nil {
-		return nil, err
+// 并行搜索多个注册表
+func searchMultiRegistries(ctx context.Context, query string, page, pageSize int) ([]MultiSourceSearchResult, error) {
+	searcher := NewParallelSearcher()
+	searcher.searchTimeout = 20 * time.Second
+
+	enabledRegistries := getEnabledRegistries()
+	domains := make([]string, 0, len(enabledRegistries))
+	for domain := range enabledRegistries {
+		domains = append(domains, domain)
 	}
 
-	return mergeSearchResults(multiResults), nil
+	results, errors := searcher.SearchWithSource(ctx, domains, query, page, pageSize)
+
+	multiResults := make([]MultiSourceSearchResult, 0, len(results))
+	for domain, result := range results {
+		multiResults = append(multiResults, MultiSourceSearchResult{
+			Source:   domain,
+			Count:    result.Count,
+			Next:     result.Next,
+			Previous: result.Previous,
+			Results:  result.Results,
+		})
+	}
+
+	for _, err := range errors {
+		domain := extractDomainFromError(err)
+		multiResults = append(multiResults, MultiSourceSearchResult{
+			Source: domain,
+			Error:  err.Error(),
+			Count:  0,
+		})
+	}
+
+	return multiResults, nil
+}
+
+func extractDomainFromError(err error) string {
+	errStr := err.Error()
+	if idx := strings.Index(errStr, ":"); idx > 0 {
+		return strings.TrimSpace(errStr[:idx])
+	}
+	return "unknown"
+}
+
+// 并行搜索多个注册表并合并结果
+func searchMultiRegistriesMerged(ctx context.Context, query string, page, pageSize int) (*SearchResult, error) {
+	searcher := NewParallelSearcher()
+	searcher.searchTimeout = 25 * time.Second
+
+	enabledRegistries := getEnabledRegistries()
+	domains := make([]string, 0, len(enabledRegistries))
+	for domain := range enabledRegistries {
+		domains = append(domains, domain)
+	}
+
+	return searcher.SearchAllSources(ctx, query, page, pageSize)
 }
 
 // RegisterSearchRoute 注册搜索相关路由
