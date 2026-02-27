@@ -44,7 +44,7 @@ var Version = "dev"
 
 func buildRouter(cfg *config.AppConfig) *gin.Engine {
 	gin.SetMode(gin.ReleaseMode)
-	router := gin.Default()
+	router := gin.New()
 
 	// 全局Panic恢复保护
 	router.Use(gin.CustomRecovery(func(c *gin.Context, recovered interface{}) {
