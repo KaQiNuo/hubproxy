@@ -6,7 +6,7 @@
 
 
 <p align="center">
-  <img src="https://count.getloli.com/get/@sky22333.hubproxy?theme=rule34" alt="Visitors">
+  <img src="https://count.getloli.com/get/@kaqinuo.hubproxy?theme=rule34" alt="Visitors">
 </p>
 
 ## 特性
@@ -25,9 +25,9 @@
 
 ## 详细文档
 
-[中文文档](https://zread.ai/sky22333/hubproxy)
+[中文文档](https://zread.ai/kaqinuo/hubproxy)
 
-[English](https://deepwiki.com/sky22333/hubproxy)
+[English](https://deepwiki.com/kaqinuo/hubproxy)
 
 ## 快速开始
 
@@ -37,13 +37,13 @@ docker run -d \
   --name hubproxy \
   -p 5000:5000 \
   --restart always \
-  ghcr.io/sky22333/hubproxy
+  ghcr.io/kaqinuo/hubproxy
 ```
 
 ### 一键脚本安装
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/sky22333/hubproxy/main/install.sh | sudo bash
+curl -fsSL https://raw.githubusercontent.com/kaqinuo/hubproxy/main/install.sh | sudo bash
 ```
 
 支持单个二进制文件直接启动，无需其他配置，内置默认配置，支持所有功能。
@@ -66,7 +66,7 @@ docker pull nginx
 docker pull yourdomain.com/nginx
 
 # ghcr加速
-docker pull yourdomain.com/ghcr.io/sky22333/hubproxy
+docker pull yourdomain.com/ghcr.io/kaqinuo/hubproxy
 
 # 符合Docker Registry API v2标准的仓库都支持
 ```
@@ -95,7 +95,7 @@ https://github.com/user/repo/releases/download/v1.0.0/file.tar.gz
 https://yourdomain.com/https://github.com/user/repo/releases/download/v1.0.0/file.tar.gz
 
 # 加速下载仓库
-git clone https://yourdomain.com/https://github.com/sky22333/hubproxy.git
+git clone https://yourdomain.com/https://github.com/kaqinuo/hubproxy.git
 ```
 
 ## 配置
@@ -246,7 +246,7 @@ example.com {
 }
 ```
 
-> 对于使用nginx反代的用户，Github加速提示`无效输入`的问题可以参见[issues/62](https://github.com/sky22333/hubproxy/issues/62#issuecomment-3219572440)
+> 对于使用nginx反代的用户，Github加速提示`无效输入`的问题可以参见[issues/62](https://github.com/kaqinuo/hubproxy/issues/62#issuecomment-3219572440)
 
 
 ## ⚠️ 免责声明
@@ -268,4 +268,4 @@ example.com {
 ![1](./.github/demo/demo1.jpg)
 
 ## Star 趋势
-[![Star 趋势](https://starchart.cc/sky22333/hubproxy.svg?variant=adaptive)](https://starchart.cc/sky22333/hubproxy)
+[![Star 趋势](https://starchart.cc/kaqinuo/hubproxy.svg?variant=adaptive)](https://starchart.cc/kaqinuo/hubproxy)

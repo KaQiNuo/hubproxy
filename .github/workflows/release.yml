@@ -89,7 +89,7 @@ jobs:
           cat > build/hubproxy/README.md << 'EOF'
           # HubProxy
           
-          项目地址：https://github.com/sky22333/hubproxy
+          项目地址：https://github.com/kaqinuo/hubproxy
           EOF
           
       - name: 创建压缩包

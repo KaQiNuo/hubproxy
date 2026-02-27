@@ -12,7 +12,7 @@ BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
 # 配置
-REPO="sky22333/hubproxy"
+REPO="kaqinuo/hubproxy"
 GITHUB_API="https://api.github.com/repos/${REPO}"
 GITHUB_RELEASES="${GITHUB_API}/releases"
 SERVICE_NAME="hubproxy"
