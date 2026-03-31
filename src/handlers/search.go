@@ -15,7 +15,6 @@ import (
 	"hubproxy/config"
 	"hubproxy/utils"
 
-
 	"github.com/gin-gonic/gin"
 )
 
@@ -93,9 +92,7 @@ type cacheEntry struct {
 }
 
 const (
-	maxCacheSize       = 1000
 	maxPaginationCache = 200
-	cacheTTL           = 30 * time.Minute
 	defaultPageSize    = 25
 )
 
@@ -111,82 +108,6 @@ func getEnabledRegistries() map[string]config.RegistryMapping {
 	}
 
 	return enabledRegistries
-}
-
-type Cache struct {
-	data    map[string]cacheEntry
-	mu      sync.RWMutex
-	maxSize int
-}
-
-var (
-	searchCache = &Cache{
-		data:    make(map[string]cacheEntry),
-		maxSize: maxCacheSize,
-	}
-)
-
-func (c *Cache) Get(key string) (interface{}, bool) {
-	c.mu.RLock()
-	entry, exists := c.data[key]
-	c.mu.RUnlock()
-
-	if !exists {
-		return nil, false
-	}
-
-	if time.Now().After(entry.expiresAt) {
-		c.mu.Lock()
-		delete(c.data, key)
-		c.mu.Unlock()
-		return nil, false
-	}
-
-	return entry.data, true
-}
-
-func (c *Cache) Set(key string, data interface{}) {
-	c.SetWithTTL(key, data, cacheTTL)
-}
-
-func (c *Cache) SetWithTTL(key string, data interface{}, ttl time.Duration) {
-	c.mu.Lock()
-	defer c.mu.Unlock()
-
-	if len(c.data) >= c.maxSize {
-		c.cleanupExpiredLocked()
-	}
-
-	c.data[key] = cacheEntry{
-		data:      data,
-		expiresAt: time.Now().Add(ttl),
-	}
-}
-
-func (c *Cache) Cleanup() {
-	c.mu.Lock()
-	defer c.mu.Unlock()
-	c.cleanupExpiredLocked()
-}
-
-func (c *Cache) cleanupExpiredLocked() {
-	now := time.Now()
-	for key, entry := range c.data {
-		if now.After(entry.expiresAt) {
-			delete(c.data, key)
-		}
-	}
-}
-
-func init() {
-	go func() {
-		ticker := time.NewTicker(5 * time.Minute)
-		defer ticker.Stop()
-
-		for range ticker.C {
-			searchCache.Cleanup()
-		}
-	}()
 }
 
 // searchRegistryByDomain 按域名搜索指定注册表
@@ -608,8 +529,11 @@ func searchGenericRegistry(ctx context.Context, source, endpoint, query string, 
 	// 生成缓存键
 	cacheKey := fmt.Sprintf("search_multi:%s:%s:%d:%d", source, query, page, pageSize)
 
-	if cached, ok := searchCache.Get(cacheKey); ok {
-		return cached.(*SearchResult), nil
+	if cachedItem := utils.GlobalCache.GetCachedItem(cacheKey); cachedItem != nil {
+		result := &SearchResult{}
+		if err := json.Unmarshal(cachedItem.Data, result); err == nil {
+			return result, nil
+		}
 	}
 
 	// 构建请求URL
@@ -781,7 +705,9 @@ func searchGenericRegistry(ctx context.Context, source, endpoint, query string, 
 	}
 
 	// 缓存结果
-	searchCache.SetWithTTL(cacheKey, result, cacheTTL)
+	if data, err := json.Marshal(result); err == nil {
+		utils.GlobalCache.Set(cacheKey, data, "application/json", nil, 30*time.Minute)
+	}
 
 	return result, nil
 }
@@ -904,8 +830,11 @@ func searchDockerHubWithDepth(ctx context.Context, query string, page, pageSize 
 	}
 	cacheKey := fmt.Sprintf("search:%s:%d:%d", query, page, pageSize)
 
-	if cached, ok := searchCache.Get(cacheKey); ok {
-		return cached.(*SearchResult), nil
+	if cachedItem := utils.GlobalCache.GetCachedItem(cacheKey); cachedItem != nil {
+		result := &SearchResult{}
+		if err := json.Unmarshal(cachedItem.Data, result); err == nil {
+			return result, nil
+		}
 	}
 
 	isUserRepo := strings.Contains(query, "/")
@@ -1021,7 +950,9 @@ func searchDockerHubWithDepth(ctx context.Context, query string, page, pageSize 
 		}
 	}
 
-	searchCache.Set(cacheKey, result)
+	if data, err := json.Marshal(result); err == nil {
+		utils.GlobalCache.Set(cacheKey, data, "application/json", nil, 30*time.Minute)
+	}
 	return result, nil
 }
 
@@ -1063,8 +994,11 @@ func getRepositoryTags(ctx context.Context, namespace, name string, page, pageSi
 
 	cacheKey := fmt.Sprintf("tags:%s:%s:%s:%d:%d", source, namespace, name, page, pageSize)
 
-	if cached, ok := searchCache.Get(cacheKey); ok {
-		return cached.([]TagInfo), true, nil
+	if cachedItem := utils.GlobalCache.GetCachedItem(cacheKey); cachedItem != nil {
+		var tags []TagInfo
+		if err := json.Unmarshal(cachedItem.Data, &tags); err == nil {
+			return tags, true, nil
+		}
 	}
 
 	searchURL := buildSearchURL(source, namespace, name, page, pageSize)
@@ -1073,7 +1007,9 @@ func getRepositoryTags(ctx context.Context, namespace, name string, page, pageSi
 		return nil, false, err
 	}
 
-	searchCache.SetWithTTL(cacheKey, tags, 30*time.Minute)
+	if data, err := json.Marshal(tags); err == nil {
+		utils.GlobalCache.Set(cacheKey, data, "application/json", nil, 30*time.Minute)
+	}
 
 	return tags, hasMore, nil
 }
@@ -1297,7 +1233,7 @@ func (ps *ParallelSearcher) SearchAllSources(ctx context.Context, query string, 
 		wg.Add(1)
 		go func(domain string) {
 			defer wg.Done()
-			
+
 			select {
 			case <-ctx.Done():
 				return

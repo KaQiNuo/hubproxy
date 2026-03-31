@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 	"strings"
 	"sync"
+	sync_atomic "sync/atomic"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -38,16 +39,16 @@ type CacheStats struct {
 	TotalEntries    int64
 	MemoryEntries   int64
 	DiskEntries     int64
-	TotalSize      int64
-	Hits           int64
-	Misses         int64
-	HitRate        float64
-	Evictions      int64
+	TotalSize       int64
+	Hits            int64
+	Misses          int64
+	HitRate         float64
+	Evictions       int64
 	ExpiredCleanups int64
 }
 
 type CacheConfig struct {
-	MaxMemoryEntries   int
+	MaxMemoryEntries  int
 	MaxDiskEntries    int
 	MaxMemorySize     int64
 	MaxDiskSize       int64
@@ -90,16 +91,16 @@ type MemoryCache struct {
 }
 
 type DiskCache struct {
-	cacheDir  string
-	maxSize   int64
-	ttl       time.Duration
-	index     *MemoryCache
-	mu        sync.RWMutex
+	cacheDir string
+	maxSize  int64
+	ttl      time.Duration
+	index    *MemoryCache
+	mu       sync.RWMutex
 }
 
 var (
 	GlobalCache *UniversalCache
-	cacheOnce  sync.Once
+	cacheOnce   sync.Once
 )
 
 func NewLinkedList() *LinkedList {
@@ -390,16 +391,16 @@ func InitCache() {
 		cfg := config.GetConfig()
 
 		cacheConfig := &CacheConfig{
-			MaxMemoryEntries:   10000,
-			MaxDiskEntries:     50000,
-			MaxMemorySize:       500 * 1024 * 1024,
-			MaxDiskSize:         2 * 1024 * 1024 * 1024,
-			MemoryTTL:           30 * time.Minute,
-			DiskTTL:             24 * time.Hour,
-			CacheDir:            "cache",
-			EnableDiskCache:     true,
-			EnableCompression:   false,
-			EvictionPolicy:      "lru",
+			MaxMemoryEntries:  10000,
+			MaxDiskEntries:    50000,
+			MaxMemorySize:     500 * 1024 * 1024,
+			MaxDiskSize:       2 * 1024 * 1024 * 1024,
+			MemoryTTL:         30 * time.Minute,
+			DiskTTL:           24 * time.Hour,
+			CacheDir:          "cache",
+			EnableDiskCache:   true,
+			EnableCompression: false,
+			EvictionPolicy:    "lru",
 		}
 
 		if cfg.TokenCache.Enabled {
@@ -550,11 +551,11 @@ func (c *UniversalCache) cleanupExpiredEntries() {
 }
 
 func atomicAddInt64(addr *int64, delta int64) {
-	*addr += delta
+	sync_atomic.AddInt64(addr, delta)
 }
 
 func atomicLoadInt64(addr *int64) int64 {
-	return *addr
+	return sync_atomic.LoadInt64(addr)
 }
 
 type CachedItem struct {

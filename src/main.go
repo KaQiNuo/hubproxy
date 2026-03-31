@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	_ "net/http/pprof"
 	"strings"
 	"time"
 
@@ -219,4 +220,6 @@ func initHealthRoutes(router *gin.Engine) {
 			"uptime_human":    uptimeHuman,
 		})
 	})
+
+	router.GET("/debug/pprof/*profile", gin.WrapH(http.DefaultServeMux))
 }
