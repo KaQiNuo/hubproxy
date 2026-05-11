@@ -6,8 +6,8 @@ ARG VERSION=dev
 WORKDIR /app
 COPY src/go.mod src/go.sum ./
 
-# 设置Go模块代理
-RUN go env -w GOPROXY=https://goproxy.cn,direct
+# 设置Go模块代理（国内环境）
+RUN go env -w GOPROXY=https://goproxy.cn,direct && go env -w GOSUMDB=off
 RUN go mod download && apk add upx
 
 COPY src/ .
