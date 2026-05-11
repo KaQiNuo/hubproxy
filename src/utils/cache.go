@@ -425,6 +425,9 @@ func InitCache() {
 }
 
 func (c *UniversalCache) Get(key string) *CacheEntry {
+	if c == nil {
+		return nil
+	}
 	c.mu.RLock()
 	entry := c.l1Cache.Get(key)
 	c.mu.RUnlock()
@@ -452,6 +455,9 @@ func (c *UniversalCache) Get(key string) *CacheEntry {
 }
 
 func (c *UniversalCache) Set(key string, data []byte, contentType string, headers map[string]string, ttl time.Duration) {
+	if c == nil {
+		return
+	}
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
@@ -463,6 +469,9 @@ func (c *UniversalCache) Set(key string, data []byte, contentType string, header
 }
 
 func (c *UniversalCache) Delete(key string) bool {
+	if c == nil {
+		return false
+	}
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
@@ -476,6 +485,9 @@ func (c *UniversalCache) Delete(key string) bool {
 }
 
 func (c *UniversalCache) Clear() {
+	if c == nil {
+		return
+	}
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
@@ -486,6 +498,9 @@ func (c *UniversalCache) Clear() {
 }
 
 func (c *UniversalCache) GetStats() CacheStats {
+	if c == nil {
+		return CacheStats{}
+	}
 	c.mu.RLock()
 	defer c.mu.RUnlock()
 
@@ -566,6 +581,9 @@ type CachedItem struct {
 }
 
 func (c *UniversalCache) GetCachedItem(key string) *CachedItem {
+	if c == nil {
+		return nil
+	}
 	if entry := c.Get(key); entry != nil {
 		return &CachedItem{
 			Data:        entry.Data,

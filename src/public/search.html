@@ -8,7 +8,8 @@
     <meta name="color-scheme" content="dark light">
     <title>Docker镜像搜索</title>
     <link rel="icon" href="/favicon.ico">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <style>
         :root {
             --background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
@@ -1330,10 +1331,10 @@
         const SEARCH_CONFIG = {
             defaultPageSize: 10,
             tagPageSize: 100,
-            requestTimeout: 90000,  // 90秒，与后端超时匹配
-            maxRetries: 3,
-            retryDelay: 1000,
-            cacheTTL: 5 * 60 * 1000,
+            requestTimeout: 30000,
+            maxRetries: 2,
+            retryDelay: 500,
+            cacheTTL: 2 * 60 * 1000,
             maxDisplayPages: 100
         };
 
@@ -1348,6 +1349,9 @@
 
         // 搜索请求缓存
         const searchCache = new Map();
+
+        // Toast状态管理
+        let toastTimeoutId = null;
 
         /**
          * 标准化源名称
@@ -1366,13 +1370,13 @@
          */
         function buildSearchParams(params) {
             const searchParams = new URLSearchParams();
-            
+
             if (params.q) searchParams.set('q', params.q);
             if (params.page) searchParams.set('page', params.page);
             if (params.pageSize) searchParams.set('page_size', params.pageSize);
             if (params.multiSource) searchParams.set('multi_source', 'true');
             if (params.merged) searchParams.set('merged', 'true');
-            
+
             return searchParams.toString();
         }
 
@@ -1385,20 +1389,20 @@
         async function performCachedSearch(url, options = {}) {
             const cacheKey = url;
             const cached = searchCache.get(cacheKey);
-            
+
             if (cached && Date.now() - cached.timestamp < SEARCH_CONFIG.cacheTTL) {
                 return cached.data;
             }
 
             const response = await fetch(url, options);
-            
+
             if (!response.ok) {
                 throw new Error(`HTTP ${response.status}: ${response.statusText}`);
             }
-            
+
             const data = await response.json();
             searchCache.set(cacheKey, { data, timestamp: Date.now() });
-            
+
             return data;
         }
 
@@ -1443,7 +1447,7 @@
         function generatePullCommand(fullRepoName, source, tag = '') {
             const normalizedSource = normalizeSourceName(source);
             const repoWithTag = tag ? `${fullRepoName}:${tag}` : fullRepoName;
-            
+
             const sourcePrefixes = {
                 'ghcr': 'ghcr.io',
                 'gcr': 'gcr.io',
@@ -1451,7 +1455,7 @@
                 'k8s': 'registry.k8s.io',
                 'dockerhub': ''
             };
-            
+
             const prefix = sourcePrefixes[normalizedSource] || '';
             return prefix ? `docker pull ${prefix}/${repoWithTag}` : `docker pull ${repoWithTag}`;
         }
@@ -1478,15 +1482,14 @@
             formatTimeAgo(dateString) {
                 if (!dateString) return '未知时间';
                 try {
-                    let date;
-                    date = new Date(dateString);
+                    let date = new Date(dateString);
                     if (isNaN(date.getTime())) {
                         const formats = [
                             { regex: /^(\d{4})-(\d{2})-(\d{2})$/, handler: (m) => new Date(m[1], m[2] - 1, m[3]) },
                             { regex: /^(\d{4})\/(\d{2})\/(\d{2})$/, handler: (m) => new Date(m[1], m[2] - 1, m[3]) },
                             { regex: /^(\d{2})\/(\d{2})\/(\d{4})$/, handler: (m) => new Date(m[3], m[1] - 1, m[2]) }
                         ];
-                        
+
                         for (const format of formats) {
                             const match = dateString.match(format.regex);
                             if (match) {
@@ -1494,12 +1497,12 @@
                                 if (!isNaN(date.getTime())) break;
                             }
                         }
-                        
+
                         if (isNaN(date.getTime())) {
                             return '未知时间';
                         }
                     }
-                    
+
                     const now = new Date();
                     const diffTime = Math.abs(now - date);
                     const diffMinutes = Math.floor(diffTime / (1000 * 60));
@@ -1507,7 +1510,7 @@
                     const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
                     const diffMonths = Math.floor(diffDays / 30);
                     const diffYears = Math.floor(diffDays / 365);
-                    
+
                     if (diffMinutes < 1) return '刚刚';
                     if (diffMinutes < 60) return `${diffMinutes}分钟前`;
                     if (diffHours < 24) return `${diffHours}小时前`;
@@ -1677,8 +1680,13 @@
             const toast = document.getElementById('toast');
             toast.textContent = message;
             toast.style.display = 'block';
-            setTimeout(() => {
+
+            if (toastTimeoutId) {
+                clearTimeout(toastTimeoutId);
+            }
+            toastTimeoutId = setTimeout(() => {
                 toast.style.display = 'none';
+                toastTimeoutId = null;
             }, 3000);
         }
 

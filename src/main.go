@@ -130,6 +130,9 @@ func main() {
 		return
 	}
 
+	// 初始化缓存
+	utils.InitCache()
+
 	// 初始化HTTP客户端
 	utils.InitHTTPClients()
 
