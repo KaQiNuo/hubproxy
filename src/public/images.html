@@ -1,1075 +1,496 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="Docker镜像流式下载工具、即点即下无需等待">
-    <meta name="keywords" content="Docker镜像下载、流式下载、即时下载">
+    <meta name="description" content="Docker镜像流式下载工具">
     <meta name="color-scheme" content="dark light">
-    <title>Docker离线镜像下载</title>
+    <title>离线镜像 · HubProxy</title>
     <link rel="icon" href="/favicon.ico">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
         :root {
-            --background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
-            --foreground: #0f172a;
-            --card: #ffffff;
-            --card-foreground: #0f172a;
-            --primary: #2563eb;
-            --primary-foreground: #f8fafc;
-            --secondary: #f1f5f9;
-            --secondary-foreground: #0f172a;
-            --muted: #f1f5f9;
-            --muted-foreground: #64748b;
-            --accent: #dbeafe;
-            --accent-foreground: #1e40af;
-            --border: #e2e8f0;
-            --input: #ffffff;
-            --ring: #2563eb;
-            --radius: 0.75rem;
-            --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-            --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
-            --success: #10b981;
-            --warning: #f59e0b;
-            --error: #ef4444;
+            --bg-primary: #f1f5f9;
+            --bg-secondary: #e2e8f0;
+            --bg-card: #ffffff;
+            --bg-card-hover: #f8fafc;
+            --bg-input: #ffffff;
+            --border: #cbd5e1;
+            --border-focus: #06b6d4;
+            --text-primary: #0f172a;
+            --text-secondary: #475569;
+            --text-tertiary: #94a3b8;
+            --accent: #0891b2;
+            --accent-dim: #06b6d4;
+            --accent-glow: rgba(8,145,178,0.12);
+            --green: #059669;
+            --amber: #d97706;
+            --red: #dc2626;
+            --radius: 12px;
+            --radius-sm: 8px;
+            --shadow: 0 1px 3px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.06);
+            --shadow-lg: 0 10px 25px rgba(0,0,0,0.1), 0 4px 10px rgba(0,0,0,0.06);
+            --navbar-bg: rgba(241,245,249,0.85);
+            --font-sans: 'Plus Jakarta Sans', system-ui, sans-serif;
+            --font-mono: 'JetBrains Mono', 'Fira Code', monospace;
+            --transition: 200ms cubic-bezier(0.4, 0, 0.2, 1);
         }
-
-        .dark {
-            --background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
-            --foreground: #f8fafc;
-            --card: #1e293b;
-            --card-foreground: #f8fafc;
-            --primary: #3b82f6;
-            --primary-foreground: #f8fafc;
-            --secondary: #1e293b;
-            --secondary-foreground: #f8fafc;
-            --muted: #334155;
-            --muted-foreground: #94a3b8;
-            --accent: #1e40af;
-            --accent-foreground: #dbeafe;
-            --border: #334155;
-            --input: #334155;
-            --ring: #3b82f6;
-            --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3), 0 2px 4px -1px rgba(0, 0, 0, 0.2);
-            --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.4), 0 4px 6px -2px rgba(0, 0, 0, 0.3);
+        body.light {
+            --bg-primary: #f1f5f9;
+            --bg-secondary: #e2e8f0;
+            --bg-card: #ffffff;
+            --bg-card-hover: #f8fafc;
+            --bg-input: #ffffff;
+            --border: #cbd5e1;
+            --text-primary: #0f172a;
+            --text-secondary: #475569;
+            --text-tertiary: #94a3b8;
+            --accent: #0891b2;
+            --accent-glow: rgba(8,145,178,0.12);
+            --green: #059669;
+            --amber: #d97706;
+            --red: #dc2626;
+            --shadow: 0 1px 3px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.06);
+            --shadow-lg: 0 10px 25px rgba(0,0,0,0.1), 0 4px 10px rgba(0,0,0,0.06);
+            --navbar-bg: rgba(255,255,255,0.8);
         }
-
-        @media (prefers-color-scheme: dark) {
-            :root {
-                --background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
-                --foreground: #f8fafc;
-                --card: #1e293b;
-                --card-foreground: #f8fafc;
-                --primary: #3b82f6;
-                --primary-foreground: #f8fafc;
-                --secondary: #1e293b;
-                --secondary-foreground: #f8fafc;
-                --muted: #334155;
-                --muted-foreground: #94a3b8;
-                --accent: #1e40af;
-                --accent-foreground: #dbeafe;
-                --border: #334155;
-                --input: #334155;
-                --ring: #3b82f6;
-                --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3), 0 2px 4px -1px rgba(0, 0, 0, 0.2);
-                --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.4), 0 4px 6px -2px rgba(0, 0, 0, 0.3);
-            }
+        body.dark {
+            --bg-primary: #0a0e17;
+            --bg-secondary: #111827;
+            --bg-card: #1a1f2e;
+            --bg-card-hover: #1f2638;
+            --bg-input: #0d1117;
+            --border: #1e293b;
+            --text-primary: #e2e8f0;
+            --text-secondary: #94a3b8;
+            --text-tertiary: #64748b;
+            --accent: #06b6d4;
+            --accent-glow: rgba(6,182,212,0.15);
+            --green: #10b981;
+            --amber: #f59e0b;
+            --red: #ef4444;
+            --shadow: 0 1px 3px rgba(0,0,0,0.3), 0 1px 2px rgba(0,0,0,0.2);
+            --shadow-lg: 0 10px 25px rgba(0,0,0,0.4), 0 4px 10px rgba(0,0,0,0.3);
+            --navbar-bg: rgba(10,14,23,0.85);
         }
-
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-        }
-
+        html { scroll-behavior: smooth; }
         body {
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
-            background: var(--background);
-            color: var(--foreground);
+            font-family: var(--font-sans);
+            background: var(--bg-primary);
+            color: var(--text-primary);
             line-height: 1.6;
             min-height: 100vh;
-            display: flex;
-            flex-direction: column;
-            transition: all 0.3s ease;
+            display: flex; flex-direction: column;
+            background-image: radial-gradient(ellipse at 20% 50%, rgba(6,182,212,0.03) 0%, transparent 50%),
+                              radial-gradient(ellipse at 80% 20%, rgba(6,182,212,0.02) 0%, transparent 50%);
         }
+        ::selection { background: var(--accent); color: #fff; }
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: var(--bg-secondary); }
+        ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: var(--text-tertiary); }
 
-        /* 导航栏 */
         .navbar {
-            position: sticky;
-            top: 0;
-            z-index: 50;
-            width: 100%;
+            position: sticky; top: 0; z-index: 100;
+            background: var(--navbar-bg); backdrop-filter: blur(20px) saturate(1.5);
             border-bottom: 1px solid var(--border);
-            background: rgba(255, 255, 255, 0.95);
-            backdrop-filter: blur(12px);
-            transition: all 0.3s ease;
-            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-            padding: 0;
         }
-
-        .dark .navbar {
-            background: rgba(15, 23, 42, 0.95);
-            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+        .navbar-inner {
+            max-width: 1200px; margin: 0 auto;
+            display: flex; align-items: center; justify-content: space-between;
+            height: 56px; padding: 0 20px;
         }
-
-        .navbar-container {
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 0 1rem;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            height: 4rem;
-        }
-
         .logo {
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-            text-decoration: none;
-            color: var(--foreground);
-            font-weight: 600;
-            font-size: 1.125rem;
+            display: flex; align-items: center; gap: 10px;
+            text-decoration: none; color: var(--text-primary);
+            font-weight: 700; font-size: 1.1rem;
+            font-family: var(--font-mono);
         }
-
         .logo-icon {
-            width: 2rem;
-            height: 2rem;
-            border-radius: 0.5rem;
-            background: linear-gradient(135deg, var(--primary), #3b82f6);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: white;
+            width: 32px; height: 32px; border-radius: 8px;
+            background: linear-gradient(135deg, var(--accent), #3b82f6);
+            display: flex; align-items: center; justify-content: center;
+            color: #fff; font-size: 1rem;
+            box-shadow: 0 0 20px var(--accent-glow);
+            transition: transform var(--transition);
         }
-
-        .nav-links {
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-        }
-
+        .logo:hover .logo-icon { transform: scale(1.08); }
+        .nav-links { display: flex; align-items: center; gap: 4px; }
         .nav-link {
-            padding: 0.5rem 1rem;
-            border-radius: var(--radius);
-            text-decoration: none;
-            color: var(--muted-foreground);
-            transition: all 0.2s;
-            font-weight: 500;
+            padding: 6px 14px; border-radius: var(--radius-sm);
+            text-decoration: none; color: var(--text-secondary);
+            font-size: 0.875rem; font-weight: 500; white-space: nowrap;
+            transition: all var(--transition);
         }
+        .nav-link:hover { color: var(--text-primary); background: var(--bg-card); }
+        .nav-link.active { color: var(--accent); background: var(--accent-glow); }
+        .theme-btn {
+            background: none; border: none; color: var(--text-secondary);
+            font-size: 1.1rem; cursor: pointer; padding: 6px; border-radius: var(--radius-sm);
+            transition: all var(--transition);
+        }
+        .theme-btn:hover { color: var(--text-primary); background: var(--bg-card); }
+        .mobile-toggle { display: none; background: none; border: none; color: var(--text-primary); font-size: 1.5rem; cursor: pointer; padding: 6px; border-radius: var(--radius-sm); }
 
-        .nav-link:hover,
-        .nav-link.active {
-            color: var(--foreground);
-            background-color: var(--muted);
-        }
+        main { flex: 1; padding: 40px 20px; }
+        .container { max-width: 800px; margin: 0 auto; }
 
-        .theme-toggle {
-            padding: 0.5rem;
-            border: none;
-            border-radius: var(--radius);
-            background-color: transparent;
-            color: var(--muted-foreground);
-            cursor: pointer;
-            transition: all 0.2s;
+        .hero { text-align: center; margin-bottom: 40px; }
+        .hero h1 {
+            font-family: var(--font-mono);
+            font-size: 2rem; font-weight: 700;
+            background: linear-gradient(135deg, var(--accent), #3b82f6);
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+            background-clip: text; letter-spacing: -0.02em;
         }
-
-        .theme-toggle:hover {
-            background-color: var(--muted);
-            color: var(--foreground);
-        }
-
-        /* 主要内容 */
-        .main {
-            flex: 1;
-            padding: 2rem 1rem;
-        }
-
-        .container {
-            max-width: 800px;
-            margin: 0 auto;
-        }
-
-        .header {
-            text-align: center;
-            margin-bottom: 3rem;
-        }
-
-        .title {
-            font-size: 2.5rem;
-            font-weight: 700;
-            margin-bottom: 1rem;
-            background: linear-gradient(135deg, var(--primary), #3b82f6);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-        }
-
-        .subtitle {
-            font-size: 1.125rem;
-            color: var(--muted-foreground);
-            margin-bottom: 2rem;
-        }
+        .hero p { color: var(--text-secondary); font-size: 0.9rem; margin-top: 8px; }
 
         .features {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-            gap: 1rem;
-            margin-top: 2rem;
+            display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-top: 24px;
         }
-
         .feature {
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-            padding: 1rem;
-            background-color: var(--card);
-            border: 1px solid var(--border);
-            border-radius: var(--radius);
-            font-weight: 500;
+            display: flex; align-items: center; justify-content: center; gap: 6px;
+            padding: 10px; background: var(--bg-card); border: 1px solid var(--border);
+            border-radius: var(--radius-sm); font-size: 0.82rem; font-weight: 500;
         }
+        @media (max-width: 640px) { .features { grid-template-columns: repeat(2, 1fr); } }
 
-        .feature-icon {
-            font-size: 1.25rem;
-        }
-
-        /* 下载区域 */
-        .download-section,
-        .batch-section {
-            background: var(--card);
-            border: 1px solid var(--border);
-            border-radius: var(--radius);
-            padding: 2rem;
-            margin-bottom: 2rem;
+        .section {
+            background: var(--bg-card); border: 1px solid var(--border);
+            border-radius: var(--radius); padding: 24px; margin-bottom: 20px;
             box-shadow: var(--shadow);
-            transition: all 0.3s ease;
-            position: relative;
-            overflow: hidden;
         }
-
-        .download-section:hover,
-        .batch-section:hover {
-            box-shadow: var(--shadow-lg);
-            transform: translateY(-2px);
-        }
-
-        .download-section::before,
-        .batch-section::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 4px;
-            background: linear-gradient(90deg, var(--primary), #3b82f6);
-        }
-
         .section-title {
-            font-size: 1.75rem;
-            font-weight: 600;
-            margin-bottom: 1.5rem;
-            color: var(--foreground);
-            display: flex;
-            align-items: center;
-            gap: 0.75rem;
+            font-family: var(--font-mono); font-size: 1rem; font-weight: 600;
+            margin-bottom: 20px; display: flex; align-items: center; gap: 8px;
         }
+        .section-title .count { color: var(--text-tertiary); font-size: 0.82rem; margin-left: auto; }
 
-        .form-group {
-            margin-bottom: 1.5rem;
-        }
-
+        .form-group { margin-bottom: 16px; }
         .form-label {
-            display: block;
-            font-weight: 500;
-            margin-bottom: 0.75rem;
-            color: var(--foreground);
-            font-size: 1rem;
+            display: block; font-size: 0.85rem; font-weight: 500;
+            margin-bottom: 6px; color: var(--text-secondary);
         }
-
-        .form-input,
-        .form-select,
-        .textarea {
-            width: 100%;
-            padding: 0.875rem 1.25rem;
-            border: 2px solid var(--border);
-            border-radius: var(--radius);
-            background: var(--input);
-            color: var(--foreground);
-            font-size: 1rem;
-            transition: all 0.3s ease;
-            font-family: 'Inter', sans-serif;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+        .form-input, .form-textarea {
+            width: 100%; padding: 10px 14px;
+            background: var(--bg-input); border: 1px solid var(--border);
+            border-radius: var(--radius-sm); color: var(--text-primary);
+            font-family: var(--font-mono); font-size: 0.9rem;
+            transition: all var(--transition);
         }
-
-        .form-input:focus,
-        .form-select:focus,
-        .textarea:focus {
-            outline: none;
-            border-color: var(--ring);
-            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
-            transform: translateY(-2px);
+        .form-input:focus, .form-textarea:focus {
+            outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-glow);
         }
-
-        .textarea {
-            min-height: 150px;
-            resize: vertical;
-            font-family: 'JetBrains Mono', monospace;
-        }
-
-        .form-row {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 1.5rem;
-        }
+        .form-input::placeholder, .form-textarea::placeholder { color: var(--text-tertiary); }
+        .form-textarea { min-height: 120px; resize: vertical; }
+        .hint { font-size: 0.78rem; color: var(--text-tertiary); margin-top: 4px; }
 
         .btn {
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            gap: 0.75rem;
-            padding: 0.875rem 1.75rem;
-            border: none;
-            border-radius: var(--radius);
-            font-weight: 600;
-            font-size: 1rem;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            text-decoration: none;
-            position: relative;
-            overflow: hidden;
-            box-shadow: 0 4px 6px rgba(37, 99, 235, 0.3);
-            font-family: 'Inter', sans-serif;
+            padding: 10px 24px; border: none; border-radius: var(--radius-sm);
+            background: var(--accent); color: #fff;
+            font-family: var(--font-sans); font-weight: 600; font-size: 0.85rem;
+            cursor: pointer; width: 100%;
+            transition: all var(--transition);
         }
+        .btn:hover:not(:disabled) { background: var(--accent-dim); box-shadow: 0 0 20px var(--accent-glow); }
+        .btn:active:not(:disabled) { transform: scale(0.97); }
+        .btn:disabled { opacity: 0.4; cursor: not-allowed; }
 
-        .btn-primary {
-            background: linear-gradient(135deg, var(--primary), #1d4ed8);
-            color: var(--primary-foreground);
+        .switch-row {
+            display: flex; align-items: center; gap: 10px; margin-bottom: 16px;
         }
-
-        .btn-primary:hover:not(:disabled) {
-            transform: translateY(-3px);
-            box-shadow: 0 8px 15px rgba(37, 99, 235, 0.4);
+        .switch {
+            position: relative; width: 42px; height: 22px; flex-shrink: 0;
         }
-
-        .btn-primary:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-            transform: none;
-            box-shadow: none;
+        .switch input { opacity: 0; width: 0; height: 0; }
+        .switch .slider {
+            position: absolute; inset: 0; cursor: pointer;
+            background: var(--bg-secondary); border: 1px solid var(--border);
+            border-radius: 22px; transition: all var(--transition);
         }
-
-        .btn-full {
-            width: 100%;
+        .switch .slider::before {
+            content: ''; position: absolute; left: 2px; bottom: 2px;
+            width: 16px; height: 16px; background: #fff; border-radius: 50%;
+            transition: transform var(--transition);
         }
-
-        .btn::after {
-            content: '';
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            width: 0;
-            height: 0;
-            background: rgba(255, 255, 255, 0.2);
-            border-radius: 50%;
-            transform: translate(-50%, -50%);
-            transition: width 0.6s, height 0.6s;
-        }
-
-        .btn:hover::after {
-            width: 300px;
-            height: 300px;
-        }
+        .switch input:checked + .slider { background: var(--accent); border-color: var(--accent); }
+        .switch input:checked + .slider::before { transform: translateX(20px); }
+        .switch-label { font-size: 0.85rem; color: var(--text-secondary); cursor: pointer; }
 
         .status {
-            padding: 1rem;
-            border-radius: var(--radius);
-            margin-bottom: 1rem;
-            font-weight: 500;
+            display: none; padding: 10px 14px; border-radius: var(--radius-sm);
+            margin-bottom: 12px; font-size: 0.85rem; font-weight: 500;
+            border: 1px solid transparent;
         }
+        .status.visible { display: block; animation: fadeSlideUp 0.2s ease; }
+        .status-success { background: rgba(16,185,129,0.1); border-color: rgba(16,185,129,0.2); color: var(--green); }
+        .status-error { background: rgba(239,68,68,0.1); border-color: rgba(239,68,68,0.2); color: var(--red); }
 
-        .status-success {
-            background-color: rgba(16, 185, 129, 0.1);
-            color: var(--success);
-            border: 1px solid rgba(16, 185, 129, 0.2);
+        .toast {
+            position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(100px);
+            background: var(--bg-card); border: 1px solid var(--border);
+            color: var(--text-primary); padding: 10px 20px; border-radius: var(--radius-sm);
+            font-size: 0.85rem; box-shadow: var(--shadow-lg);
+            opacity: 0; transition: all 0.3s ease; z-index: 300;
+            pointer-events: none;
         }
+        .toast.visible { opacity: 1; transform: translateX(-50%) translateY(0); }
 
-        .status-error {
-            background-color: rgba(239, 68, 68, 0.1);
-            color: var(--error);
-            border: 1px solid rgba(239, 68, 68, 0.2);
-        }
-
-        .status-warning {
-            background-color: rgba(245, 158, 11, 0.1);
-            color: var(--warning);
-            border: 1px solid rgba(245, 158, 11, 0.2);
-        }
-
-        .help-text {
-            font-size: 0.875rem;
-            color: var(--muted-foreground);
-            margin-top: 0.25rem;
+        @keyframes fadeSlideUp {
+            from { opacity: 0; transform: translateY(12px); }
+            to { opacity: 1; transform: translateY(0); }
         }
 
         @media (max-width: 768px) {
-            .navbar-container {
-                padding: 0 0.5rem;
-            }
-            
+            main { padding: 24px 16px; }
+            .hero h1 { font-size: 1.5rem; }
             .nav-links {
-                gap: 0.25rem;
+                display: none; flex-direction: column; position: absolute;
+                top: 56px; left: 0; right: 0;
+                background: rgba(10,14,23,0.98); backdrop-filter: blur(20px);
+                border-bottom: 1px solid var(--border); padding: 12px;
+                animation: fadeSlideUp 0.2s ease;
             }
-            
-            .nav-link {
-                padding: 0.5rem;
-                font-size: 0.875rem;
-            }
-            
-            .main {
-                padding: 1rem 0.5rem;
-            }
-            
-            .download-section,
-            .batch-section {
-                padding: 1.5rem;
-            }
-            
-            .form-row {
-                grid-template-columns: 1fr;
-            }
-            
-            .features {
-                grid-template-columns: 1fr;
-            }
-            
-            .title {
-                font-size: 2rem;
-            }
-        }
-
-        .loading {
-            display: inline-block;
-            width: 1rem;
-            height: 1rem;
-            border: 2px solid transparent;
-            border-top: 2px solid currentColor;
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
-        }
-
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-
-        /* 切换开关样式 */
-        .switch-container {
-            display: flex;
-            align-items: center;
-            gap: 0.75rem;
-            margin-bottom: 1.5rem;
-        }
-
-        .switch {
-            position: relative;
-            display: inline-block;
-            width: 50px;
-            height: 24px;
-        }
-
-        .switch input {
-            opacity: 0;
-            width: 0;
-            height: 0;
-        }
-
-        .slider {
-            position: absolute;
-            cursor: pointer;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background-color: var(--muted);
-            transition: 0.2s;
-            border-radius: 24px;
-            border: 1px solid var(--border);
-        }
-
-        .slider:before {
-            position: absolute;
-            content: "";
-            height: 18px;
-            width: 18px;
-            left: 2px;
-            bottom: 2px;
-            background-color: white;
-            transition: 0.2s;
-            border-radius: 50%;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-        }
-
-        input:checked + .slider {
-            background-color: var(--primary);
-        }
-
-        input:checked + .slider:before {
-            transform: translateX(26px);
-        }
-
-        .switch-label {
-            font-weight: 500;
-            color: var(--foreground);
-            cursor: pointer;
-        }
-
-        .hidden {
-            display: none;
-        }
-
-        .mobile-menu-toggle {
-            display: none;
-        }
-
-        @media (max-width: 768px) {
-            .navbar-container {
-                padding: 0 0.5rem;
-            }
-            
-            .nav-links {
-                position: fixed;
-                top: 70px;
-                left: 0;
-                right: 0;
-                background: var(--background);
-                border: 1px solid var(--border);
-                border-top: none;
-                border-radius: 0 0 12px 12px;
-                padding: 1rem;
-                flex-direction: column;
-                gap: 0.5rem;
-                z-index: 1000;
-                transform: translateY(-100vh);
-                transition: transform 0.3s ease;
-            }
-            
-            .nav-links.active {
-                transform: translateY(0);
-            }
-            
-            .mobile-menu-toggle {
-                display: block !important;
-                background: none;
-                border: none;
-                color: var(--foreground);
-                font-size: 1.5rem;
-                cursor: pointer;
-                padding: 0.5rem;
-                border-radius: var(--radius);
-                transition: background-color 0.2s;
-            }
-            
-            .mobile-menu-toggle:hover {
-                background-color: var(--muted);
-            }
-            
-            .navbar-container {
-                justify-content: space-between !important;
-            }
-            
-            .main {
-                padding: 1rem 0.5rem;
-            }
-            
-            .download-section,
-            .batch-section {
-                padding: 1.5rem;
-            }
-            
-            .form-row {
-                grid-template-columns: 1fr;
-            }
-            
-            .features {
-                grid-template-columns: 1fr;
-            }
-            
-            .title {
-                font-size: 2rem;
-            }
+            .nav-links.open { display: flex; }
+            .mobile-toggle { display: block; }
         }
     </style>
 </head>
 <body>
     <nav class="navbar">
-        <div class="navbar-container">
-            <a href="/" class="logo">
-                <div class="logo-icon">
-                    ⚡
-                </div>
-                加速服务
-            </a>
-            
-            <button class="mobile-menu-toggle" id="mobileMenuToggle">
-                ☰
-            </button>
-            
+        <div class="navbar-inner">
+            <a href="/" class="logo"><div class="logo-icon">⚡</div>HubProxy</a>
+            <button class="mobile-toggle" id="mobileToggle" aria-label="Menu">☰</button>
             <div class="nav-links" id="navLinks">
-                <a href="/" class="nav-link">🚀 GitHub加速</a>
-                <a href="/images.html" class="nav-link active">🐳 离线镜像下载</a>
-                <a href="/search.html" class="nav-link">🔍 镜像搜索</a>
-                <a href="/test_api.html" class="nav-link">🧪 API测试</a>
-                
-                <button class="theme-toggle" id="themeToggle">
-                    🌙
-                </button>
+                <a href="/" class="nav-link">🚀 加速</a>
+                <a href="/images.html" class="nav-link active">🐳 离线镜像</a>
+                <a href="/search.html" class="nav-link">🔍 搜索</a>
+                <a href="/test_api.html" class="nav-link">🧪 API</a>
+                <button class="theme-btn" id="themeToggle" aria-label="Theme">🌙</button>
             </div>
         </div>
     </nav>
 
-    <main class="main">
+    <main>
         <div class="container">
-            <div class="header">
-                <h1 class="title">Docker离线镜像下载</h1>
-                <p class="subtitle">即点即下，无需等待打包，完全符合docker load加载标准</p>
-                
+            <div class="hero">
+                <h1>docker image pull</h1>
+                <p>即点即下，流式传输，符合 docker load 标准</p>
                 <div class="features">
-                    <div class="feature">
-                        <span class="feature-icon">⚡</span>
-                        <span>即时下载</span>
-                    </div>
-                    <div class="feature">
-                        <span class="feature-icon">🔄</span>
-                        <span>流式传输</span>
-                    </div>
-                    <div class="feature">
-                        <span class="feature-icon">💾</span>
-                        <span>无需等待</span>
-                    </div>
-                    <div class="feature">
-                        <span class="feature-icon">🏗️</span>
-                        <span>多架构支持</span>
-                    </div>
+                    <div class="feature">⚡ 即时下载</div>
+                    <div class="feature">🔄 流式传输</div>
+                    <div class="feature">💾 无需等待</div>
+                    <div class="feature">🏗️ 多架构</div>
                 </div>
             </div>
 
-            <div class="download-section">
-                <h2 class="section-title">单镜像下载</h2>
-                
-                <div id="singleStatus"></div>
-                
+            <div class="section">
+                <div class="section-title">📦 单镜像下载</div>
+                <div id="singleStatus" class="status"></div>
                 <form id="singleForm">
                     <div class="form-group">
                         <label class="form-label" for="imageInput">镜像名称</label>
-                        <input 
-                            type="text" 
-                            id="imageInput" 
-                            class="form-input" 
-                            placeholder="例如: nginx:alpine"
-                        >
+                        <input class="form-input" id="imageInput" type="text" placeholder="例如: nginx:alpine" autocomplete="off">
                     </div>
-                    
                     <div class="form-group">
                         <label class="form-label" for="platformInput">目标架构（可选）</label>
-                        <input 
-                            type="text" 
-                            id="platformInput" 
-                            class="form-input" 
-                            placeholder="linux/amd64"
-                            value="linux/amd64"
-                        >
-                        <div class="help-text">
-                            常用平台: linux/amd64, linux/arm64, linux/arm/v7
-                        </div>
+                        <input class="form-input" id="platformInput" type="text" placeholder="linux/amd64" value="linux/amd64">
+                        <div class="hint">常用: linux/amd64, linux/arm64, linux/arm/v7</div>
                     </div>
-                    
-                    <div class="switch-container">
+                    <div class="switch-row">
                         <label class="switch">
                             <input type="checkbox" id="compressedToggle" checked>
                             <span class="slider"></span>
                         </label>
-                        <label for="compressedToggle" class="switch-label">使用压缩层（减小包体积）</label>
+                        <span class="switch-label">使用压缩层（减小体积）</span>
                     </div>
-                    
-                    <button type="submit" class="btn btn-primary btn-full" id="downloadBtn">
-                        <span id="downloadText">立即下载</span>
-                        <span id="downloadLoading" class="loading hidden"></span>
-                    </button>
+                    <button class="btn" id="downloadBtn" type="submit">立即下载</button>
                 </form>
             </div>
 
-            <div class="batch-section">
-                <h2 class="section-title">多个镜像批量下载</h2>
-                
-                <div id="batchStatus"></div>
-                
+            <div class="section">
+                <div class="section-title">📚 批量镜像下载</div>
+                <div id="batchStatus" class="status"></div>
                 <form id="batchForm">
                     <div class="form-group">
-                        <label class="form-label" for="imagesTextarea">镜像列表，每行一个，会将多个镜像自动合并，符合官方标准，兼容docker load</label>
-                        <textarea 
-                            id="imagesTextarea" 
-                            class="textarea" 
-                            placeholder="alpine&#10;redis:alpine&#10;stilleshan/frpc:0.62.1"
-                        ></textarea>
+                        <label class="form-label" for="imagesTextarea">镜像列表，每行一个</label>
+                        <textarea class="form-textarea" id="imagesTextarea" placeholder="alpine&#10;redis:alpine&#10;stilleshan/frpc:0.62.1"></textarea>
                     </div>
-                    
                     <div class="form-group">
                         <label class="form-label" for="batchPlatformInput">目标架构（可选）</label>
-                        <input 
-                            type="text" 
-                            id="batchPlatformInput" 
-                            class="form-input" 
-                            placeholder="linux/amd64"
-                            value="linux/amd64"
-                        >
-                        <div class="help-text">
-                            所有镜像将使用相同的目标架构
-                        </div>
+                        <input class="form-input" id="batchPlatformInput" type="text" placeholder="linux/amd64" value="linux/amd64">
+                        <div class="hint">所有镜像使用相同架构</div>
                     </div>
-                    
-                    <div class="switch-container">
+                    <div class="switch-row">
                         <label class="switch">
                             <input type="checkbox" id="batchCompressedToggle" checked>
                             <span class="slider"></span>
                         </label>
-                        <label for="batchCompressedToggle" class="switch-label">使用压缩层（减小包体积）</label>
+                        <span class="switch-label">使用压缩层（减小体积）</span>
                     </div>
-                    
-                    <button type="submit" class="btn btn-primary btn-full" id="batchDownloadBtn">
-                        <span id="batchDownloadText">开始下载</span>
-                        <span id="batchDownloadLoading" class="loading hidden"></span>
-                    </button>
+                    <button class="btn" id="batchDownloadBtn" type="submit">开始批量下载</button>
                 </form>
             </div>
         </div>
     </main>
 
+    <div class="toast" id="toast"></div>
+
     <script>
-        // 请求控制器
-        let pendingRequestController = null;
-
-        // 预检缓存，避免重复预检同一镜像
+        let pendingController = null;
         const preflightCache = new Map();
-        const CACHE_TTL = 30000; // 30秒缓存
+        const CACHE_TTL = 30000;
+        let toastTimer;
 
-        function initTheme() {
-            const themeToggle = document.getElementById('themeToggle');
-            const html = document.documentElement;
-
-            const savedTheme = localStorage.getItem('theme');
-            const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-
-            if (savedTheme === 'dark' || (!savedTheme && prefersDark)) {
-                html.classList.add('dark');
-                themeToggle.textContent = '☀️';
-            }
-
-            themeToggle.addEventListener('click', () => {
-                html.classList.toggle('dark');
-                const isDark = html.classList.contains('dark');
-                themeToggle.textContent = isDark ? '☀️' : '🌙';
-                localStorage.setItem('theme', isDark ? 'dark' : 'light');
-            });
+        function showToast(msg) {
+            clearTimeout(toastTimer);
+            const t = document.getElementById('toast');
+            t.textContent = msg; t.classList.add('visible');
+            toastTimer = setTimeout(() => t.classList.remove('visible'), 2500);
         }
 
-        function showStatus(elementId, message, type = 'success') {
-            const element = document.getElementById(elementId);
-            element.className = `status status-${type}`;
-            element.textContent = message;
-            element.classList.remove('hidden');
+        function setStatus(id, msg, type) {
+            const el = document.getElementById(id);
+            el.className = 'status visible status-' + type;
+            el.textContent = msg;
         }
-
-        function hideStatus(elementId) {
-            document.getElementById(elementId).classList.add('hidden');
+        function hideStatus(id) {
+            document.getElementById(id).className = 'status';
         }
-
-        function setButtonLoading(btnId, textId, loadingId, loading) {
+        function setLoading(btnId, loading) {
             const btn = document.getElementById(btnId);
-            const text = document.getElementById(textId);
-            const loadingSpinner = document.getElementById(loadingId);
-
             btn.disabled = loading;
-            if (loading) {
-                text.classList.add('hidden');
-                loadingSpinner.classList.remove('hidden');
-            } else {
-                text.classList.remove('hidden');
-                loadingSpinner.classList.add('hidden');
-            }
+            btn.textContent = loading ? '处理中…' : btn.dataset.orig;
         }
 
-        function cancelPendingRequest() {
-            if (pendingRequestController) {
-                pendingRequestController.abort();
-                pendingRequestController = null;
-            }
+        document.getElementById('downloadBtn').dataset.orig = '立即下载';
+        document.getElementById('batchDownloadBtn').dataset.orig = '开始批量下载';
+
+        function buildUrl(image, platform, compressed, mode) {
+            const enc = image.replace(/\//g, '_');
+            const p = new URLSearchParams();
+            if (platform) p.set('platform', platform);
+            p.set('compressed', compressed);
+            if (mode) p.set('mode', mode);
+            return '/api/image/download/' + enc + '?' + p.toString();
         }
 
-        function buildDownloadUrl(imageName, platform = '', useCompressed = true, mode = '') {
-            const encodedImage = imageName.replace(/\//g, '_');
-            let url = `/api/image/download/${encodedImage}`;
-
-            const params = new URLSearchParams();
-            if (platform && platform.trim()) {
-                params.append('platform', platform.trim());
-            }
-            params.append('compressed', useCompressed.toString());
-            if (mode) {
-                params.append('mode', mode);
-            }
-
-            if (params.toString()) {
-                url += '?' + params.toString();
-            }
-
-            return url;
-        }
-
-        function buildInfoUrl(imageName) {
-            const encodedImage = imageName.replace(/\//g, '_');
-            return `/api/image/info/${encodedImage}`;
-        }
-
-        async function preflightImageDownload(imageName) {
-            const cached = preflightCache.get(imageName);
-            if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
-                return cached.result;
-            }
-
-            cancelPendingRequest();
-            pendingRequestController = new AbortController();
-            const timeoutId = setTimeout(() => pendingRequestController.abort(), 8000);
-
+        async function preflight(image) {
+            const cached = preflightCache.get(image);
+            if (cached && Date.now() - cached.t < CACHE_TTL) return cached.r;
+            if (pendingController) pendingController.abort();
+            pendingController = new AbortController();
+            const tid = setTimeout(() => pendingController.abort(), 8000);
             try {
-                const response = await fetch(buildInfoUrl(imageName), {
-                    method: 'GET',
-                    headers: {
-                        'Accept': 'application/json'
-                    },
-                    cache: 'no-store',
-                    signal: pendingRequestController.signal
-                });
-
-                clearTimeout(timeoutId);
-                pendingRequestController = null;
-
-                const contentType = response.headers.get('Content-Type') || '';
-                let payload = null;
-                if (contentType.includes('application/json')) {
-                    payload = await response.json();
-                }
-
-                if (!response.ok) {
-                    const result = { ok: false, error: (payload && payload.error) ? payload.error : '镜像预检失败' };
-                    preflightCache.set(imageName, { result, timestamp: Date.now() });
-                    return result;
-                }
-
-                if (payload && payload.success === false) {
-                    const result = { ok: false, error: payload.error || '镜像预检失败' };
-                    preflightCache.set(imageName, { result, timestamp: Date.now() });
-                    return result;
-                }
-
-                const result = { ok: true };
-                preflightCache.set(imageName, { result, timestamp: Date.now() });
+                const r = await fetch('/api/image/info/' + image.replace(/\//g, '_'), { signal: pendingController.signal });
+                clearTimeout(tid); pendingController = null;
+                const ok = r.ok;
+                const result = { ok };
+                preflightCache.set(image, { r: result, t: Date.now() });
                 return result;
-            } catch (error) {
-                clearTimeout(timeoutId);
-                pendingRequestController = null;
-                if (error.name === 'AbortError') {
-                    return { ok: false, error: '预检超时，请稍后重试' };
-                }
-                return { ok: false, error: '网络错误: ' + error.message };
+            } catch (e) {
+                clearTimeout(tid); pendingController = null;
+                const result = { ok: false, error: e.name === 'AbortError' ? '超时' : e.message };
+                preflightCache.set(image, { r: result, t: Date.now() });
+                return result;
             }
-        }
-
-        async function preflightImages(images) {
-            const uniqueImages = Array.from(new Set(images));
-
-            for (const imageName of uniqueImages) {
-                const result = await preflightImageDownload(imageName);
-                if (!result.ok) {
-                    return { ok: false, error: result.error || '预检失败' };
-                }
-            }
-            return { ok: true };
         }
 
         document.getElementById('singleForm').addEventListener('submit', async function(e) {
             e.preventDefault();
-
-            const imageName = document.getElementById('imageInput').value.trim();
-            if (!imageName) {
-                showStatus('singleStatus', '请输入镜像名称', 'error');
-                return;
-            }
-
+            const image = document.getElementById('imageInput').value.trim();
+            if (!image) { showToast('请输入镜像名称'); return; }
             const platform = document.getElementById('platformInput').value.trim();
-            const useCompressed = document.getElementById('compressedToggle').checked;
-
+            const compressed = document.getElementById('compressedToggle').checked;
             hideStatus('singleStatus');
-            setButtonLoading('downloadBtn', 'downloadText', 'downloadLoading', true);
-
-            showStatus('singleStatus', '正在准备下载...', 'success');
-            const preflightResult = await preflightImages([imageName]);
-            if (!preflightResult.ok) {
-                showStatus('singleStatus', preflightResult.error, 'error');
-                setButtonLoading('downloadBtn', 'downloadText', 'downloadLoading', false);
-                return;
-            }
-
-            cancelPendingRequest();
-            pendingRequestController = new AbortController();
-
-            const prepareUrl = buildDownloadUrl(imageName, platform, useCompressed, 'prepare');
+            setLoading('downloadBtn', true);
+            setStatus('singleStatus', '预检中…', 'success');
+            const pf = await preflight(image);
+            if (!pf.ok) { setStatus('singleStatus', pf.error || '预检失败', 'error'); setLoading('downloadBtn', false); return; }
+            if (pendingController) pendingController.abort();
+            pendingController = new AbortController();
             try {
-                const response = await fetch(prepareUrl, {
-                    method: 'GET',
-                    headers: {
-                        'Accept': 'application/json'
-                    },
-                    cache: 'no-store',
-                    signal: pendingRequestController.signal
-                });
-
-                pendingRequestController = null;
-
-                if (response.ok) {
-                    const data = await response.json();
-                    if (!data || !data.download_url) {
-                        showStatus('singleStatus', '下载地址生成失败', 'error');
-                        return;
-                    }
-
-                    const link = document.createElement('a');
-                    link.href = data.download_url;
-                    link.download = '';
-                    link.style.display = 'none';
-                    document.body.appendChild(link);
-                    link.click();
-                    document.body.removeChild(link);
-
-                    const platformText = platform ? ` (${platform})` : '';
-                    showStatus('singleStatus', `开始下载 ${imageName}${platformText}`, 'success');
+                const r = await fetch(buildUrl(image, platform, compressed, 'prepare'), { signal: pendingController.signal });
+                pendingController = null;
+                if (r.ok) {
+                    const data = await r.json();
+                    if (data && data.download_url) {
+                        const a = document.createElement('a');
+                        a.href = data.download_url; a.style.display = 'none';
+                        document.body.appendChild(a); a.click(); document.body.removeChild(a);
+                        setStatus('singleStatus', '开始下载 ' + image, 'success');
+                    } else setStatus('singleStatus', '下载地址生成失败', 'error');
                 } else {
-                    const error = await response.json();
-                    showStatus('singleStatus', error.error || '下载失败', 'error');
+                    const err = await r.json();
+                    setStatus('singleStatus', err.error || '下载失败', 'error');
                 }
-            } catch (error) {
-                if (error.name !== 'AbortError') {
-                    showStatus('singleStatus', '网络错误: ' + error.message, 'error');
-                }
-            } finally {
-                setButtonLoading('downloadBtn', 'downloadText', 'downloadLoading', false);
-            }
+            } catch (e) {
+                if (e.name !== 'AbortError') setStatus('singleStatus', '网络错误: ' + e.message, 'error');
+            } finally { setLoading('downloadBtn', false); }
         });
 
         document.getElementById('batchForm').addEventListener('submit', async function(e) {
             e.preventDefault();
-
-            const imagesText = document.getElementById('imagesTextarea').value.trim();
-            if (!imagesText) {
-                showStatus('batchStatus', '请输入镜像列表', 'error');
-                return;
-            }
-
-            const images = imagesText.split('\n')
-                .map(line => line.trim())
-                .filter(line => line && !line.startsWith('#'));
-
-            if (images.length === 0) {
-                showStatus('batchStatus', '镜像列表为空', 'error');
-                return;
-            }
-
+            const text = document.getElementById('imagesTextarea').value.trim();
+            if (!text) { showToast('请输入镜像列表'); return; }
+            const images = text.split('\n').map(l => l.trim()).filter(l => l && !l.startsWith('#'));
+            if (!images.length) { showToast('镜像列表为空'); return; }
             const platform = document.getElementById('batchPlatformInput').value.trim();
-            const useCompressed = document.getElementById('batchCompressedToggle').checked;
-
-            const options = {
-                images: images,
-                useCompressedLayers: useCompressed
-            };
-
-            if (platform) {
-                options.platform = platform;
-            }
-
+            const compressed = document.getElementById('batchCompressedToggle').checked;
             hideStatus('batchStatus');
-            setButtonLoading('batchDownloadBtn', 'batchDownloadText', 'batchDownloadLoading', true);
-            showStatus('batchStatus', '正在准备下载...', 'success');
-            const preflightResult = await preflightImages(images);
-            if (!preflightResult.ok) {
-                showStatus('batchStatus', preflightResult.error, 'error');
-                setButtonLoading('batchDownloadBtn', 'batchDownloadText', 'batchDownloadLoading', false);
-                return;
+            setLoading('batchDownloadBtn', true);
+            setStatus('batchStatus', '预检中…', 'success');
+            for (const img of images) {
+                const pf = await preflight(img);
+                if (!pf.ok) { setStatus('batchStatus', img + ': ' + (pf.error || '预检失败'), 'error'); setLoading('batchDownloadBtn', false); return; }
             }
-
-            cancelPendingRequest();
-            pendingRequestController = new AbortController();
-
+            if (pendingController) pendingController.abort();
+            pendingController = new AbortController();
             try {
-                const response = await fetch('/api/image/batch?mode=prepare', {
+                const r = await fetch('/api/image/batch?mode=prepare', {
                     method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify(options),
-                    signal: pendingRequestController.signal
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ images, useCompressedLayers: compressed, ...(platform ? { platform } : {}) }),
+                    signal: pendingController.signal
                 });
-
-                pendingRequestController = null;
-
-                if (response.ok) {
-                    const data = await response.json();
-                    if (!data || !data.download_url) {
-                        showStatus('batchStatus', '下载地址生成失败', 'error');
-                        return;
-                    }
-
-                    const url = data.download_url;
-                    const link = document.createElement('a');
-                    link.href = url;
-                    link.style.display = 'none';
-                    document.body.appendChild(link);
-                    link.click();
-                    document.body.removeChild(link);
-
-                    const platformText = platform ? ` (${platform})` : '';
-                    showStatus('batchStatus', `开始下载 ${images.length} 个镜像${platformText}`, 'success');
+                pendingController = null;
+                if (r.ok) {
+                    const data = await r.json();
+                    if (data && data.download_url) {
+                        const a = document.createElement('a');
+                        a.href = data.download_url; a.style.display = 'none';
+                        document.body.appendChild(a); a.click(); document.body.removeChild(a);
+                        setStatus('batchStatus', '开始下载 ' + images.length + ' 个镜像', 'success');
+                    } else setStatus('batchStatus', '下载地址生成失败', 'error');
                 } else {
-                    const error = await response.json();
-                    showStatus('batchStatus', error.error || '下载失败', 'error');
+                    const err = await r.json();
+                    setStatus('batchStatus', err.error || '下载失败', 'error');
                 }
-            } catch (error) {
-                if (error.name !== 'AbortError') {
-                    showStatus('batchStatus', '网络错误: ' + error.message, 'error');
-                }
-            } finally {
-                setButtonLoading('batchDownloadBtn', 'batchDownloadText', 'batchDownloadLoading', false);
-            }
+            } catch (e) {
+                if (e.name !== 'AbortError') setStatus('batchStatus', '网络错误: ' + e.message, 'error');
+            } finally { setLoading('batchDownloadBtn', false); }
         });
 
-        function initMobileMenu() {
-            const mobileMenuToggle = document.getElementById('mobileMenuToggle');
-            const navLinks = document.getElementById('navLinks');
-
-            if (mobileMenuToggle && navLinks) {
-                mobileMenuToggle.addEventListener('click', () => {
-                    navLinks.classList.toggle('active');
-                });
-
-                navLinks.addEventListener('click', (e) => {
-                    if (e.target.classList.contains('nav-link')) {
-                        navLinks.classList.remove('active');
-                    }
-                });
+        document.getElementById('mobileToggle').addEventListener('click', () => {
+            document.getElementById('navLinks').classList.toggle('open');
+        });
+        (function initTheme() {
+            const saved = localStorage.getItem('theme');
+            const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+            if (saved === 'dark' || (!saved && prefersDark)) {
+                document.body.classList.add('dark');
             }
-        }
-
-        initTheme();
-        initMobileMenu();
+            document.getElementById('themeToggle').textContent = document.body.classList.contains('dark') ? '☀️' : '🌙';
+        })();
+        document.getElementById('themeToggle').addEventListener('click', () => {
+            document.body.classList.toggle('dark');
+            const isDark = document.body.classList.contains('dark');
+            document.getElementById('themeToggle').textContent = isDark ? '☀️' : '🌙';
+            localStorage.setItem('theme', isDark ? 'dark' : 'light');
+        });
     </script>
 </body>
-</html> 
+</html>

@@ -1,2537 +1,970 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="Docker镜像搜索">
-    <meta name="keywords" content="Docker、镜像搜索、docker search">
+    <meta name="description" content="Docker镜像搜索 - 多源并行搜索">
     <meta name="color-scheme" content="dark light">
-    <title>Docker镜像搜索</title>
+    <title>镜像搜索 · HubProxy</title>
     <link rel="icon" href="/favicon.ico">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
         :root {
-            --background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
-            --foreground: #0f172a;
-            --card: #ffffff;
-            --card-foreground: #0f172a;
-            --primary: #2563eb;
-            --primary-foreground: #f8fafc;
-            --secondary: #f1f5f9;
-            --secondary-foreground: #0f172a;
-            --muted: #f1f5f9;
-            --muted-foreground: #64748b;
-            --accent: #dbeafe;
-            --accent-foreground: #1e40af;
-            --border: #e2e8f0;
-            --input: #ffffff;
-            --ring: #2563eb;
-            --radius: 0.75rem;
-            --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-            --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+            --bg-primary: #f1f5f9;
+            --bg-secondary: #e2e8f0;
+            --bg-card: #ffffff;
+            --bg-card-hover: #f8fafc;
+            --bg-input: #ffffff;
+            --border: #cbd5e1;
+            --border-focus: #06b6d4;
+            --text-primary: #0f172a;
+            --text-secondary: #475569;
+            --text-tertiary: #94a3b8;
+            --accent: #0891b2;
+            --accent-dim: #06b6d4;
+            --accent-glow: rgba(8, 145, 178, 0.12);
+            --green: #059669;
+            --amber: #d97706;
+            --red: #dc2626;
+            --radius: 12px;
+            --radius-sm: 8px;
+            --shadow: 0 1px 3px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.06);
+            --shadow-lg: 0 10px 25px rgba(0,0,0,0.1), 0 4px 10px rgba(0,0,0,0.06);
+            --navbar-bg: rgba(241,245,249,0.85);
+            --font-sans: 'Plus Jakarta Sans', system-ui, sans-serif;
+            --font-mono: 'JetBrains Mono', 'Fira Code', monospace;
+            --transition: 200ms cubic-bezier(0.4, 0, 0.2, 1);
         }
-
-        .dark {
-            --background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
-            --foreground: #f8fafc;
-            --card: #1e293b;
-            --card-foreground: #f8fafc;
-            --primary: #3b82f6;
-            --primary-foreground: #f8fafc;
-            --secondary: #1e293b;
-            --secondary-foreground: #f8fafc;
-            --muted: #334155;
-            --muted-foreground: #94a3b8;
-            --accent: #1e40af;
-            --accent-foreground: #dbeafe;
-            --border: #334155;
-            --input: #334155;
-            --ring: #3b82f6;
-            --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3), 0 2px 4px -1px rgba(0, 0, 0, 0.2);
-            --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.3), 0 4px 6px -2px rgba(0, 0, 0, 0.2);
+        body.light {
+            --bg-primary: #f1f5f9;
+            --bg-secondary: #e2e8f0;
+            --bg-card: #ffffff;
+            --bg-card-hover: #f8fafc;
+            --bg-input: #ffffff;
+            --border: #cbd5e1;
+            --border-focus: #06b6d4;
+            --text-primary: #0f172a;
+            --text-secondary: #475569;
+            --text-tertiary: #94a3b8;
+            --accent: #0891b2;
+            --accent-dim: #06b6d4;
+            --accent-glow: rgba(8, 145, 178, 0.12);
+            --green: #059669;
+            --amber: #d97706;
+            --red: #dc2626;
+            --shadow: 0 1px 3px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.06);
+            --shadow-lg: 0 10px 25px rgba(0,0,0,0.1), 0 4px 10px rgba(0,0,0,0.06);
+            --navbar-bg: rgba(255,255,255,0.8);
         }
-
-        @media (prefers-color-scheme: dark) {
-            :root {
-                --background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
-                --foreground: #f8fafc;
-                --card: #1e293b;
-                --card-foreground: #f8fafc;
-                --primary: #3b82f6;
-                --primary-foreground: #f8fafc;
-                --secondary: #1e293b;
-                --secondary-foreground: #f8fafc;
-                --muted: #334155;
-                --muted-foreground: #94a3b8;
-                --accent: #1e40af;
-                --accent-foreground: #dbeafe;
-                --border: #334155;
-                --input: #334155;
-                --ring: #3b82f6;
-                --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3), 0 2px 4px -1px rgba(0, 0, 0, 0.2);
-                --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.3), 0 4px 6px -2px rgba(0, 0, 0, 0.2);
-            }
+        body.dark {
+            --bg-primary: #0a0e17;
+            --bg-secondary: #111827;
+            --bg-card: #1a1f2e;
+            --bg-card-hover: #1f2638;
+            --bg-input: #0d1117;
+            --border: #1e293b;
+            --border-focus: #06b6d4;
+            --text-primary: #e2e8f0;
+            --text-secondary: #94a3b8;
+            --text-tertiary: #64748b;
+            --accent: #06b6d4;
+            --accent-dim: #0891b2;
+            --accent-glow: rgba(6, 182, 212, 0.15);
+            --green: #10b981;
+            --amber: #f59e0b;
+            --red: #ef4444;
+            --shadow: 0 1px 3px rgba(0,0,0,0.3), 0 1px 2px rgba(0,0,0,0.2);
+            --shadow-lg: 0 10px 25px rgba(0,0,0,0.4), 0 4px 10px rgba(0,0,0,0.3);
+            --navbar-bg: rgba(10,14,23,0.85);
         }
-
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-        }
-
+        html { scroll-behavior: smooth; }
         body {
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
-            background: var(--background);
-            color: var(--foreground);
+            font-family: var(--font-sans);
+            background: var(--bg-primary);
+            color: var(--text-primary);
             line-height: 1.6;
             min-height: 100vh;
             display: flex;
             flex-direction: column;
-            transition: all 0.3s ease;
+            background-image: radial-gradient(ellipse at 20% 50%, rgba(6, 182, 212, 0.03) 0%, transparent 50%),
+                              radial-gradient(ellipse at 80% 20%, rgba(6, 182, 212, 0.02) 0%, transparent 50%);
         }
+        ::selection { background: var(--accent); color: #fff; }
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: var(--bg-secondary); }
+        ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: var(--text-tertiary); }
 
         .navbar {
-            position: sticky;
-            top: 0;
-            z-index: 50;
-            width: 100%;
+            position: sticky; top: 0; z-index: 100;
+            background: var(--navbar-bg);
+            backdrop-filter: blur(20px) saturate(1.5);
             border-bottom: 1px solid var(--border);
-            background-color: rgba(255, 255, 255, 0.95);
-            backdrop-filter: blur(12px);
-            padding: 0;
-            margin: 0;
-            transition: all 0.3s ease;
         }
-
-        .dark .navbar {
-            background-color: rgba(15, 23, 42, 0.95);
+        .navbar-inner {
+            max-width: 1200px; margin: 0 auto;
+            display: flex; align-items: center; justify-content: space-between;
+            height: 56px; padding: 0 20px;
         }
-
-        .navbar-container {
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 0 1rem;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            height: 4rem;
-        }
-
         .logo {
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-            text-decoration: none;
-            color: var(--foreground);
-            font-weight: 600;
-            font-size: 1.125rem;
-            transition: all 0.3s ease;
+            display: flex; align-items: center; gap: 10px;
+            text-decoration: none; color: var(--text-primary);
+            font-weight: 700; font-size: 1.1rem;
+            font-family: var(--font-mono);
         }
-
-        .logo:hover {
-            transform: translateY(-2px);
-        }
-
         .logo-icon {
-            width: 2rem;
-            height: 2rem;
-            border-radius: 0.5rem;
-            background: linear-gradient(135deg, var(--primary), #3b82f6);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: white;
-            box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
-            transition: all 0.3s ease;
+            width: 32px; height: 32px; border-radius: 8px;
+            background: linear-gradient(135deg, var(--accent), #3b82f6);
+            display: flex; align-items: center; justify-content: center;
+            color: #fff; font-size: 1rem;
+            box-shadow: 0 0 20px var(--accent-glow);
+            transition: transform var(--transition);
         }
-
-        .logo:hover .logo-icon {
-            transform: scale(1.05);
-            box-shadow: 0 6px 16px rgba(37, 99, 235, 0.4);
-        }
-
-        .nav-links {
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-        }
-
+        .logo:hover .logo-icon { transform: scale(1.08); }
+        .nav-links { display: flex; align-items: center; gap: 4px; }
         .nav-link {
-            padding: 0.5rem 1rem;
-            border-radius: var(--radius);
-            text-decoration: none;
-            color: var(--muted-foreground);
-            transition: all 0.3s ease;
-            font-weight: 500;
-            position: relative;
-            overflow: hidden;
+            padding: 6px 14px; border-radius: var(--radius-sm);
+            text-decoration: none; color: var(--text-secondary);
+            font-size: 0.875rem; font-weight: 500;
+            transition: all var(--transition);
         }
+        .nav-link:hover { color: var(--text-primary); background: var(--bg-card); }
+        .nav-link.active { color: var(--accent); background: var(--accent-glow); }
+        .theme-btn {
+            background: none; border: none; color: var(--text-secondary);
+            font-size: 1.1rem; cursor: pointer; padding: 6px; border-radius: var(--radius-sm);
+            transition: all var(--transition);
+        }
+        .theme-btn:hover { color: var(--text-primary); background: var(--bg-card); }
+        .mobile-toggle { display: none; background: none; border: none; color: var(--text-primary); font-size: 1.5rem; cursor: pointer; padding: 6px; border-radius: var(--radius-sm); }
 
-        .nav-link:hover,
-        .nav-link.active {
-            color: var(--foreground);
-            background-color: var(--muted);
-            transform: translateY(-2px);
-        }
+        main { flex: 1; padding: 40px 20px; }
+        .container { max-width: 1200px; margin: 0 auto; }
 
-        .nav-link::after {
-            content: '';
-            position: absolute;
-            bottom: 0;
-            left: 0;
-            width: 0;
-            height: 2px;
-            background-color: var(--primary);
-            transition: width 0.3s ease;
-        }
-
-        .nav-link:hover::after,
-        .nav-link.active::after {
-            width: 100%;
-        }
-
-        .theme-toggle {
-            padding: 0.5rem;
-            border: none;
-            border-radius: var(--radius);
-            background-color: transparent;
-            color: var(--muted-foreground);
-            cursor: pointer;
-            transition: all 0.3s ease;
-            font-size: 1.1rem;
-        }
-
-        .theme-toggle:hover {
-            background-color: var(--muted);
-            color: var(--foreground);
-            transform: rotate(180deg);
-        }
-
-        .main {
-            flex: 1;
-            padding: 2rem 1rem;
-            min-height: calc(100vh - 4rem);
-        }
-        
-        .search-section {
-            margin-bottom: 2.5rem;
-        }
-        
-        .results-section {
-            margin-top: 2.5rem;
-        }
-
-        .container {
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 0 15px;
-        }
-        
-        @media (max-width: 768px) {
-            .container {
-                padding: 0 10px;
-            }
-            
-            .option-group {
-                flex-direction: column;
-                align-items: flex-start;
-            }
-            
-            .result-meta {
-                flex-direction: column;
-                align-items: flex-start;
-                gap: 10px;
-            }
-            
-            .meta-stats {
-                flex-wrap: wrap;
-            }
-        }
-        
-        @media (max-width: 480px) {
-            .result-card {
-                padding: 15px;
-            }
-            
-            .option-group label {
-                font-size: 0.85rem;
-            }
-        }
-        
-        h1 {
-            text-align: center;
-            margin-bottom: 2.5rem;
-            color: var(--primary);
-            font-size: 2.5rem;
-            font-weight: 700;
-            background: linear-gradient(135deg, var(--primary), #3b82f6);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
+        .hero { text-align: center; margin-bottom: 40px; }
+        .hero h1 {
+            font-family: var(--font-mono);
+            font-size: 2rem; font-weight: 700;
+            background: linear-gradient(135deg, var(--accent), #3b82f6);
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
             background-clip: text;
-            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-            animation: fadeInDown 0.6s ease-out;
+            letter-spacing: -0.02em;
         }
-        
-        @media (max-width: 768px) {
-            h1 {
-                font-size: 2rem;
-            }
-        }
-        
-        @keyframes fadeInDown {
-            from {
-                opacity: 0;
-                transform: translateY(-30px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-        
-        @keyframes fadeInUp {
-            from {
-                opacity: 0;
-                transform: translateY(30px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-        
-        @keyframes slideIn {
-            from {
-                opacity: 0;
-                transform: translateY(-100vh);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
+        .hero p { color: var(--text-secondary); font-size: 0.9rem; margin-top: 8px; }
 
-        .search-container {
-            margin-bottom: 30px;
-        }
-
-        .btn {
-            display: inline-block;
-            padding: 0.375rem 0.75rem;
-            margin-bottom: 0;
-            font-size: 1rem;
-            font-weight: 400;
-            line-height: 1.5;
-            text-align: center;
-            white-space: nowrap;
-            vertical-align: middle;
-            cursor: pointer;
-            border: 1px solid transparent;
-            border-radius: 0.375rem;
-            text-decoration: none;
-            transition: color 0.15s ease-in-out, background-color 0.15s ease-in-out, border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
-        }
-
-        .input-group {
+        .search-box {
+            max-width: 640px; margin: 0 auto 20px;
             position: relative;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 15px;
-            width: 100%;
-            max-width: 600px;
-            margin: 0 auto;
         }
-
-        .input-group-append {
-            display: flex;
-            width: 100%;
-            justify-content: center;
-        }
-
-        .form-control {
-            display: block;
-            width: 100%;
-            background-color: var(--input);
-            color: var(--foreground);
+        .search-input-wrap {
+            display: flex; align-items: center;
+            background: var(--bg-input);
             border: 1px solid var(--border);
             border-radius: var(--radius);
-            padding: 1rem 1.25rem;
-            height: 46px;
-            transition: all 0.3s ease;
-            font-size: 1rem;
-            box-shadow: var(--shadow);
-        }
-
-        .form-control:focus {
-            background-color: var(--input);
-            color: var(--foreground);
-            border-color: var(--ring);
-            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
-            outline: 0;
-            transform: translateY(-2px);
-        }
-        
-        .form-control::placeholder {
-            color: var(--muted-foreground);
-            opacity: 0.6;
-        }
-
-        .search-button {
-            border-radius: var(--radius);
-            padding: 1rem 1.75rem;
-            background-color: var(--primary);
-            color: var(--primary-foreground);
-            border: none;
-            transition: all 0.3s ease;
-            height: 46px;
-            font-size: 1rem;
-            font-weight: 600;
-            cursor: pointer;
-            min-width: 120px;
-            position: relative;
+            transition: all var(--transition);
             overflow: hidden;
-            box-shadow: 0 4px 6px rgba(37, 99, 235, 0.3);
+        }
+        .search-input-wrap:focus-within {
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px var(--accent-glow);
+        }
+        .search-input-wrap .prefix {
+            padding: 0 16px; color: var(--text-tertiary);
+            font-family: var(--font-mono); font-size: 0.85rem;
+            user-select: none;
+        }
+        .search-input {
+            flex: 1; background: none; border: none; outline: none;
+            color: var(--text-primary); font-size: 1rem;
+            padding: 14px 16px 14px 0;
+            font-family: var(--font-mono);
+        }
+        .search-input::placeholder { color: var(--text-tertiary); }
+        .search-actions {
+            display: flex; align-items: center; gap: 4px; padding-right: 6px;
+        }
+        .search-clear {
+            display: none; background: none; border: none;
+            color: var(--text-tertiary); cursor: pointer;
+            padding: 6px; border-radius: 4px; font-size: 1rem;
+            transition: all var(--transition);
+        }
+        .search-clear:hover { color: var(--text-primary); }
+        .search-clear.visible { display: block; }
+        .search-btn {
+            padding: 8px 20px; border: none; border-radius: var(--radius-sm);
+            background: var(--accent); color: #fff;
+            font-family: var(--font-sans); font-weight: 600; font-size: 0.875rem;
+            cursor: pointer; transition: all var(--transition);
+        }
+        .search-btn:hover { background: var(--accent-dim); box-shadow: 0 0 20px var(--accent-glow); }
+        .search-btn:active { transform: scale(0.97); }
+        .search-btn.loading { pointer-events: none; opacity: 0.7; }
+
+        .search-hints {
+            max-width: 640px; margin: 0 auto 24px;
+            display: flex; gap: 8px; flex-wrap: wrap; justify-content: center;
+            font-size: 0.78rem; color: var(--text-tertiary);
+        }
+        .search-hints kbd {
+            background: var(--bg-card); padding: 2px 8px;
+            border-radius: 4px; font-family: var(--font-mono);
+            font-size: 0.72rem; border: 1px solid var(--border);
         }
 
-        .search-button:hover {
-            background-color: #1d4ed8;
-            transform: translateY(-3px);
-            box-shadow: 0 8px 15px rgba(37, 99, 235, 0.4);
+        .controls-bar {
+            display: flex; align-items: center; justify-content: space-between;
+            flex-wrap: wrap; gap: 12px;
+            padding: 16px 20px;
+            background: var(--bg-card); border-radius: var(--radius);
+            border: 1px solid var(--border); margin-bottom: 24px;
         }
-        
-        .search-button:active {
-            transform: translateY(-1px);
-            box-shadow: 0 4px 6px rgba(37, 99, 235, 0.3);
+        .source-toggles { display: flex; gap: 6px; flex-wrap: wrap; }
+        .source-toggle {
+            padding: 4px 12px; border-radius: 20px; border: 1px solid var(--border);
+            background: transparent; color: var(--text-secondary);
+            font-size: 0.78rem; font-family: var(--font-mono); font-weight: 500;
+            cursor: pointer; transition: all var(--transition);
         }
-        
-        .search-button::after {
-            content: '';
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            width: 0;
-            height: 0;
-            background: rgba(255, 255, 255, 0.2);
-            border-radius: 50%;
-            transform: translate(-50%, -50%);
-            transition: width 0.6s, height 0.6s;
+        .source-toggle:hover { border-color: var(--accent); color: var(--accent); }
+        .source-toggle.active { background: var(--accent-glow); border-color: var(--accent); color: var(--accent); }
+        .source-toggle[data-source="docker.io"].active { border-color: #0db7ed; color: #0db7ed; background: rgba(13,183,237,0.1); }
+        .source-toggle[data-source="ghcr.io"].active { border-color: #fff; color: #fff; background: rgba(255,255,255,0.1); }
+        .source-toggle[data-source="quay.io"].active { border-color: #36c; color: #36c; background: rgba(51,102,204,0.1); }
+        .source-toggle[data-source="registry.k8s.io"].active { border-color: #326ce5; color: #326ce5; background: rgba(50,108,229,0.1); }
+
+        .view-controls { display: flex; gap: 4px; }
+        .view-btn {
+            padding: 6px 14px; border: none; border-radius: var(--radius-sm);
+            background: transparent; color: var(--text-secondary);
+            font-size: 0.8rem; font-weight: 500; cursor: pointer;
+            transition: all var(--transition);
         }
-        
-        .search-button:hover::after {
-            width: 300px;
-            height: 300px;
+        .view-btn:hover { color: var(--text-primary); background: var(--bg-secondary); }
+        .view-btn.active { background: var(--accent); color: #fff; }
+        .result-count {
+            font-size: 0.82rem; color: var(--text-secondary);
+            font-family: var(--font-mono);
         }
 
-        .multi-source-options {
-            max-width: 600px;
-            margin: 15px auto;
-            padding: 1.5rem;
-            background-color: var(--card);
-            border-radius: var(--radius);
-            display: flex;
-            flex-direction: column;
-            gap: 1rem;
-            border: 1px solid var(--border);
-            box-shadow: var(--shadow-lg);
-            animation: fadeInUp 0.6s ease-out;
-        }
+        .results-area { position: relative; min-height: 200px; }
 
-        .option-group {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 1rem;
-            align-items: center;
+        .skeleton { padding: 20px; }
+        .skeleton-card {
+            background: var(--bg-card); border-radius: var(--radius);
+            border: 1px solid var(--border); padding: 20px; margin-bottom: 12px;
+            animation: pulse 1.5s ease-in-out infinite;
         }
-
-        .option-group label {
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-            font-size: 0.9rem;
-            cursor: pointer;
-            padding: 0.5rem 1rem;
-            border-radius: var(--radius);
-            transition: all 0.3s ease;
-        }
-        
-        .option-group label:hover {
-            background-color: var(--muted);
-            transform: translateY(-2px);
-        }
-        
-        .option-group input[type="checkbox"],
-        .option-group input[type="radio"] {
-            margin: 0;
-            transition: all 0.3s ease;
-        }
-        
-        .option-group input[type="checkbox"]:checked,
-        .option-group input[type="radio"]:checked {
-            transform: scale(1.1);
-        }
-
-        .source-badge {
-            display: inline-block;
-            padding: 2px 6px;
-            border-radius: 4px;
-            font-size: 0.75rem;
-            font-weight: normal;
-            white-space: nowrap;
-            margin-left: 8px;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }
-
-        .source-dockerhub {
-            background-color: #0db7ed;
-            color: white;
-        }
-
-        .source-ghcr {
-            background-color: #181717;
-            color: white;
-        }
-
-        .source-gcr {
-            background-color: #4285f4;
-            color: white;
-        }
-
-        .source-quay {
-            background-color: #336699;
-            color: white;
-        }
-
-        .source-k8s {
-            background-color: #326ce5;
-            color: white;
-        }
-
-        .source-result-section {
-            margin-top: 20px;
-            padding: 15px;
-            border: 1px solid var(--border);
-            border-radius: 8px;
-            background-color: var(--card);
-        }
-
-        .source-result-header {
-            font-size: 1.1rem;
-            font-weight: 600;
-            margin-bottom: 10px;
-            padding-bottom: 8px;
-            border-bottom: 1px solid var(--border);
-            color: var(--primary);
-        }
+        .skeleton-line { height: 14px; background: var(--border); border-radius: 4px; margin-bottom: 8px; }
+        .skeleton-line:last-child { width: 60%; }
+        .skeleton-line:nth-child(2) { width: 80%; }
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
 
         .result-card {
-            background-color: var(--card);
-            border: 1px solid var(--border);
-            border-radius: var(--radius);
-            padding: 1.75rem;
-            margin-bottom: 1.5rem;
-            box-shadow: var(--shadow);
-            transition: all 0.3s ease;
+            background: var(--bg-card); border-radius: var(--radius);
+            border: 1px solid var(--border); padding: 20px;
+            margin-bottom: 10px;
+            transition: all var(--transition);
             cursor: pointer;
-            animation: fadeInUp 0.4s ease-out;
+            position: relative;
+            overflow: hidden;
         }
-
+        .result-card::before {
+            content: ''; position: absolute; top: 0; left: 0;
+            width: 3px; height: 100%;
+            background: var(--accent);
+            opacity: 0; transition: opacity var(--transition);
+        }
         .result-card:hover {
-            transform: translateY(-4px);
-            box-shadow: var(--shadow-lg);
-            border-color: var(--primary);
+            border-color: var(--accent); background: var(--bg-card-hover);
+            transform: translateX(4px);
         }
-        
-        .result-card-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: flex-start;
-            margin-bottom: 1.25rem;
-            padding-bottom: 1rem;
-            border-bottom: 1px solid var(--border);
-        }
-        
-        .result-card-title-section {
-            flex: 1;
-        }
+        .result-card:hover::before { opacity: 1; }
+        .result-card[data-source="docker.io"]::before { background: #0db7ed; }
+        .result-card[data-source="ghcr.io"]::before { background: #fff; }
+        .result-card[data-source="quay.io"]::before { background: #36c; }
+        .result-card[data-source="registry.k8s.io"]::before { background: #326ce5; }
+        .result-card[data-source="gcr.io"]::before { background: #4285f4; }
 
-        .result-title {
-            font-size: 1.35rem;
-            font-weight: 600;
-            margin-bottom: 1rem;
-            color: var(--primary);
-            display: flex;
-            align-items: center;
-            gap: 1rem;
-            flex-wrap: wrap;
+        .result-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; margin-bottom: 8px; }
+        .result-name {
+            font-family: var(--font-mono); font-size: 1rem; font-weight: 600;
+            color: var(--text-primary);
         }
+        .result-source {
+            font-size: 0.7rem; padding: 2px 10px; border-radius: 20px;
+            font-weight: 600; letter-spacing: 0.03em; white-space: nowrap;
+            background: var(--accent-glow); color: var(--accent);
+        }
+        .result-source[data-source="docker.io"] { background: rgba(13,183,237,0.1); color: #0db7ed; }
+        .result-source[data-source="ghcr.io"] { background: rgba(255,255,255,0.1); color: #fff; }
+        .result-source[data-source="quay.io"] { background: rgba(51,102,204,0.1); color: #36c; }
+        .result-source[data-source="registry.k8s.io"] { background: rgba(50,108,229,0.1); color: #326ce5; }
+        .result-source[data-source="gcr.io"] { background: rgba(66,133,244,0.1); color: #4285f4; }
 
-        .result-description {
-            color: var(--muted-foreground);
-            margin: 1rem 0;
-            font-size: 0.95rem;
-            line-height: 1.5;
-            opacity: 0.9;
+        .result-desc {
+            color: var(--text-secondary); font-size: 0.85rem;
+            margin-bottom: 10px; display: -webkit-box;
+            -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
         }
-        
-        .result-badges {
-            margin-top: 0.75rem;
-            display: flex;
-            flex-wrap: wrap;
-            gap: 0.5rem;
-        }
-        
-        .source-badge {
-            font-size: 0.75rem;
-            padding: 0.35rem 1rem;
-            border-radius: 25px;
-            font-weight: 500;
-        }
-        
-        .badge {
-            font-size: 0.75rem;
-            padding: 0.35rem 1rem;
-            border-radius: 25px;
-            font-weight: 500;
-        }
-
         .result-meta {
-            display: flex;
-            justify-content: space-between;
-            align-items: flex-start;
-            font-size: 0.9rem;
-            color: var(--muted-foreground);
-            margin-top: 1.5rem;
-            flex-wrap: wrap;
-            gap: 1rem;
-            padding-top: 1rem;
-            border-top: 1px solid var(--border);
+            display: flex; gap: 16px; flex-wrap: wrap;
+            font-size: 0.78rem; color: var(--text-tertiary);
         }
-
-        .meta-stats {
-            display: flex;
-            align-items: center;
-            gap: 1rem;
-            flex-wrap: wrap;
-            font-size: 0.95rem;
-        }
-
-        .meta-pulls {
-            font-size: 0.85rem;
-            color: var(--muted-foreground);
-            text-align: right;
-            background-color: var(--secondary);
-            padding: 0.75rem 1rem;
-            border-radius: var(--radius);
-        }
-
-        .meta-pulls .pulls-count {
-            font-size: 1rem;
-            color: var(--foreground);
-            font-weight: 600;
-            margin-top: 0.25rem;
-        }
-        
-        @media (max-width: 768px) {
-            .result-meta {
-                flex-direction: column;
-                align-items: stretch;
-            }
-            
-            .meta-pulls {
-                text-align: left;
-            }
-        }
-
+        .result-meta span { display: flex; align-items: center; gap: 4px; }
+        .result-badges { display: flex; gap: 4px; flex-wrap: wrap; }
         .badge {
-            padding: 3px 8px;
-            border-radius: 4px;
-            font-size: 0.8rem;
-            font-weight: normal;
+            font-size: 0.65rem; padding: 1px 8px; border-radius: 10px;
+            font-weight: 600; letter-spacing: 0.02em;
+        }
+        .badge-official { background: rgba(16,185,129,0.15); color: var(--green); }
+        .badge-automated { background: rgba(6,182,212,0.15); color: var(--accent); }
+        .badge-pulls { background: rgba(245,158,11,0.15); color: var(--amber); }
+
+        .pull-command {
+            font-family: var(--font-mono); font-size: 0.78rem;
+            background: var(--bg-secondary); padding: 8px 12px;
+            border-radius: var(--radius-sm); margin-top: 10px;
+            display: flex; align-items: center; justify-content: space-between; gap: 8px;
+            border: 1px solid var(--border);
+        }
+        .pull-command code { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--accent); }
+        .copy-btn {
+            background: none; border: none; color: var(--text-tertiary);
+            cursor: pointer; padding: 4px 8px; border-radius: 4px;
+            font-size: 0.75rem; transition: all var(--transition);
             white-space: nowrap;
         }
+        .copy-btn:hover { color: var(--accent); background: var(--accent-glow); }
 
-        .badge-official {
-            background-color: #28a745;
-            color: white;
+        .source-section {
+            margin-bottom: 24px;
         }
-
-        .badge-organization {
-            background-color: #6c757d;
-            color: white;
-            font-weight: normal;
-        }
-
-        .badge-automated {
-            background-color: #17a2b8;
-            color: white;
-        }
-
-        .meta-item {
-            display: inline-flex;
-            align-items: center;
-            white-space: nowrap;
-            color: var(--muted-foreground);
-        }
-
-        .meta-item .icon {
-            opacity: 0.7;
-        }
-
-        .back-button {
-            position: fixed;
-            top: 20px;
-            left: 20px;
-            padding: 2px 8px;
-            background-color: #f5f5f5;
-            border: 0px solid #fafafa;
-            color: #333;
-            border-radius: 10px;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            font-size: 14px;
-            text-decoration: none;
-        }
-
-        .back-button:hover {
-            background-color: #39c5bc;
-            color: white;
-            transform: scale(1.05);
-            text-decoration: none;
-        }
-
-        .loading {
-            text-align: center;
-            padding: 3rem;
-            color: var(--muted-foreground);
-            background-color: var(--card);
-            border-radius: var(--radius);
-            box-shadow: var(--shadow);
-            margin: 2rem 0;
-            display: none;
-        }
-
-        .loading-spinner {
-            width: 50px;
-            height: 50px;
-            border: 5px solid var(--muted);
-            border-top: 5px solid var(--primary);
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
-            margin: 0 auto 1.5rem;
-        }
-
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-
-        #toast {
-            position: fixed;
-            top: 10%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            background-color: var(--primary);
-            color: var(--primary-foreground);
-            padding: 1rem 1.5rem;
-            border-radius: var(--radius);
-            font-size: 0.9rem;
-            font-weight: 500;
-            z-index: 1000;
-            display: none;
-            box-shadow: var(--shadow-lg);
-            animation: fadeIn 0.3s ease;
-        }
-
-        .pagination {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            margin-top: 2rem;
-            gap: 0.5rem;
-        }
-
-        .pagination button {
-            margin: 0 0.25rem;
-            padding: 0.75rem 1.25rem;
-            border: none;
-            border-radius: var(--radius);
-            background-color: var(--primary);
-            color: var(--primary-foreground);
-            cursor: pointer;
-            transition: all 0.3s ease;
-            font-weight: 500;
-        }
-
-        .pagination button:disabled {
-            background-color: var(--muted);
-            color: var(--muted-foreground);
-            cursor: not-allowed;
-        }
-
-        .pagination button:hover:not(:disabled) {
-            transform: translateY(-2px);
-            background-color: #1d4ed8;
-            box-shadow: var(--shadow-lg);
-        }
-
-        .tag-list {
-            margin-top: 20px;
-            display: none;
-        }
-
-        .tag-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: flex-start;
-            margin-bottom: 15px;
-            padding: 20px;
-            background-color: var(--card);
-            border-radius: 10px;
-            border: 1px solid var(--border);
-            flex-direction: column;
-        }
-
-        .tag-info {
-            flex: 1;
-            width: 100%;
-        }
-
-        .tag-search-container {
-            width: 100%;
-            margin: 15px 0 20px 0;
-            position: relative;
-            background: var(--card);
-            padding: 15px;
-            border-radius: 10px;
-            border: 2px solid var(--primary);
-            box-shadow: 0 2px 8px rgba(37, 99, 235, 0.1);
-        }
-
-        .tag-search-container::before {
-            content: '🔍 标签搜索';
-            display: block;
-            margin-bottom: 10px;
-            color: var(--primary);
-            font-weight: bold;
-            font-size: 0.9rem;
-        }
-
-        .tag-search-input {
-            width: 100%;
-            padding: 12px 40px 12px 15px;
-            border-radius: 8px;
-            border: 1px solid var(--border);
-            background-color: var(--input);
-            color: var(--foreground);
-            font-size: 1rem;
-            transition: all 0.3s ease;
-        }
-
-        .tag-search-input:focus {
-            outline: none;
-            border-color: var(--ring);
-            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.2);
-        }
-
-        .tag-search-input::placeholder {
-            color: #888;
-            font-style: italic;
-        }
-
-        .tag-search-clear {
-            position: absolute;
-            right: 25px;
-            top: 50%;
-            transform: translateY(-5%);
-            background: none;
-            border: none;
-            color: var(--foreground);
-            cursor: pointer;
-            padding: 8px;
-            opacity: 0.6;
-            font-size: 1.2rem;
-            transition: all 0.3s ease;
-            border-radius: 50%;
-            width: 30px;
-            height: 30px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-
-        .tag-search-clear:hover {
-            opacity: 1;
-            background-color: rgba(37, 99, 235, 0.1);
-            transform: translateY(-5%) scale(1.1);
-        }
-
-        .tag-search-input::placeholder {
-            color: var(--muted-foreground);
-        }
-
-        .tag-title {
-            font-size: 1.5rem;
-            margin-bottom: 10px;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-
-        .tag-description {
-            color: var(--foreground);
-            opacity: 0.8;
-        }
-
-        .tag-pull-command {
-            background-color: var(--input);
-            padding: 10px 15px;
-            border-radius: 5px;
-            font-family: monospace;
-            margin-top: 10px;
-            position: relative;
-        }
-
-        .copy-button {
-            position: absolute;
-            right: 5px;
-            top: 5px;
-            background: var(--primary);
-            color: var(--primary-foreground);
-            border: none;
-            padding: 2px 8px;
-            border-radius: 3px;
-            cursor: pointer;
-            font-size: 0.8rem;
-        }
-
-        .tag-item {
-            background-color: var(--card);
-            border: 1px solid var(--border);
-            border-radius: 10px;
-            padding: 15px;
-            margin-bottom: 15px;
-        }
-
-        .tag-name {
-            font-size: 1.1rem;
-            font-weight: bold;
-            margin-bottom: 10px;
-            color: var(--primary);
-        }
-
-        .tag-meta {
-            font-size: 0.9rem;
-            color: var(--foreground);
-            opacity: 0.8;
-            margin-bottom: 10px;
-        }
-
-        .tag-architectures {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 10px;
-            margin-top: 10px;
-        }
-
-        .arch-item {
-            background-color: var(--input);
-            padding: 5px 10px;
-            border-radius: 5px;
-            font-size: 0.8rem;
-        }
-
-        .vulnerability-indicator {
-            display: inline-flex;
-            gap: 5px;
-            margin-left: 10px;
-        }
-
-        .vulnerability-dot {
-            width: 8px;
-            height: 8px;
-            border-radius: 50%;
-            display: inline-block;
-        }
-
-        .vulnerability-critical { background-color: #dc3545; }
-        .vulnerability-high { background-color: #fd7e14; }
-        .vulnerability-medium { background-color: #ffc107; }
-        .vulnerability-low { background-color: #28a745; }
-        .vulnerability-unknown { background-color: #6c757d; }
-
-        .search-results {
-            transition: all 0.3s ease;
-        }
-
-        .back-to-search {
-            margin-bottom: 20px;
-            color: var(--primary);
-            cursor: pointer;
-            display: none;
-        }
-
-        .back-to-search:hover {
-            text-decoration: underline;
-        }
-        
-        /* 选项卡样式 */
-        .tabs {
-            width: 100%;
-        }
-        
-        .tab-header {
-            display: flex;
+        .source-section-header {
+            display: flex; align-items: center; gap: 10px;
+            padding: 12px 0; margin-bottom: 12px;
             border-bottom: 1px solid var(--border);
-            margin-bottom: 20px;
+            font-family: var(--font-mono); font-size: 0.85rem; font-weight: 600;
         }
-        
-        .tab-btn {
-            background: transparent;
-            border: none;
-            padding: 12px 20px;
-            cursor: pointer;
-            font-size: 1rem;
-            font-weight: 500;
-            color: var(--muted-foreground);
-            border-bottom: 2px solid transparent;
-            transition: all 0.3s ease;
-            position: relative;
+        .source-section-count {
+            font-size: 0.75rem; color: var(--text-tertiary); font-weight: 400;
+            margin-left: auto;
         }
-        
-        .tab-btn:hover {
-            color: var(--foreground);
-            background-color: var(--muted);
+
+        .empty-state {
+            text-align: center; padding: 60px 20px;
+            color: var(--text-tertiary);
         }
-        
-        .tab-btn.active {
-            color: var(--primary);
-            border-bottom: 2px solid var(--primary);
+        .empty-state .icon { font-size: 3rem; margin-bottom: 16px; opacity: 0.5; }
+        .empty-state h3 { color: var(--text-secondary); font-weight: 600; margin-bottom: 8px; }
+        .empty-state p { font-size: 0.85rem; }
+
+        .tags-view {
+            display: none; margin-top: 24px;
         }
-        
-        .tab-content {
-            width: 100%;
+        .tags-view.visible { display: block; animation: fadeSlideUp 0.3s ease; }
+        .tags-header {
+            display: flex; align-items: center; gap: 12px; margin-bottom: 20px;
         }
-        
-        .tab-pane {
-            display: none;
+        .tags-back {
+            background: none; border: none; color: var(--text-secondary);
+            cursor: pointer; padding: 8px; border-radius: var(--radius-sm);
+            font-size: 1.2rem; transition: all var(--transition);
         }
-        
-        .tab-pane.active {
-            display: block;
-            animation: fadeIn 0.3s ease;
+        .tags-back:hover { color: var(--text-primary); background: var(--bg-card); }
+        .tags-title { font-family: var(--font-mono); font-size: 1rem; font-weight: 600; }
+        .tags-count { color: var(--text-tertiary); font-size: 0.82rem; }
+
+        .tag-card {
+            background: var(--bg-card); border-radius: var(--radius-sm);
+            border: 1px solid var(--border); padding: 14px 16px;
+            margin-bottom: 8px;
+            display: flex; align-items: center; justify-content: space-between; gap: 12px;
+            transition: all var(--transition);
         }
-        
-        @keyframes fadeIn {
-            from { opacity: 0; }
-            to { opacity: 1; }
+        .tag-card:hover { border-color: var(--accent); background: var(--bg-card-hover); }
+        .tag-name { font-family: var(--font-mono); font-size: 0.9rem; font-weight: 500; }
+        .tag-info { font-size: 0.78rem; color: var(--text-tertiary); margin-top: 2px; }
+
+        .pagination-bar {
+            display: flex; align-items: center; justify-content: center; gap: 8px;
+            padding: 20px 0; margin-top: 12px;
+        }
+        .page-btn {
+            padding: 8px 16px; border: 1px solid var(--border); border-radius: var(--radius-sm);
+            background: var(--bg-card); color: var(--text-secondary);
+            font-size: 0.82rem; font-family: var(--font-mono); cursor: pointer;
+            transition: all var(--transition);
+        }
+        .page-btn:hover:not(:disabled) { border-color: var(--accent); color: var(--accent); }
+        .page-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+        .page-info { color: var(--text-tertiary); font-size: 0.82rem; font-family: var(--font-mono); }
+
+        .toast {
+            position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(100px);
+            background: var(--bg-card); border: 1px solid var(--border);
+            color: var(--text-primary); padding: 10px 20px; border-radius: var(--radius-sm);
+            font-size: 0.85rem; box-shadow: var(--shadow-lg);
+            opacity: 0; transition: all 0.3s ease; z-index: 200;
+            pointer-events: none;
+        }
+        .toast.visible { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+        @keyframes fadeSlideUp {
+            from { opacity: 0; transform: translateY(12px); }
+            to { opacity: 1; transform: translateY(0); }
         }
 
         @media (max-width: 768px) {
-            .result-meta {
-                flex-direction: column;
-                align-items: flex-start;
+            main { padding: 24px 16px; }
+            .hero h1 { font-size: 1.5rem; }
+            .nav-links { display: none; }
+            .nav-links.open {
+                display: flex; flex-direction: column; position: absolute;
+                top: 56px; left: 0; right: 0;
+                background: rgba(10,14,23,0.98); backdrop-filter: blur(20px);
+                border-bottom: 1px solid var(--border); padding: 12px;
+                animation: fadeSlideUp 0.2s ease;
             }
-            
-            .meta-pulls {
-                text-align: left;
-                width: 100%;
-            }
-            
-            .nav-links {
-                position: fixed;
-                top: 70px;
-                left: 0;
-                right: 0;
-                background: var(--background);
-                border: 1px solid var(--border);
-                border-top: none;
-                border-radius: 0 0 12px 12px;
-                padding: 1rem;
-                flex-direction: column;
-                gap: 0.5rem;
-                z-index: 1000;
-                transform: translateY(-100vh);
-                transition: transform 0.3s ease;
-            }
-            
-            .nav-links.active {
-                transform: translateY(0);
-                animation: slideIn 0.3s ease-out;
-            }
-            
-            .mobile-menu-toggle {
-                display: block !important;
-                background: none;
-                border: none;
-                color: var(--foreground);
-                font-size: 1.5rem;
-                cursor: pointer;
-                padding: 0.5rem;
-                border-radius: var(--radius);
-                transition: background-color 0.2s;
-            }
-            
-            .mobile-menu-toggle:hover {
-                background-color: var(--muted);
-            }
-            
-            .navbar-container {
-                justify-content: space-between !important;
-            }
-            
-            .input-group {
-                max-width: 100%;
-                padding: 0 10px;
-            }
-            
-            .search-button {
-                width: 100%;
-                max-width: 200px;
-            }
-        }
-        
-        .mobile-menu-toggle {
-            display: none;
-        }
-
-        .icon {
-            display: inline-block;
-            vertical-align: middle;
-            margin-right: 4px;
-            margin-top: -2px;
-        }
-
-        @media (max-width: 768px) {
-            .nav-links {
-                position: fixed;
-                top: 70px;
-                left: 0;
-                right: 0;
-                background: var(--background);
-                border: 1px solid var(--border);
-                border-top: none;
-                border-radius: 0 0 12px 12px;
-                padding: 1rem;
-                flex-direction: column;
-                gap: 0.5rem;
-                z-index: 1000;
-                transform: translateY(-100vh);
-                transition: transform 0.3s ease;
-                box-shadow: var(--shadow-lg);
-            }
-            
-            .nav-links.active {
-                transform: translateY(0);
-                animation: slideIn 0.3s ease-out;
-            }
-            
-            .mobile-menu-toggle {
-                display: block;
-                background: none;
-                border: none;
-                color: var(--foreground);
-                font-size: 1.5rem;
-                cursor: pointer;
-                padding: 0.5rem;
-                border-radius: var(--radius);
-                transition: all 0.3s ease;
-            }
-            
-            .mobile-menu-toggle:hover {
-                background-color: var(--muted);
-                transform: scale(1.1);
-            }
-            
-            .navbar-container {
-                justify-content: space-between;
-            }
-
-            h1 {
-                font-size: 2rem;
-            }
-        }
-
-        /* Docker pull 命令样式 */
-        .docker-pull-command {
-            background-color: var(--input);
-            padding: 10px 15px;
-            border-radius: 5px;
-            font-family: monospace;
-            margin-top: 10px;
-            position: relative;
-            font-size: 0.9rem;
-        }
-
-        .docker-pull-command .copy-button {
-            position: absolute;
-            right: 5px;
-            top: 5px;
-            background: var(--primary);
-            color: var(--primary-foreground);
-            border: none;
-            padding: 2px 8px;
-            border-radius: 3px;
-            cursor: pointer;
-            font-size: 0.8rem;
-        }
-
-        /* 错误消息样式 */
-        .error-message {
-            color: #dc3545;
-            font-size: 0.9rem;
-            margin-top: 10px;
-            padding: 10px;
-            background-color: rgba(220, 53, 69, 0.1);
-            border-radius: 5px;
-            border-left: 3px solid #dc3545;
+            .mobile-toggle { display: block; }
+            .controls-bar { flex-direction: column; align-items: stretch; }
+            .view-controls { justify-content: center; }
+            .result-top { flex-direction: column; gap: 6px; }
+            .pull-command code { font-size: 0.72rem; }
+            .tag-card { flex-direction: column; align-items: stretch; }
         }
     </style>
 </head>
 <body>
     <nav class="navbar">
-        <div class="navbar-container">
+        <div class="navbar-inner">
             <a href="/" class="logo">
-                <div class="logo-icon">
-                    ⚡
-                </div>
-                加速服务
+                <div class="logo-icon">⚡</div>
+                HubProxy
             </a>
-            
-            <button class="mobile-menu-toggle" id="mobileMenuToggle">
-                ☰
-            </button>
-            
+            <button class="mobile-toggle" id="mobileToggle" aria-label="Menu">☰</button>
             <div class="nav-links" id="navLinks">
-                <a href="/" class="nav-link">🚀 GitHub加速</a>
-                <a href="/images.html" class="nav-link">🐳 离线镜像下载</a>
-                <a href="/search.html" class="nav-link active">🔍 镜像搜索</a>
-                <a href="/test_api.html" class="nav-link">🧪 API测试</a>
-                
-                <button class="theme-toggle" id="themeToggle">
-                    🌙
-                </button>
+                <a href="/" class="nav-link">🚀 加速</a>
+                <a href="/images.html" class="nav-link">🐳 离线镜像</a>
+                <a href="/search.html" class="nav-link active">🔍 搜索</a>
+                <a href="/test_api.html" class="nav-link">🧪 API</a>
+                <button class="theme-btn" id="themeToggle" aria-label="Theme">🌙</button>
             </div>
         </div>
     </nav>
 
-    <main class="main">
+    <main>
         <div class="container">
-        <h1>Docker镜像搜索</h1>
-        
-        <div class="search-section">
-            <div class="search-container">
-                <div class="input-group">
-                    <input type="text" class="form-control" id="searchInput" placeholder="输入镜像名称搜索...">
-                    <div class="input-group-append">
-                        <button class="btn search-button" id="searchButton">搜索</button>
-                    </div>
-                </div>
-                
-                <!-- 多源搜索参数选择 -->
-                <div class="multi-source-options">
-                    <div class="option-group">
-                        <label>
-                            <input type="checkbox" id="multiSourceCheckbox" onchange="toggleMultiSourceOptions()">
-                            多源搜索
-                        </label>
-                    </div>
-                    <div id="multiSourceControls" style="display: none; margin-top: 10px; padding: 15px; background-color: var(--secondary); border-radius: 8px;">
-                        <div class="option-group">
-                            <label>
-                                <input type="radio" name="resultFormat" value="separate" checked>
-                                显示各源独立结果
-                            </label>
-                            <label>
-                                <input type="radio" name="resultFormat" value="merged">
-                                合并结果
-                            </label>
-                        </div>
-                        <div class="option-group">
-                            <label>
-                                <input type="checkbox" id="includeDockerHub" checked>
-                                Docker Hub
-                            </label>
-                            <label>
-                                <input type="checkbox" id="includeGHCR" checked>
-                                GHCR (ghcr.io)
-                            </label>
-                            <label>
-                                <input type="checkbox" id="includeGCR" checked>
-                                GCR (gcr.io)
-                            </label>
-                            <label>
-                                <input type="checkbox" id="includeQuay" checked>
-                                Quay.io
-                            </label>
-                            <label>
-                                <input type="checkbox" id="includeK8s" checked>
-                                K8s Registry (registry.k8s.io)
-                            </label>
-                        </div>
+            <div class="hero">
+                <h1>docker search</h1>
+                <p>多源并行搜索 · 实时结果 · 一键拉取</p>
+            </div>
+
+            <div class="search-box">
+                <div class="search-input-wrap">
+                    <span class="prefix">$</span>
+                    <input class="search-input" id="searchInput" type="text" placeholder="输入镜像名称，如 nginx, redis, node..." autocomplete="off" spellcheck="false">
+                    <div class="search-actions">
+                        <button class="search-clear" id="clearBtn" aria-label="Clear">✕</button>
+                        <button class="search-btn" id="searchBtn">搜索</button>
                     </div>
                 </div>
             </div>
-        </div>
-        <div class="results-section">
-            <!-- 搜索结果选项卡 -->
-            <div class="tabs">
-                <div class="tab-header">
-                    <button class="tab-btn active" data-tab="single">单一搜索结果</button>
-                    <button class="tab-btn" data-tab="separate">多源分离</button>
-                    <button class="tab-btn" data-tab="merged">多源合并</button>
+
+            <div class="search-hints">
+                <span>快捷键: <kbd>Ctrl+K</kbd> 聚焦 · <kbd>Enter</kbd> 搜索 · <kbd>Esc</kbd> 清除</span>
+            </div>
+
+            <div class="controls-bar" id="controlsBar">
+                <div class="source-toggles" id="sourceToggles">
+                    <button class="source-toggle active" data-source="docker.io">docker.io</button>
+                    <button class="source-toggle active" data-source="ghcr.io">ghcr.io</button>
+                    <button class="source-toggle" data-source="quay.io">quay.io</button>
+                    <button class="source-toggle" data-source="registry.k8s.io">k8s</button>
                 </div>
-                <div class="tab-content">
-                    <div id="singleTab" class="tab-pane active">
-                        <div id="searchResults" class="search-results"></div>
-                        <div class="pagination" style="display: none;">
-                            <button id="prevPage" disabled>上一页</button>
-                            <button id="nextPage" disabled>下一页</button>
-                        </div>
-                    </div>
-                    <div id="separateTab" class="tab-pane">
-                        <div id="separateResults" class="search-results"></div>
-                        <div class="pagination" style="display: none;">
-                            <button id="separatePrevPage" disabled>上一页</button>
-                            <button id="separateNextPage" disabled>下一页</button>
-                        </div>
-                    </div>
-                    <div id="mergedTab" class="tab-pane">
-                        <div id="mergedResults" class="search-results"></div>
-                        <div class="pagination" style="display: none;">
-                            <button id="mergedPrevPage" disabled>上一页</button>
-                            <button id="mergedNextPage" disabled>下一页</button>
-                        </div>
-                    </div>
+                <div class="view-controls" id="viewControls">
+                    <button class="view-btn active" data-view="single">单一</button>
+                    <button class="view-btn" data-view="separate">按源</button>
+                    <button class="view-btn" data-view="merged">合并</button>
+                </div>
+                <span class="result-count" id="resultCount"></span>
+            </div>
+
+            <div class="results-area" id="resultsArea">
+                <div class="empty-state" id="emptyState">
+                    <div class="icon">🔍</div>
+                    <h3>搜索 Docker 镜像</h3>
+                    <p>输入关键词，跨多个镜像源并行搜索</p>
+                </div>
+                <div class="skeleton" id="skeleton" style="display:none">
+                    <div class="skeleton-card"><div class="skeleton-line"></div><div class="skeleton-line"></div></div>
+                    <div class="skeleton-card"><div class="skeleton-line"></div><div class="skeleton-line"></div></div>
+                    <div class="skeleton-card"><div class="skeleton-line"></div><div class="skeleton-line"></div></div>
+                </div>
+                <div id="resultsContainer"></div>
+                <div class="pagination-bar" id="paginationBar" style="display:none">
+                    <button class="page-btn" id="prevPageBtn">← 上一页</button>
+                    <span class="page-info" id="pageInfo"></span>
+                    <button class="page-btn" id="nextPageBtn">下一页 →</button>
+                </div>
+            </div>
+
+            <div class="tags-view" id="tagsView">
+                <div class="tags-header">
+                    <button class="tags-back" id="tagsBack">←</button>
+                    <span class="tags-title" id="tagsTitle"></span>
+                    <span class="tags-count" id="tagsCount"></span>
+                </div>
+                <div id="tagsContainer"></div>
+                <div class="pagination-bar" id="tagPaginationBar" style="display:none">
+                    <button class="page-btn" id="tagPrevPageBtn">← 上一页</button>
+                    <span class="page-info" id="tagPageInfo"></span>
+                    <button class="page-btn" id="tagNextPageBtn">下一页 →</button>
                 </div>
             </div>
         </div>
+    </main>
 
-        <div class="loading">
-            <div class="loading-spinner"></div>
-            <p>正在加载...</p>
-        </div>
+    <div class="toast" id="toast"></div>
 
-        <div class="back-to-search">← 返回搜索结果</div>
-
-
-        <div class="tag-list" id="tagList">
-            <div class="pagination" id="tagPagination" style="display: none;">
-                <button id="tagPrevPage" disabled>上一页</button>
-                <button id="tagNextPage" disabled>下一页</button>
-            </div>
-        </div>
-    </div>
-
-    <div id="toast"></div>
     <script>
-        // 搜索配置常量
-        const SEARCH_CONFIG = {
-            defaultPageSize: 10,
-            tagPageSize: 100,
-            requestTimeout: 30000,
-            maxRetries: 2,
-            retryDelay: 500,
-            cacheTTL: 2 * 60 * 1000,
-            maxDisplayPages: 100
+        const STATE = {
+            query: '',
+            page: 1,
+            totalPages: 1,
+            view: 'single',
+            sources: ['docker.io', 'ghcr.io'],
+            loading: false,
+            currentResults: [],
+            currentSourceResults: {},
+            tagRepo: null,
+            tagPage: 1,
+            tagTotalPages: 1,
         };
 
-        // 源名称标准化映射
-        const SOURCE_NAME_MAP = {
-            'docker.io': 'dockerhub',
-            'ghcr.io': 'ghcr',
-            'gcr.io': 'gcr',
-            'quay.io': 'quay',
-            'registry.k8s.io': 'k8s'
+        const DOM = {
+            input: document.getElementById('searchInput'),
+            searchBtn: document.getElementById('searchBtn'),
+            clearBtn: document.getElementById('clearBtn'),
+            resultsContainer: document.getElementById('resultsContainer'),
+            emptyState: document.getElementById('emptyState'),
+            skeleton: document.getElementById('skeleton'),
+            resultCount: document.getElementById('resultCount'),
+            paginationBar: document.getElementById('paginationBar'),
+            prevPageBtn: document.getElementById('prevPageBtn'),
+            nextPageBtn: document.getElementById('nextPageBtn'),
+            pageInfo: document.getElementById('pageInfo'),
+            tagsView: document.getElementById('tagsView'),
+            tagsContainer: document.getElementById('tagsContainer'),
+            tagsTitle: document.getElementById('tagsTitle'),
+            tagsCount: document.getElementById('tagsCount'),
+            tagsBack: document.getElementById('tagsBack'),
+            tagPaginationBar: document.getElementById('tagPaginationBar'),
+            tagPrevPageBtn: document.getElementById('tagPrevPageBtn'),
+            tagNextPageBtn: document.getElementById('tagNextPageBtn'),
+            tagPageInfo: document.getElementById('tagPageInfo'),
+            sourceToggles: document.getElementById('sourceToggles'),
+            viewControls: document.getElementById('viewControls'),
+            toast: document.getElementById('toast'),
+            mobileToggle: document.getElementById('mobileToggle'),
+            navLinks: document.getElementById('navLinks'),
+            controlsBar: document.getElementById('controlsBar'),
         };
 
-        // 搜索请求缓存
-        const searchCache = new Map();
+        let toastTimer = null;
+        let pendingController = null;
+        let tagPendingController = null;
 
-        // Toast状态管理
-        let toastTimeoutId = null;
-
-        /**
-         * 标准化源名称
-         * @param {string} source - 原始源名称
-         * @returns {string} 标准化后的源名称
-         */
-        function normalizeSourceName(source) {
-            const normalizedSource = (source || '').toString().toLowerCase();
-            return SOURCE_NAME_MAP[normalizedSource] || normalizedSource;
-        }
-
-        /**
-         * 构建搜索请求URL
-         * @param {Object} params - 查询参数对象
-         * @returns {string} 编码后的URL查询字符串
-         */
-        function buildSearchParams(params) {
-            const searchParams = new URLSearchParams();
-
-            if (params.q) searchParams.set('q', params.q);
-            if (params.page) searchParams.set('page', params.page);
-            if (params.pageSize) searchParams.set('page_size', params.pageSize);
-            if (params.multiSource) searchParams.set('multi_source', 'true');
-            if (params.merged) searchParams.set('merged', 'true');
-
-            return searchParams.toString();
-        }
-
-        /**
-         * 获取带缓存的搜索数据
-         * @param {string} url - 请求URL
-         * @param {Object} options - fetch选项
-         * @returns {Promise<Object>} 搜索结果数据
-         */
-        async function performCachedSearch(url, options = {}) {
-            const cacheKey = url;
-            const cached = searchCache.get(cacheKey);
-
-            if (cached && Date.now() - cached.timestamp < SEARCH_CONFIG.cacheTTL) {
-                return cached.data;
-            }
-
-            const response = await fetch(url, options);
-
-            if (!response.ok) {
-                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-            }
-
-            const data = await response.json();
-            searchCache.set(cacheKey, { data, timestamp: Date.now() });
-
-            return data;
-        }
-
-        // 请求控制器
-        let pendingRequestController = null;
-
-        /**
-         * 防抖函数
-         * @param {Function} func - 要防抖的函数
-         * @param {number} wait - 等待时间（毫秒）
-         * @returns {Function} 防抖后的函数
-         */
-        function debounce(func, wait = 300) {
-            let timeout;
-            return function executedFunction(...args) {
-                const later = () => {
-                    clearTimeout(timeout);
-                    func.apply(this, args);
-                };
-                clearTimeout(timeout);
-                timeout = setTimeout(later, wait);
-            };
-        }
-
-        /**
-         * 取消当前挂起的请求
-         */
-        function cancelPendingRequest() {
-            if (pendingRequestController) {
-                pendingRequestController.abort();
-                pendingRequestController = null;
-            }
-        }
-
-        /**
-         * 生成 Docker pull 命令
-         * @param {string} fullRepoName - 完整的仓库名称
-         * @param {string} source - 镜像源
-         * @param {string} tag - 标签（可选）
-         * @returns {string} Docker pull 命令
-         */
-        function generatePullCommand(fullRepoName, source, tag = '') {
-            const normalizedSource = normalizeSourceName(source);
-            const repoWithTag = tag ? `${fullRepoName}:${tag}` : fullRepoName;
-
-            const sourcePrefixes = {
-                'ghcr': 'ghcr.io',
-                'gcr': 'gcr.io',
-                'quay': 'quay.io',
-                'k8s': 'registry.k8s.io',
-                'dockerhub': ''
-            };
-
-            const prefix = sourcePrefixes[normalizedSource] || '';
-            return prefix ? `docker pull ${prefix}/${repoWithTag}` : `docker pull ${repoWithTag}`;
-        }
-
-        /**
-         * 安全地构建 DOM 元素
-         * @param {string} html - HTML 字符串
-         * @returns {DocumentFragment} 文档片段
-         */
-        function createDocumentFromHTML(html) {
-            const template = document.createElement('template');
-            template.innerHTML = html;
-            return template.content;
-        }
-
-        // 格式化工具函数
-        const formatUtils = {
-            formatNumber(num) {
-                if (num >= 1000000000) return (num / 1000000000).toFixed(1) + 'B+';
-                if (num >= 1000000) return (num / 1000000).toFixed(1) + 'M+';
-                if (num >= 1000) return (num / 1000).toFixed(1) + 'K+';
-                return num.toString();
-            },
-            formatTimeAgo(dateString) {
-                if (!dateString) return '未知时间';
-                try {
-                    let date = new Date(dateString);
-                    if (isNaN(date.getTime())) {
-                        const formats = [
-                            { regex: /^(\d{4})-(\d{2})-(\d{2})$/, handler: (m) => new Date(m[1], m[2] - 1, m[3]) },
-                            { regex: /^(\d{4})\/(\d{2})\/(\d{2})$/, handler: (m) => new Date(m[1], m[2] - 1, m[3]) },
-                            { regex: /^(\d{2})\/(\d{2})\/(\d{4})$/, handler: (m) => new Date(m[3], m[1] - 1, m[2]) }
-                        ];
-
-                        for (const format of formats) {
-                            const match = dateString.match(format.regex);
-                            if (match) {
-                                date = format.handler(match);
-                                if (!isNaN(date.getTime())) break;
-                            }
-                        }
-
-                        if (isNaN(date.getTime())) {
-                            return '未知时间';
-                        }
-                    }
-
-                    const now = new Date();
-                    const diffTime = Math.abs(now - date);
-                    const diffMinutes = Math.floor(diffTime / (1000 * 60));
-                    const diffHours = Math.floor(diffTime / (1000 * 60 * 60));
-                    const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
-                    const diffMonths = Math.floor(diffDays / 30);
-                    const diffYears = Math.floor(diffDays / 365);
-
-                    if (diffMinutes < 1) return '刚刚';
-                    if (diffMinutes < 60) return `${diffMinutes}分钟前`;
-                    if (diffHours < 24) return `${diffHours}小时前`;
-                    if (diffDays < 7) return `${diffDays}天前`;
-                    if (diffDays < 30) return `${Math.floor(diffDays / 7)}周前`;
-                    if (diffMonths < 12) return `${diffMonths}个月前`;
-                    if (diffYears < 1) return '近1年';
-                    return `${diffYears}年前`;
-                } catch (error) {
-                    console.warn('日期处理错误:', error);
-                    return '未知时间';
-                }
-            },
-            formatSize(bytes) {
-                const units = ['B', 'KB', 'MB', 'GB'];
-                let size = bytes;
-                let unitIndex = 0;
-                while (size >= 1024 && unitIndex < units.length - 1) {
-                    size /= 1024;
-                    unitIndex++;
-                }
-                return `${size.toFixed(2)} ${units[unitIndex]}`;
-            }
+        const STORAGE_KEY = 'hubproxy_sources';
+        const FMT = {
+            n(n) { if (!n) return '0'; if (n >= 1e9) return (n/1e9).toFixed(1)+'B'; if (n >= 1e6) return (n/1e6).toFixed(1)+'M'; if (n >= 1e3) return (n/1e3).toFixed(1)+'K'; return n+''; },
+            t(s) { if (!s) return ''; try { const d = new Date(s); if (isNaN(d)) return ''; const diff = Date.now()-d; if (diff < 6e4) return '刚刚'; if (diff < 36e5) return Math.floor(diff/6e4)+'分钟前'; if (diff < 864e5) return Math.floor(diff/36e5)+'小时前'; return Math.floor(diff/864e5)+'天前'; } catch { return ''; }},
+            b(n) { if (!n) return '0B'; const u=['B','KB','MB','GB']; let i=0; let s=n; while(s>=1024&&i<3){s/=1024;i++} return s.toFixed(1)+' '+u[i]; },
         };
 
-        let currentPage = 1;
-        let totalPages = 1;
-        let currentQuery = '';
-        let currentRepo = null;
-        
-        // 标签分页相关变量
-        let currentTagPage = 1;
-        let totalTagPages = 1;
-
-        function toggleMultiSourceOptions() {
-            const checkbox = document.getElementById('multiSourceCheckbox');
-            const controls = document.getElementById('multiSourceControls');
-            controls.style.display = checkbox.checked ? 'block' : 'none';
+        function restoreSources() {
+            try {
+                const saved = localStorage.getItem(STORAGE_KEY);
+                if (saved) STATE.sources = JSON.parse(saved);
+                DOM.sourceToggles.querySelectorAll('.source-toggle').forEach(btn => {
+                    btn.classList.toggle('active', STATE.sources.includes(btn.dataset.source));
+                });
+            } catch {}
+        }
+        function saveSources() {
+            try { localStorage.setItem(STORAGE_KEY, JSON.stringify(STATE.sources)); } catch {}
         }
 
-        // 选项卡切换
-        document.querySelectorAll('.tab-btn').forEach(btn => {
-            btn.addEventListener('click', () => {
-                // 移除所有选项卡的active类
-                document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-                document.querySelectorAll('.tab-pane').forEach(pane => pane.classList.remove('active'));
-                
-                // 添加当前选项卡的active类
+        restoreSources();
+
+        DOM.sourceToggles.addEventListener('click', e => {
+            const btn = e.target.closest('.source-toggle');
+            if (!btn) return;
+            const src = btn.dataset.source;
+            if (STATE.sources.includes(src)) {
+                if (STATE.sources.length <= 1) { toast('至少保留一个源'); return; }
+                STATE.sources = STATE.sources.filter(s => s !== src);
+                btn.classList.remove('active');
+            } else {
+                STATE.sources.push(src);
                 btn.classList.add('active');
-                const tabId = btn.getAttribute('data-tab');
-                document.getElementById(`${tabId}Tab`).classList.add('active');
-            });
+            }
+            saveSources();
+            if (STATE.query) debouncedSearch();
         });
 
-        document.getElementById('searchButton').addEventListener('click', () => {
-            currentPage = 1;
-            // 根据当前选中的选项卡执行相应的搜索
-            const activeTab = document.querySelector('.tab-btn.active');
-            if (activeTab) {
-                const tabId = activeTab.getAttribute('data-tab');
-                switch(tabId) {
-                    case 'single':
-                        performSingleSearch();
-                        break;
-                    case 'separate':
-                        performSeparateSearch();
-                        break;
-                    case 'merged':
-                        performMergedSearch();
-                        break;
-                    default:
-                        performSingleSearch();
-                }
-            } else {
-                performSingleSearch();
-            }
+        DOM.viewControls.addEventListener('click', e => {
+            const btn = e.target.closest('.view-btn');
+            if (!btn) return;
+            DOM.viewControls.querySelectorAll('.view-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            STATE.view = btn.dataset.view;
+            if (STATE.currentResults.length || Object.keys(STATE.currentSourceResults).length) renderResults();
         });
 
-        document.getElementById('searchInput').addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') {
-                currentPage = 1;
-                // 根据当前选中的选项卡执行相应的搜索
-                const activeTab = document.querySelector('.tab-btn.active');
-                if (activeTab) {
-                    const tabId = activeTab.getAttribute('data-tab');
-                    switch(tabId) {
-                        case 'single':
-                            performSingleSearch();
-                            break;
-                        case 'separate':
-                            performSeparateSearch();
-                            break;
-                        case 'merged':
-                            performMergedSearch();
-                            break;
-                        default:
-                            performSingleSearch();
-                    }
-                } else {
-                    performSingleSearch();
-                }
-            }
-        });
-
-        document.getElementById('prevPage').addEventListener('click', () => {
-            if (currentPage > 1) {
-                currentPage--;
-                performSingleSearch();
-            }
-        });
-
-        document.getElementById('nextPage').addEventListener('click', () => {
-            if (currentPage < totalPages) {
-                currentPage++;
-                performSingleSearch();
-            }
-        });
-
-        document.querySelector('.back-to-search').addEventListener('click', () => {
-            showSearchResults();
-        });
-
-        // 使用事件委托处理分页按钮点击（避免DOM重建导致事件丢失）
-        document.addEventListener('click', (e) => {
-            if (e.target.id === 'tagPrevPage') {
-                if (currentTagPage > 1) {
-                    currentTagPage--;
-                    loadTagPage();
-                }
-            } else if (e.target.id === 'tagNextPage') {
-                if (currentTagPage < totalTagPages) {
-                    currentTagPage++;
-                    loadTagPage();
-                }
-            } else if (e.target.id === 'separatePrevPage') {
-                if (currentPage > 1) {
-                    currentPage--;
-                    performSeparateSearch();
-                }
-            } else if (e.target.id === 'separateNextPage') {
-                if (currentPage < totalPages) {
-                    currentPage++;
-                    performSeparateSearch();
-                }
-            } else if (e.target.id === 'mergedPrevPage') {
-                if (currentPage > 1) {
-                    currentPage--;
-                    performMergedSearch();
-                }
-            } else if (e.target.id === 'mergedNextPage') {
-                if (currentPage < totalPages) {
-                    currentPage++;
-                    performMergedSearch();
-                }
-            }
-        });
-
-        function showLoading() {
-            document.querySelector('.loading').style.display = 'block';
+        function toast(msg) {
+            clearTimeout(toastTimer);
+            DOM.toast.textContent = msg;
+            DOM.toast.classList.add('visible');
+            toastTimer = setTimeout(() => DOM.toast.classList.remove('visible'), 2500);
         }
 
-        function hideLoading() {
-            document.querySelector('.loading').style.display = 'none';
+        async function fetchJSON(url, signal) {
+            const res = await fetch(url, { signal });
+            if (!res.ok) throw new Error(`HTTP ${res.status}`);
+            return res.json();
         }
 
-        function showToast(message) {
-            const toast = document.getElementById('toast');
-            toast.textContent = message;
-            toast.style.display = 'block';
-
-            if (toastTimeoutId) {
-                clearTimeout(toastTimeoutId);
-            }
-            toastTimeoutId = setTimeout(() => {
-                toast.style.display = 'none';
-                toastTimeoutId = null;
-            }, 3000);
-        }
-
-        // 统一分页更新函数（支持搜索和标签分页）
-        function updatePagination(config = {}) {
-            const {
-                currentPage: page = currentPage,
-                totalPages: total = totalPages,
-                prefix = ''
-            } = config;
-
-            const prevButtonId = prefix ? `${prefix}PrevPage` : 'prevPage';
-            const nextButtonId = prefix ? `${prefix}NextPage` : 'nextPage';
-
-            const prevButton = document.getElementById(prevButtonId);
-            const nextButton = document.getElementById(nextButtonId);
-            
-            if (!prevButton || !nextButton) {
-                return;
-            }
-            
-            const paginationDiv = prevButton.parentElement;
-            
-            if (!paginationDiv) {
-                return;
-            }
-            
-            // 更新按钮状态
-            prevButton.disabled = page <= 1;
-            nextButton.disabled = page >= total || total === 0;
-            
-            // 更新或创建页面信息
-            const pageInfoId = prefix ? `${prefix}PageInfo` : 'pageInfo';
-            let pageInfo = document.getElementById(pageInfoId);
-            
-            if (!pageInfo) {
-                pageInfo = createPageInfo(pageInfoId, prefix, total);
-                paginationDiv.insertBefore(pageInfo, nextButton);
-            }
-            
-            updatePageInfo(pageInfo, page, total, prefix);
-            
-            // 只有多于1页时才显示分页
-            if (total > 1) {
-                paginationDiv.style.display = 'flex';
-            } else {
-                paginationDiv.style.display = 'none';
-            }
-        }
-
-        // 创建页面信息元素
-        function createPageInfo(pageInfoId, prefix, total) {
-            const container = document.createElement('div');
-            container.id = pageInfoId;
-            container.style.cssText = 'margin: 0 10px; display: flex; align-items: center; gap: 10px;';
-            
-            const pageText = document.createElement('span');
-            pageText.id = prefix ? `${prefix}PageText` : 'pageText';
-            
-            const jumpInput = document.createElement('input');
-            jumpInput.type = 'number';
-            jumpInput.min = '1';
-            jumpInput.max = prefix === 'tag' ? total : Math.min(total, 100); // 搜索页面限制100页
-            jumpInput.id = prefix ? `${prefix}JumpPage` : 'jumpPage';
-            jumpInput.style.cssText = 'width: 60px; padding: 4px; border-radius: 4px; border: 1px solid var(--border); background-color: var(--input); color: var(--foreground);';
-            
-            const jumpButton = document.createElement('button');
-            jumpButton.textContent = '跳转';
-            jumpButton.className = 'btn search-button';
-            jumpButton.style.padding = '4px 8px';
-            jumpButton.onclick = () => handlePageJump(jumpInput, prefix, total);
-            
-            container.append(pageText, jumpInput, jumpButton);
-            return container;
-        }
-
-        // 更新页面信息显示
-        function updatePageInfo(pageInfo, page, total, prefix) {
-            const pageText = pageInfo.querySelector('span');
-            const jumpInput = pageInfo.querySelector('input');
-            
-            // 标签分页显示策略：根据是否确定总页数显示不同格式
-            const isTagPagination = prefix === 'tag';
-            const maxDisplayPages = isTagPagination ? total : Math.min(total, 100);
-            const pageTextContent = isTagPagination 
-                ? `第 ${page} 页` + (total > page ? ` (至少 ${total} 页)` : ` (共 ${total} 页)`)
-                : `第 ${page} / ${maxDisplayPages} 页 共 ${maxDisplayPages} 页` + (total > 100 ? ' (最多100页)' : '');
-            
-            pageText.textContent = pageTextContent;
-            jumpInput.max = maxDisplayPages;
-            jumpInput.value = page;
-        }
-
-        // 处理页面跳转
-        function handlePageJump(jumpInput, prefix, total) {
-            const inputPage = parseInt(jumpInput.value);
-            const maxPage = prefix === 'tag' ? total : Math.min(total, 100);
-            if (!inputPage || inputPage < 1 || inputPage > maxPage) {
-                const limitText = prefix === 'tag' ? '页码' : '页码 (最多100页)';
-                showToast(`请输入有效的${limitText}`);
-                return;
-            }
-            
-            if (prefix === 'tag') {
-                currentTagPage = inputPage;
-                loadTagPage();
-            } else {
-                currentPage = inputPage;
-                const activeTab = document.querySelector('.tab-btn.active');
-                if (activeTab) {
-                    const tabId = activeTab.getAttribute('data-tab');
-                    switch(tabId) {
-                        case 'single':
-                            performSingleSearch();
-                            break;
-                        case 'separate':
-                            performSeparateSearch();
-                            break;
-                        case 'merged':
-                            performMergedSearch();
-                            break;
-                        default:
-                            performSingleSearch();
-                    }
-                } else {
-                    performSingleSearch();
-                }
-            }
-        }
-
-        // 统一仓库信息处理
-        function parseRepositoryInfo(repo) {
-            // 获取命名空间
-            let namespace = repo.namespace || repo.repo_owner || '';
-            if (!namespace && repo.is_official) {
-                namespace = 'library';
-            }
-            
-            // 获取名称
-            let name = repo.name || repo.repo_name || '';
-            
-            // 清理名称，确保不包含命名空间前缀
-            if (name.includes('/')) {
-                const parts = name.split('/');
-                // 如果没有命名空间，使用第一部分作为命名空间
-                if (!namespace && parts.length > 1) {
-                    namespace = parts[0];
-                }
-                // 使用最后一部分作为名称
-                name = parts[parts.length - 1];
-            }
-            
-            // 对于官方镜像，确保名称不包含 library/ 前缀
-            const cleanName = name.replace(/^library\//, '');
-            
-            // 构建完整的仓库名称
-            let fullRepoName = '';
-            if (repo.is_official) {
-                fullRepoName = cleanName;
-            } else if (namespace) {
-                fullRepoName = `${namespace}/${cleanName}`;
-            } else {
-                fullRepoName = cleanName;
-            }
-            
-            return {
-                namespace,
-                name: cleanName,
-                cleanName,
-                fullRepoName
-            };
-        }
-
-        // 分页更新函数
-        const updateTagPagination = () => updatePagination({
-            currentPage: currentTagPage,
-            totalPages: totalTagPages,
-            prefix: 'tag'
-        });
-
-        function showSearchResults() {
-            document.querySelector('.search-results').style.display = 'block';
-            document.querySelector('.tag-list').style.display = 'none';
-            document.querySelector('.back-to-search').style.display = 'none';
-            document.querySelector('.search-container').style.display = 'block';
-        }
-
-        function showTagList() {
-            document.querySelector('.search-results').style.display = 'none';
-            document.querySelector('.tag-list').style.display = 'block';
-            document.querySelector('.back-to-search').style.display = 'block';
-            document.querySelector('.search-container').style.display = 'none';
-        }
-
-        function getSourceBadge(source) {
-            // 标准化来源字符串，转换为小写
-            const normalizedSource = (source || '').toString().toLowerCase();
-            let className = '';
-            let displayText = normalizedSource;
-            
-            switch(normalizedSource) {
-                case 'docker.io':
-                case 'docker hub':
-                    className = 'source-dockerhub';
-                    displayText = 'Docker Hub';
-                    break;
-                case 'ghcr.io':
-                case 'ghcr':
-                    className = 'source-ghcr';
-                    displayText = 'GHCR';
-                    break;
-                case 'gcr.io':
-                case 'gcr':
-                    className = 'source-gcr';
-                    displayText = 'GCR';
-                    break;
-                case 'quay.io':
-                case 'quay':
-                    className = 'source-quay';
-                    displayText = 'Quay';
-                    break;
-                case 'registry.k8s.io':
-                case 'k8s':
-                case 'kubernetes':
-                    className = 'source-k8s';
-                    displayText = 'K8s';
-                    break;
-                default:
-                    className = 'source-dockerhub';
-                    displayText = normalizedSource || 'Unknown';
-            }
-            
-            return `<span class="source-badge ${className}">${displayText}</span>`;
-        }
-
-        // 执行单一搜索
-        async function performSingleSearch() {
-            const query = document.getElementById('searchInput').value.trim();
-            if (!query) {
-                showToast('请输入搜索关键词');
-                return;
-            }
-
-            currentQuery = query;
-            showLoading();
-            cancelPendingRequest();
+        async function doSearch() {
+            const q = DOM.input.value.trim();
+            if (!q) { toast('请输入搜索关键词'); return; }
+            STATE.query = q;
+            STATE.page = 1;
+            STATE.tagRepo = null;
+            DOM.tagsView.classList.remove('visible');
+            DOM.emptyState.style.display = 'none';
+            DOM.resultsContainer.innerHTML = '';
+            DOM.skeleton.style.display = 'block';
+            STATE.loading = true;
+            DOM.searchBtn.classList.add('loading');
+            DOM.searchBtn.textContent = '搜索中…';
+            DOM.clearBtn.classList.toggle('visible', true);
+            if (pendingController) pendingController.abort();
+            pendingController = new AbortController();
 
             try {
-                pendingRequestController = new AbortController();
-                const timeoutId = setTimeout(() => pendingRequestController.abort(), SEARCH_CONFIG.requestTimeout);
-                
-                const searchParams = buildSearchParams({
-                    q: query,
-                    page: currentPage,
-                    pageSize: SEARCH_CONFIG.defaultPageSize
-                });
-                
-                const response = await fetch(`/search?${searchParams}`, {
-                    signal: pendingRequestController.signal
-                });
-                
-                clearTimeout(timeoutId);
-                pendingRequestController = null;
-                
-                const data = await response.json();
-                
-                totalPages = data.total_pages || 1;
-                displaySearchResults(data.results || []);
-                updatePagination({
-                    currentPage: currentPage,
-                    totalPages: totalPages
-                });
-            } catch (error) {
-                pendingRequestController = null;
-                if (error.name === 'AbortError') {
-                    return;
-                }
-                console.error('搜索错误:', error);
-                if (error.message.includes('HTTP')) {
-                    showToast('搜索服务暂时不可用，请稍后重试');
-                } else {
-                    showToast('搜索失败，请稍后重试');
-                }
-                document.getElementById('searchResults').innerHTML = '<div class="error-message">搜索失败，请稍后重试</div>';
-            } finally {
-                hideLoading();
-            }
-        }
-
-        // 执行多源分离搜索
-        async function performSeparateSearch() {
-            const query = document.getElementById('searchInput').value.trim();
-            if (!query) {
-                showToast('请输入搜索关键词');
-                return;
-            }
-
-            currentQuery = query;
-            showLoading();
-            cancelPendingRequest();
-
-            try {
-                pendingRequestController = new AbortController();
-                const timeoutId = setTimeout(() => pendingRequestController.abort(), SEARCH_CONFIG.requestTimeout);
-
-                const searchParams = buildSearchParams({
-                    q: query,
-                    page: currentPage,
-                    pageSize: SEARCH_CONFIG.defaultPageSize,
-                    multiSource: true
-                });
-
-                const response = await fetch(`/search?${searchParams}`, {
-                    signal: pendingRequestController.signal
-                });
-
-                clearTimeout(timeoutId);
-                pendingRequestController = null;
-                const data = await response.json();
-                
-                const multiSourceResults = {};
-                if (data.multi_source_results && Array.isArray(data.multi_source_results)) {
-                    data.multi_source_results.forEach(result => {
-                        const sourceName = normalizeSourceName(result.source);
-                        multiSourceResults[sourceName] = result.results || [];
+                if (STATE.view === 'single') {
+                    const params = new URLSearchParams({ q, page: STATE.page, page_size: 25 });
+                    const data = await fetchJSON(`/search?${params}`, pendingController.signal);
+                    STATE.currentResults = data.results || [];
+                    STATE.currentSourceResults = {};
+                    STATE.totalPages = Math.max(1, Math.ceil((data.count || STATE.currentResults.length) / 25));
+                    renderResults();
+                } else if (STATE.view === 'separate') {
+                    const promises = STATE.sources.map(src => {
+                        const params = new URLSearchParams({ q, page: STATE.page, page_size: 25, source: src });
+                        return fetchJSON(`/search?${params}`, pendingController.signal)
+                            .then(d => ({ source: src, results: d.results || [] }))
+                            .catch(() => ({ source: src, results: [] }));
                     });
-                }
-
-                displaySeparateSearchResults(multiSourceResults);
-                updatePagination({
-                    currentPage: currentPage,
-                    totalPages: 1,
-                    prefix: 'separate'
-                });
-            } catch (error) {
-                pendingRequestController = null;
-                if (error.name === 'AbortError') {
-                    return;
-                }
-                console.error('搜索错误:', error);
-                if (error.message.includes('HTTP')) {
-                    showToast('搜索服务暂时不可用，请稍后重试');
+                    const all = await Promise.all(promises);
+                    STATE.currentSourceResults = {};
+                    all.forEach(r => { STATE.currentSourceResults[r.source] = r.results; });
+                    STATE.currentResults = [];
+                    STATE.totalPages = 1;
+                    renderResults();
                 } else {
-                    showToast('搜索失败，请稍后重试');
+                    const params = new URLSearchParams({ q, multi_source: 'true', merged: 'true', page: STATE.page, page_size: 25 });
+                    const data = await fetchJSON(`/search?${params}`, pendingController.signal);
+                    STATE.currentResults = data.results || [];
+                    STATE.currentSourceResults = {};
+                    STATE.totalPages = 1;
+                    renderResults();
                 }
-                document.getElementById('separateResults').innerHTML = '<div class="error-message">搜索失败，请稍后重试</div>';
+            } catch (err) {
+                if (err.name === 'AbortError') return;
+                console.error(err);
+                DOM.resultsContainer.innerHTML = `<div class="empty-state"><div class="icon">⚠️</div><h3>搜索失败</h3><p>${err.message}</p></div>`;
+                toast('搜索失败，请重试');
             } finally {
-                hideLoading();
+                pendingController = null;
+                STATE.loading = false;
+                DOM.skeleton.style.display = 'none';
+                DOM.searchBtn.classList.remove('loading');
+                DOM.searchBtn.textContent = '搜索';
             }
         }
 
-        // 执行多源合并搜索
-        async function performMergedSearch() {
-            const query = document.getElementById('searchInput').value.trim();
-            if (!query) {
-                showToast('请输入搜索关键词');
+        function renderResults() {
+            DOM.resultsContainer.innerHTML = '';
+            DOM.skeleton.style.display = 'none';
+            DOM.emptyState.style.display = 'none';
+
+            if (STATE.view === 'single') {
+                renderSingle(STATE.currentResults);
+            } else if (STATE.view === 'separate') {
+                renderSeparate(STATE.currentSourceResults);
+            } else {
+                renderMerged(STATE.currentResults);
+            }
+        }
+
+        function renderSingle(results) {
+            if (!results.length) {
+                DOM.resultsContainer.innerHTML = `<div class="empty-state"><div class="icon">📭</div><h3>没有结果</h3><p>尝试其他关键词或源</p></div>`;
+                DOM.resultCount.textContent = '';
+                DOM.paginationBar.style.display = 'none';
                 return;
             }
-
-            currentQuery = query;
-            showLoading();
-            cancelPendingRequest();
-
-            try {
-                pendingRequestController = new AbortController();
-                const timeoutId = setTimeout(() => pendingRequestController.abort(), SEARCH_CONFIG.requestTimeout);
-
-                const searchParams = buildSearchParams({
-                    q: query,
-                    page: currentPage,
-                    pageSize: SEARCH_CONFIG.defaultPageSize,
-                    multiSource: true,
-                    merged: true
-                });
-
-                const response = await fetch(`/search?${searchParams}`, {
-                    signal: pendingRequestController.signal
-                });
-
-                clearTimeout(timeoutId);
-                pendingRequestController = null;
-                const data = await response.json();
-                
-                const allResults = data.results || [];
-                
-                displayMergedSearchResults(allResults);
-                updatePagination({
-                    currentPage: currentPage,
-                    totalPages: 1,
-                    prefix: 'merged'
-                });
-            } catch (error) {
-                pendingRequestController = null;
-                if (error.name === 'AbortError') {
-                    return;
-                }
-                console.error('搜索错误:', error);
-                if (error.message.includes('HTTP')) {
-                    showToast('搜索服务暂时不可用，请稍后重试');
-                } else {
-                    showToast('搜索失败，请稍后重试');
-                }
-                document.getElementById('mergedResults').innerHTML = '<div class="error-message">搜索失败，请稍后重试</div>';
-            } finally {
-                hideLoading();
-            }
+            DOM.resultCount.textContent = `${results.length} 个结果`;
+            const frag = document.createDocumentFragment();
+            results.forEach(r => frag.appendChild(createResultCard(r)));
+            DOM.resultsContainer.appendChild(frag);
+            updatePagination(STATE.page, STATE.totalPages, 'main');
         }
 
-        // 显示单一搜索结果
-        function displaySearchResults(results) {
-            const container = document.getElementById('searchResults');
-            if (!container) return;
-
-            const resultsArray = Array.isArray(results) ? results : [];
-
-            if (resultsArray.length === 0) {
-                container.innerHTML = '<div class="error-message">没有找到匹配的镜像</div>';
-                updatePagination({
-                    currentPage: 1,
-                    totalPages: 0
-                });
+        function renderSeparate(sourceResults) {
+            let total = 0;
+            const entries = Object.entries(sourceResults).filter(([,r]) => r.length);
+            if (!entries.length) {
+                DOM.resultsContainer.innerHTML = `<div class="empty-state"><div class="icon">📭</div><h3>没有结果</h3><p>尝试其他关键词或源</p></div>`;
+                DOM.resultCount.textContent = '';
+                DOM.paginationBar.style.display = 'none';
                 return;
             }
-
-            const fragment = document.createDocumentFragment();
-            
-            resultsArray.forEach(repo => {
-                const repoInfo = parseRepositoryInfo(repo);
-                const source = repo.source || 'docker.io';
-                const pullCommand = generatePullCommand(repoInfo.fullRepoName, source);
-                const normalizedSource = normalizeSourceName(source);
-                
-                const card = document.createElement('div');
-                card.className = 'result-card';
-                card.onclick = () => loadTags(repoInfo.namespace, repoInfo.name, card, source);
-                
-                card.innerHTML = `
-                    <div class="result-card-header">
-                        <div class="result-card-title-section">
-                            <h3 class="result-title">
-                                ${repoInfo.fullRepoName}
-                                ${getSourceBadge(source)}
-                            </h3>
-                            ${repo.description ? `<p class="result-description">${repo.description}</p>` : ''}
-                            <div class="result-badges">
-                                ${repo.is_official ? '<span class="badge badge-official">官方</span>' : ''}
-                                ${repo.is_automated ? '<span class="badge badge-automated">自动构建</span>' : ''}
-                            </div>
-                            <div class="docker-pull-command">
-                                ${pullCommand}
-                                <button class="copy-button" onclick="event.stopPropagation(); copyToClipboard('${pullCommand}')">复制</button>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="result-meta">
-                        <div class="meta-stats">
-                            <span class="meta-item">
-                                <span class="icon">📥</span>
-                                拉取次数: ${formatUtils.formatNumber(repo.pull_count || 0)}
-                            </span>
-                            ${repo.last_updated ? `
-                                <span class="meta-item">
-                                    <span class="icon">📅</span>
-                                    最后更新: ${formatUtils.formatTimeAgo(repo.last_updated)}
-                                </span>
-                            ` : ''}
-                        </div>
-                        <div class="meta-pulls">
-                            <div class="pulls-label">拉取次数</div>
-                            <div class="pulls-count">${formatUtils.formatNumber(repo.pull_count || 0)}</div>
-                        </div>
-                    </div>
-                `;
-                
-                fragment.appendChild(card);
-            });
-
-            container.innerHTML = '';
-            container.appendChild(fragment);
-        }
-
-        // 显示多源分离搜索结果
-        function displaySeparateSearchResults(multiSourceResults) {
-            const container = document.getElementById('separateResults');
-            if (!container) return;
-
-            const fragment = document.createDocumentFragment();
-            let hasResults = false;
-            
-            for (const [source, results] of Object.entries(multiSourceResults)) {
-                const resultsArray = Array.isArray(results) ? results : [];
-                if (resultsArray.length === 0) continue;
-                
-                hasResults = true;
-                
+            const frag = document.createDocumentFragment();
+            entries.forEach(([source, results]) => {
+                total += results.length;
                 const section = document.createElement('div');
-                section.className = 'source-result-section';
-                section.innerHTML = `
-                    <div class="source-result-header">
-                        ${getSourceBadge(source)}
-                    </div>
-                `;
-                
-                const sectionFragment = document.createDocumentFragment();
-                
-                resultsArray.forEach(repo => {
-                    const repoInfo = parseRepositoryInfo(repo);
-                    const pullCommand = generatePullCommand(repoInfo.fullRepoName, source);
-                    
-                    const card = document.createElement('div');
-                    card.className = 'result-card';
-                    card.onclick = () => loadTags(repoInfo.namespace, repoInfo.name, card, source);
-                    
-                    card.innerHTML = `
-                        <div class="result-card-header">
-                            <div class="result-card-title-section">
-                                <h3 class="result-title">
-                                    ${repoInfo.fullRepoName}
-                                </h3>
-                                ${repo.description ? `<p class="result-description">${repo.description}</p>` : ''}
-                                <div class="result-badges">
-                                    ${repo.is_official ? '<span class="badge badge-official">官方</span>' : ''}
-                                    ${repo.is_automated ? '<span class="badge badge-automated">自动构建</span>' : ''}
-                                </div>
-                                <div class="docker-pull-command">
-                                    ${pullCommand}
-                                    <button class="copy-button" onclick="event.stopPropagation(); copyToClipboard('${pullCommand}')">复制</button>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="result-meta">
-                            <div class="meta-stats">
-                                <span class="meta-item">
-                                    <span class="icon">📥</span>
-                                    拉取次数: ${formatUtils.formatNumber(repo.pull_count || 0)}
-                                </span>
-                                ${repo.last_updated ? `
-                                    <span class="meta-item">
-                                        <span class="icon">📅</span>
-                                        最后更新: ${formatUtils.formatTimeAgo(repo.last_updated)}
-                                    </span>
-                                ` : ''}
-                            </div>
-                            <div class="meta-pulls">
-                                <div class="pulls-label">拉取次数</div>
-                                <div class="pulls-count">${formatUtils.formatNumber(repo.pull_count || 0)}</div>
-                            </div>
-                        </div>
-                    `;
-                    
-                    sectionFragment.appendChild(card);
-                });
-                
-                section.appendChild(sectionFragment);
-                fragment.appendChild(section);
-            }
-
-            if (!hasResults) {
-                container.innerHTML = '<div class="error-message">没有找到匹配的镜像</div>';
-                updatePagination({
-                    currentPage: 1,
-                    totalPages: 0,
-                    prefix: 'separate'
-                });
-                return;
-            }
-
-            container.innerHTML = '';
-            container.appendChild(fragment);
-        }
-
-        // 显示多源合并搜索结果
-        function displayMergedSearchResults(results) {
-            const container = document.getElementById('mergedResults');
-            if (!container) return;
-
-            const resultsArray = Array.isArray(results) ? results : [];
-
-            if (resultsArray.length === 0) {
-                container.innerHTML = '<div class="error-message">没有找到匹配的镜像</div>';
-                updatePagination({
-                    currentPage: 1,
-                    totalPages: 0,
-                    prefix: 'merged'
-                });
-                return;
-            }
-
-            const fragment = document.createDocumentFragment();
-            
-            resultsArray.forEach(repo => {
-                const repoInfo = parseRepositoryInfo(repo);
-                const source = repo.source || 'docker.io';
-                const pullCommand = generatePullCommand(repoInfo.fullRepoName, source);
-                
-                const card = document.createElement('div');
-                card.className = 'result-card';
-                card.onclick = () => loadTags(repoInfo.namespace, repoInfo.name, card, source);
-                
-                card.innerHTML = `
-                    <div class="result-card-header">
-                        <div class="result-card-title-section">
-                            <h3 class="result-title">
-                                ${repoInfo.fullRepoName}
-                                ${getSourceBadge(source)}
-                            </h3>
-                            ${repo.description ? `<p class="result-description">${repo.description}</p>` : ''}
-                            <div class="result-badges">
-                                ${repo.is_official ? '<span class="badge badge-official">官方</span>' : ''}
-                                ${repo.is_automated ? '<span class="badge badge-automated">自动构建</span>' : ''}
-                            </div>
-                            <div class="docker-pull-command">
-                                ${pullCommand}
-                                <button class="copy-button" onclick="event.stopPropagation(); copyToClipboard('${pullCommand}')">复制</button>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="result-meta">
-                        <div class="meta-stats">
-                            <span class="meta-item">
-                                <span class="icon">📥</span>
-                                拉取次数: ${formatUtils.formatNumber(repo.pull_count || 0)}
-                            </span>
-                            ${repo.last_updated ? `
-                                <span class="meta-item">
-                                    <span class="icon">📅</span>
-                                    最后更新: ${formatUtils.formatTimeAgo(repo.last_updated)}
-                                </span>
-                            ` : ''}
-                        </div>
-                        <div class="meta-pulls">
-                            <div class="pulls-label">拉取次数</div>
-                            <div class="pulls-count">${formatUtils.formatNumber(repo.pull_count || 0)}</div>
-                        </div>
-                    </div>
-                `;
-                
-                fragment.appendChild(card);
+                section.className = 'source-section';
+                section.innerHTML = `<div class="source-section-header"><span class="result-source" data-source="${source}">${source}</span><span class="source-section-count">${results.length} 个</span></div>`;
+                const cards = document.createDocumentFragment();
+                results.forEach(r => cards.appendChild(createResultCard(r)));
+                section.appendChild(cards);
+                frag.appendChild(section);
             });
-
-            container.innerHTML = '';
-            container.appendChild(fragment);
+            DOM.resultsContainer.appendChild(frag);
+            DOM.resultCount.textContent = `${total} 个结果`;
+            DOM.paginationBar.style.display = 'none';
         }
 
-        // 加载标签
-        async function loadTags(namespace, name, element, source) {
-            // 保存当前仓库信息
-            currentRepo = {
-                namespace,
-                name,
-                source
-            };
-            
-            currentTagPage = 1;
-            await loadTagPage();
-        }
-
-        // 加载标签页面
-        async function loadTagPage() {
-            showLoading();
-            cancelPendingRequest();
-            try {
-                const namespace = currentRepo.namespace;
-                const name = currentRepo.name;
-                const source = currentRepo.source;
-                
-                let apiPath = '';
-                if (namespace && name) {
-                    apiPath = `/tags/${encodeURIComponent(namespace)}/${encodeURIComponent(name)}`;
-                } else if (name) {
-                    apiPath = `/tags/${encodeURIComponent(name)}`;
-                } else {
-                    throw new Error('无效的镜像名称');
-                }
-                
-                pendingRequestController = new AbortController();
-                const timeoutId = setTimeout(() => pendingRequestController.abort(), SEARCH_CONFIG.requestTimeout);
-                
-                const tagParams = new URLSearchParams({
-                    page: currentTagPage,
-                    page_size: SEARCH_CONFIG.tagPageSize,
-                    source: source
-                });
-                
-                const response = await fetch(`${apiPath}?${tagParams.toString()}`, {
-                    signal: pendingRequestController.signal
-                });
-                
-                clearTimeout(timeoutId);
-                pendingRequestController = null;
-                
-                if (!response.ok) {
-                    const errorText = await response.text();
-                    throw new Error(errorText || '获取标签信息失败');
-                }
-
-                const data = await response.json();
-                
-                if (data.has_more) {
-                    totalTagPages = Math.max(currentTagPage + 1, totalTagPages);
-                } else {
-                    totalTagPages = currentTagPage;
-                }
-                
-                displayTags(data.tags || [], data.has_more);
-                updateTagPagination();
-            } catch (error) {
-                pendingRequestController = null;
-                if (error.name === 'AbortError') {
-                    return;
-                }
-                console.error('加载标签错误:', error);
-                if (error.message.includes('401') || error.message.includes('UNAUTHORIZED')) {
-                    showToast('获取 GHCR 标签信息需要认证，请先运行 docker login ghcr.io');
-                    document.getElementById('tagList').innerHTML = `<div class="error-message">获取 GHCR 标签信息需要认证，请先运行 docker login ghcr.io</div>`;
-                } else if (error.message.includes('403') || error.message.includes('FORBIDDEN')) {
-                    showToast('获取标签信息被拒绝，请检查镜像权限');
-                    document.getElementById('tagList').innerHTML = `<div class="error-message">获取标签信息被拒绝，请检查镜像权限</div>`;
-                } else if (error.message.includes('HTTP')) {
-                    showToast('标签服务暂时不可用，请稍后重试');
-                } else {
-                    showToast(error.message || '获取标签信息失败，请稍后重试');
-                    document.getElementById('tagList').innerHTML = `<div class="error-message">${error.message || '获取标签信息失败，请稍后重试'}</div>`;
-                }
-            } finally {
-                hideLoading();
+        function renderMerged(results) {
+            if (!results.length) {
+                DOM.resultsContainer.innerHTML = `<div class="empty-state"><div class="icon">📭</div><h3>没有结果</h3><p>尝试其他关键词或源</p></div>`;
+                DOM.resultCount.textContent = '';
+                DOM.paginationBar.style.display = 'none';
+                return;
             }
+            DOM.resultCount.textContent = `${results.length} 个结果`;
+            const frag = document.createDocumentFragment();
+            results.forEach(r => frag.appendChild(createResultCard(r)));
+            DOM.resultsContainer.appendChild(frag);
+            DOM.paginationBar.style.display = 'none';
         }
 
-        // 显示标签
-        function displayTags(tags, hasMore = false) {
-            const tagList = document.getElementById('tagList');
-            const repoInfo = {
-                fullRepoName: `${currentRepo.namespace}/${currentRepo.name}`
-            };
-            const source = currentRepo.source;
-            
-            const header = `
-                <div class="tag-header">
-                    <div class="tag-info">
-                        <div class="tag-title">
-                            ${repoInfo.fullRepoName}
-                            ${getSourceBadge(source)}
-                        </div>
-                        <div class="tag-description">
-                            标签列表
-                        </div>
-                    </div>
+        function createResultCard(r) {
+            const namespace = r.namespace || r.repo_owner || (r.is_official ? 'library' : '');
+            let rawName = r.name || r.repo_name || '';
+            if (rawName.includes('/')) { const p = rawName.split('/'); rawName = p[p.length-1]; }
+            rawName = rawName.replace(/^library\//, '');
+            const fullName = r.is_official ? rawName : (namespace ? `${namespace}/${rawName}` : rawName);
+            const source = r.source || 'docker.io';
+            const pullCmd = source === 'docker.io' ? `docker pull ${fullName}` : `docker pull ${source}/${fullName}`;
+
+            const card = document.createElement('div');
+            card.className = 'result-card';
+            card.dataset.source = source;
+
+            const badges = [];
+            if (r.is_official) badges.push('<span class="badge badge-official">官方</span>');
+            if (r.is_automated) badges.push('<span class="badge badge-automated">auto</span>');
+            if (r.pull_count) badges.push(`<span class="badge badge-pulls">📥 ${FMT.n(r.pull_count)}</span>`);
+
+            const meta = [];
+            if (r.star_count) meta.push(`<span>⭐ ${FMT.n(r.star_count)}</span>`);
+            if (r.pull_count) meta.push(`<span>📥 ${FMT.n(r.pull_count)}</span>`);
+            if (r.last_updated) meta.push(`<span>🕐 ${FMT.t(r.last_updated)}</span>`);
+
+            card.innerHTML = `
+                <div class="result-top">
+                    <div class="result-name">${fullName}</div>
+                    <span class="result-source" data-source="${source}">${source}</span>
                 </div>
+                ${r.description ? `<div class="result-desc">${r.description}</div>` : ''}
+                ${badges.length ? `<div class="result-badges">${badges.join('')}</div>` : ''}
+                <div class="pull-command">
+                    <code>${pullCmd}</code>
+                    <button class="copy-btn" data-cmd="${pullCmd.replace(/"/g, '&quot;')}">复制</button>
+                </div>
+                ${meta.length ? `<div class="result-meta">${meta.join('')}</div>` : ''}
             `;
 
-            if (tags.length === 0) {
-                tagList.innerHTML = `
-                    ${header}
-                    <div class="tags-container">
-                        <div class="error-message">没有找到标签</div>
-                    </div>
-                `;
-                showTagList();
+            card.addEventListener('click', () => {
+                if (namespace && rawName) loadTags(namespace, rawName, source, fullName);
+            });
+            return card;
+        }
+
+        DOM.resultsContainer.addEventListener('click', e => {
+            const btn = e.target.closest('.copy-btn');
+            if (!btn) return;
+            e.stopPropagation();
+            const cmd = btn.dataset.cmd;
+            navigator.clipboard.writeText(cmd).then(() => toast('已复制')).catch(() => toast('复制失败'));
+        });
+
+        async function loadTags(namespace, name, source, displayName) {
+            STATE.tagRepo = { namespace, name, source, displayName };
+            STATE.tagPage = 1;
+            DOM.tagsView.classList.remove('visible');
+            DOM.tagsContainer.innerHTML = '<div class="skeleton"><div class="skeleton-card"><div class="skeleton-line"></div><div class="skeleton-line"></div></div></div>';
+            DOM.tagsTitle.textContent = displayName;
+            DOM.tagsCount.textContent = '';
+            DOM.tagsView.classList.add('visible');
+            await fetchTags();
+        }
+
+        async function fetchTags() {
+            if (!STATE.tagRepo) return;
+            const { namespace, name, source } = STATE.tagRepo;
+            if (tagPendingController) tagPendingController.abort();
+            tagPendingController = new AbortController();
+            try {
+                const params = new URLSearchParams({ page: STATE.tagPage, page_size: 100, source });
+                const data = await fetchJSON(`/tags/${encodeURIComponent(namespace)}/${encodeURIComponent(name)}?${params}`, tagPendingController.signal);
+                const tags = data.tags || data || [];
+                const arr = Array.isArray(tags) ? tags : [];
+                STATE.tagTotalPages = data.has_more ? Math.max(STATE.tagPage + 1, STATE.tagPage) : STATE.tagPage;
+                DOM.tagsCount.textContent = `${arr.length} 个标签`;
+                renderTags(arr);
+            } catch (err) {
+                if (err.name === 'AbortError') return;
+                DOM.tagsContainer.innerHTML = `<div class="empty-state"><div class="icon">⚠️</div><h3>加载失败</h3><p>${err.message}</p></div>`;
+            } finally {
+                tagPendingController = null;
+            }
+        }
+
+        function renderTags(tags) {
+            const { displayName, source } = STATE.tagRepo;
+            if (!tags.length) {
+                DOM.tagsContainer.innerHTML = '<div class="empty-state"><div class="icon">🏷️</div><h3>没有标签</h3></div>';
+                DOM.tagPaginationBar.style.display = 'none';
                 return;
             }
-
-            const fragment = document.createDocumentFragment();
-            
-            tags.forEach(tag => {
-                const pullCommand = generatePullCommand(repoInfo.fullRepoName, source, tag.name);
-                
-                const tagItem = document.createElement('div');
-                tagItem.className = 'tag-item';
-                tagItem.innerHTML = `
-                    <div class="tag-name">${tag.name}</div>
-                    <div class="tag-meta">
-                        ${tag.size ? `大小: ${formatUtils.formatSize(tag.size)} | ` : ''}
-                        ${tag.last_updated ? `最后更新: ${formatUtils.formatTimeAgo(tag.last_updated)}` : ''}
+            const frag = document.createDocumentFragment();
+            tags.forEach(t => {
+                const name = t.name || t;
+                const pullCmd = source === 'docker.io' ? `docker pull ${displayName}:${name}` : `docker pull ${source}/${displayName}:${name}`;
+                const div = document.createElement('div');
+                div.className = 'tag-card';
+                div.innerHTML = `
+                    <div>
+                        <div class="tag-name">${name}</div>
+                        <div class="tag-info">${t.size ? '大小: '+FMT.b(t.size) : ''}${t.last_updated ? ' · '+FMT.t(t.last_updated) : ''}</div>
                     </div>
-                    <div class="docker-pull-command">
-                        ${pullCommand}
-                        <button class="copy-button" onclick="copyToClipboard('${pullCommand}')">复制</button>
+                    <div class="pull-command" style="margin:0;max-width:60%">
+                        <code>${pullCmd}</code>
+                        <button class="copy-btn" data-cmd="${pullCmd.replace(/"/g, '&quot;')}">复制</button>
                     </div>
-                    ${tag.architectures ? `
-                        <div class="tag-architectures">
-                            ${tag.architectures.map(arch => `<span class="arch-item">${arch}</span>`).join('')}
-                        </div>
-                    ` : ''}
                 `;
-                
-                fragment.appendChild(tagItem);
+                frag.appendChild(div);
             });
-
-            const tagsContainer = document.createElement('div');
-            tagsContainer.className = 'tags-container';
-            tagsContainer.appendChild(fragment);
-
-            const pagination = document.createElement('div');
-            pagination.className = 'pagination';
-            pagination.id = 'tagPagination';
-            pagination.innerHTML = `
-                <button id="tagPrevPage" disabled>上一页</button>
-                <button id="tagNextPage" disabled>下一页</button>
-            `;
-
-            tagList.innerHTML = '';
-            tagList.appendChild(createDocumentFromHTML(header));
-            tagList.appendChild(tagsContainer);
-            tagList.appendChild(pagination);
-            
-            showTagList();
+            DOM.tagsContainer.innerHTML = '';
+            DOM.tagsContainer.appendChild(frag);
+            updatePagination(STATE.tagPage, STATE.tagTotalPages, 'tag');
         }
 
-        // 复制到剪贴板
-        function copyToClipboard(text) {
-            navigator.clipboard.writeText(text).then(() => {
-                showToast('复制成功');
-            }).catch(err => {
-                console.error('复制失败:', err);
-                showToast('复制失败，请手动复制');
-            });
-        }
+        DOM.tagsContainer.addEventListener('click', e => {
+            const btn = e.target.closest('.copy-btn');
+            if (!btn) return;
+            e.stopPropagation();
+            const cmd = btn.dataset.cmd;
+            navigator.clipboard.writeText(cmd).then(() => toast('已复制')).catch(() => toast('复制失败'));
+        });
 
-        // 清理旧标签数据
-        function cleanupOldTagData() {
-            // 清理全局变量，释放内存
-            if (window.currentPageTags) {
-                window.currentPageTags.length = 0;
-                window.currentPageTags = null;
+        DOM.tagsBack.addEventListener('click', () => {
+            STATE.tagRepo = null;
+            DOM.tagsView.classList.remove('visible');
+        });
+
+        function updatePagination(page, total, prefix) {
+            if (total <= 1) {
+                if (prefix === 'tag') DOM.tagPaginationBar.style.display = 'none';
+                else DOM.paginationBar.style.display = 'none';
+                return;
             }
+            const bar = prefix === 'tag' ? DOM.tagPaginationBar : DOM.paginationBar;
+            const info = prefix === 'tag' ? DOM.tagPageInfo : DOM.pageInfo;
+            const prev = prefix === 'tag' ? DOM.tagPrevPageBtn : DOM.prevPageBtn;
+            const next = prefix === 'tag' ? DOM.tagNextPageBtn : DOM.nextPageBtn;
+            bar.style.display = 'flex';
+            info.textContent = `第 ${page} / ${total} 页`;
+            prev.disabled = page <= 1;
+            next.disabled = page >= total;
         }
 
-        // 主题切换
+        DOM.prevPageBtn.addEventListener('click', () => { if (STATE.page > 1) { STATE.page--; doSearch(); } });
+        DOM.nextPageBtn.addEventListener('click', () => { if (STATE.page < STATE.totalPages) { STATE.page++; doSearch(); } });
+        DOM.tagPrevPageBtn.addEventListener('click', () => { if (STATE.tagPage > 1) { STATE.tagPage--; fetchTags(); } });
+        DOM.tagNextPageBtn.addEventListener('click', () => { if (STATE.tagPage < STATE.tagTotalPages) { STATE.tagPage++; fetchTags(); } });
+
+        DOM.input.addEventListener('input', () => {
+            DOM.clearBtn.classList.toggle('visible', DOM.input.value.length > 0);
+            debouncedSearch();
+        });
+        DOM.input.addEventListener('keydown', e => {
+            if (e.key === 'Enter') { e.preventDefault(); doSearch(); }
+            if (e.key === 'Escape') { DOM.input.value = ''; DOM.clearBtn.classList.remove('visible'); DOM.input.blur(); }
+        });
+        DOM.searchBtn.addEventListener('click', doSearch);
+        DOM.clearBtn.addEventListener('click', () => {
+            DOM.input.value = '';
+            DOM.clearBtn.classList.remove('visible');
+            DOM.input.focus();
+            STATE.query = '';
+            STATE.currentResults = [];
+            STATE.currentSourceResults = {};
+            DOM.resultsContainer.innerHTML = '';
+            DOM.emptyState.style.display = 'block';
+            DOM.resultCount.textContent = '';
+            DOM.paginationBar.style.display = 'none';
+        });
+
+        document.addEventListener('keydown', e => {
+            if ((e.ctrlKey || e.metaKey) && e.key === 'k') { e.preventDefault(); DOM.input.focus(); }
+        });
+
+        DOM.mobileToggle.addEventListener('click', () => DOM.navLinks.classList.toggle('open'));
+
+        let debounceTimer;
+        function debouncedSearch() {
+            clearTimeout(debounceTimer);
+            debounceTimer = setTimeout(() => {
+                if (DOM.input.value.trim()) doSearch();
+            }, 400);
+        }
+
+        (function initTheme() {
+            const saved = localStorage.getItem('theme');
+            const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+            if (saved === 'dark' || (!saved && prefersDark)) {
+                document.body.classList.add('dark');
+            } else {
+                document.body.classList.remove('dark');
+            }
+            document.getElementById('themeToggle').textContent = document.body.classList.contains('dark') ? '☀️' : '🌙';
+        })();
+
         document.getElementById('themeToggle').addEventListener('click', () => {
             document.body.classList.toggle('dark');
-            const icon = document.getElementById('themeToggle');
-            icon.textContent = document.body.classList.contains('dark') ? '☀️' : '🌙';
+            const isDark = document.body.classList.contains('dark');
+            document.getElementById('themeToggle').textContent = isDark ? '☀️' : '🌙';
+            localStorage.setItem('theme', isDark ? 'dark' : 'light');
         });
-
-        // 移动菜单切换
-        document.getElementById('mobileMenuToggle').addEventListener('click', () => {
-            document.getElementById('navLinks').classList.toggle('active');
-        });
-
-        // 初始化主题
-        if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
-            document.body.classList.add('dark');
-            document.getElementById('themeToggle').textContent = '☀️';
-        }
     </script>
 </body>
 </html>

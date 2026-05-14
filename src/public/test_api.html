@@ -1,1611 +1,556 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="description" content="API测试页面">
-    <meta name="keywords" content="API、测试、Docker、镜像搜索">
     <meta name="color-scheme" content="dark light">
-    <title>API测试页面</title>
+    <title>API · HubProxy</title>
     <link rel="icon" href="/favicon.ico">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
         :root {
-            --background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
-            --foreground: #0f172a;
-            --card: #ffffff;
-            --card-foreground: #0f172a;
-            --primary: #2563eb;
-            --primary-foreground: #f8fafc;
-            --secondary: #f1f5f9;
-            --secondary-foreground: #0f172a;
-            --muted: #f1f5f9;
-            --muted-foreground: #64748b;
-            --accent: #dbeafe;
-            --accent-foreground: #1e40af;
-            --border: #e2e8f0;
-            --input: #ffffff;
-            --ring: #2563eb;
-            --radius: 0.75rem;
-            --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-            --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+            --bg-primary: #f1f5f9;
+            --bg-secondary: #e2e8f0;
+            --bg-card: #ffffff;
+            --bg-card-hover: #f8fafc;
+            --bg-input: #ffffff;
+            --border: #cbd5e1;
+            --border-focus: #06b6d4;
+            --text-primary: #0f172a;
+            --text-secondary: #475569;
+            --text-tertiary: #94a3b8;
+            --accent: #0891b2;
+            --accent-dim: #06b6d4;
+            --accent-glow: rgba(8,145,178,0.12);
+            --green: #059669;
+            --amber: #d97706;
+            --red: #dc2626;
+            --radius: 12px;
+            --radius-sm: 8px;
+            --shadow: 0 1px 3px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.06);
+            --shadow-lg: 0 10px 25px rgba(0,0,0,0.1), 0 4px 10px rgba(0,0,0,0.06);
+            --navbar-bg: rgba(241,245,249,0.85);
+            --font-sans: 'Plus Jakarta Sans', system-ui, sans-serif;
+            --font-mono: 'JetBrains Mono', 'Fira Code', monospace;
+            --transition: 200ms cubic-bezier(0.4, 0, 0.2, 1);
         }
-
-        .dark {
-            --background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
-            --foreground: #f8fafc;
-            --card: #1e293b;
-            --card-foreground: #f8fafc;
-            --primary: #3b82f6;
-            --primary-foreground: #f8fafc;
-            --secondary: #1e293b;
-            --secondary-foreground: #f8fafc;
-            --muted: #334155;
-            --muted-foreground: #94a3b8;
-            --accent: #1e40af;
-            --accent-foreground: #dbeafe;
-            --border: #334155;
-            --input: #334155;
-            --ring: #3b82f6;
-            --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3), 0 2px 4px -1px rgba(0, 0, 0, 0.2);
-            --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.3), 0 4px 6px -2px rgba(0, 0, 0, 0.2);
+        body.light {
+            --bg-primary: #f1f5f9;
+            --bg-secondary: #e2e8f0;
+            --bg-card: #ffffff;
+            --bg-card-hover: #f8fafc;
+            --bg-input: #ffffff;
+            --border: #cbd5e1;
+            --text-primary: #0f172a;
+            --text-secondary: #475569;
+            --text-tertiary: #94a3b8;
+            --accent: #0891b2;
+            --accent-glow: rgba(8,145,178,0.12);
+            --green: #059669;
+            --amber: #d97706;
+            --red: #dc2626;
+            --shadow: 0 1px 3px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.06);
+            --shadow-lg: 0 10px 25px rgba(0,0,0,0.1), 0 4px 10px rgba(0,0,0,0.06);
+            --navbar-bg: rgba(255,255,255,0.8);
         }
-
-        @media (prefers-color-scheme: dark) {
-            :root {
-                --background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
-                --foreground: #f8fafc;
-                --card: #1e293b;
-                --card-foreground: #f8fafc;
-                --primary: #3b82f6;
-                --primary-foreground: #f8fafc;
-                --secondary: #1e293b;
-                --secondary-foreground: #f8fafc;
-                --muted: #334155;
-                --muted-foreground: #94a3b8;
-                --accent: #1e40af;
-                --accent-foreground: #dbeafe;
-                --border: #334155;
-                --input: #334155;
-                --ring: #3b82f6;
-                --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3), 0 2px 4px -1px rgba(0, 0, 0, 0.2);
-                --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.3), 0 4px 6px -2px rgba(0, 0, 0, 0.2);
-            }
+        body.dark {
+            --bg-primary: #0a0e17;
+            --bg-secondary: #111827;
+            --bg-card: #1a1f2e;
+            --bg-card-hover: #1f2638;
+            --bg-input: #0d1117;
+            --border: #1e293b;
+            --text-primary: #e2e8f0;
+            --text-secondary: #94a3b8;
+            --text-tertiary: #64748b;
+            --accent: #06b6d4;
+            --accent-glow: rgba(6,182,212,0.15);
+            --green: #10b981;
+            --amber: #f59e0b;
+            --red: #ef4444;
+            --shadow: 0 1px 3px rgba(0,0,0,0.3), 0 1px 2px rgba(0,0,0,0.2);
+            --shadow-lg: 0 10px 25px rgba(0,0,0,0.4), 0 4px 10px rgba(0,0,0,0.3);
+            --navbar-bg: rgba(10,14,23,0.85);
         }
-
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-        }
-
+        html { scroll-behavior: smooth; }
         body {
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
-            background: var(--background);
-            color: var(--foreground);
+            font-family: var(--font-sans);
+            background: var(--bg-primary);
+            color: var(--text-primary);
             line-height: 1.6;
             min-height: 100vh;
-            display: flex;
-            flex-direction: column;
-            transition: all 0.3s ease;
+            display: flex; flex-direction: column;
+            background-image: radial-gradient(ellipse at 20% 50%, rgba(6,182,212,0.03) 0%, transparent 50%),
+                              radial-gradient(ellipse at 80% 20%, rgba(6,182,212,0.02) 0%, transparent 50%);
         }
+        ::selection { background: var(--accent); color: #fff; }
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: var(--bg-secondary); }
+        ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: var(--text-tertiary); }
 
-        nav.navbar {
-            position: sticky;
-            top: 0;
-            z-index: 50;
-            width: 100%;
-            border-bottom: 1px solid var(--border);
-            background-color: rgba(255, 255, 255, 0.95);
-            backdrop-filter: blur(12px);
-            padding: 0;
-            margin: 0;
-            transition: all 0.3s ease;
-        }
-
-        .dark nav.navbar {
-            background-color: rgba(15, 23, 42, 0.95);
-        }
-
-        .navbar .navbar-container {
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 0 1rem;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            height: 4rem;
-        }
-
-        .navbar .logo {
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-            text-decoration: none;
-            color: var(--foreground);
-            font-weight: 600;
-            font-size: 1.125rem;
-            transition: all 0.3s ease;
-        }
-
-        .navbar .logo:hover {
-            transform: translateY(-2px);
-        }
-
-        .navbar .logo-icon {
-            width: 2rem;
-            height: 2rem;
-            border-radius: 0.5rem;
-            background: linear-gradient(135deg, var(--primary), #3b82f6);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: white;
-            box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
-            transition: all 0.3s ease;
-        }
-
-        .navbar .logo:hover .logo-icon {
-            transform: scale(1.05);
-            box-shadow: 0 6px 16px rgba(37, 99, 235, 0.4);
-        }
-
-        .navbar .nav-links {
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-        }
-
-        .navbar .nav-link {
-            padding: 0.5rem 1rem;
-            border-radius: var(--radius);
-            text-decoration: none;
-            color: var(--muted-foreground);
-            transition: all 0.3s ease;
-            font-weight: 500;
-            position: relative;
-            overflow: hidden;
-        }
-
-        .navbar .nav-link:hover,
-        .navbar .nav-link.active {
-            color: var(--foreground);
-            background-color: var(--muted);
-            transform: translateY(-2px);
-        }
-
-        .navbar .nav-link::after {
-            content: '';
-            position: absolute;
-            bottom: 0;
-            left: 0;
-            width: 0;
-            height: 2px;
-            background-color: var(--primary);
-            transition: width 0.3s ease;
-        }
-
-        .navbar .nav-link:hover::after,
-        .navbar .nav-link.active::after {
-            width: 100%;
-        }
-
-        .navbar .theme-toggle {
-            padding: 0.5rem;
-            border: none;
-            border-radius: var(--radius);
-            background-color: transparent;
-            color: var(--muted-foreground);
-            cursor: pointer;
-            transition: all 0.3s ease;
-            font-size: 1.1rem;
-        }
-
-        .navbar .theme-toggle:hover {
-            background-color: var(--muted);
-            color: var(--foreground);
-            transform: rotate(180deg);
-        }
-
-        .main {
-            flex: 1;
-            padding: 2rem 1rem;
-            min-height: calc(100vh - 4rem);
-        }
-        
-        .container {
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 0 15px;
-        }
-
-        h1 {
-            text-align: center;
-            margin-bottom: 2.5rem;
-            color: var(--primary);
-            font-size: 2.5rem;
-            font-weight: 700;
-            background: linear-gradient(135deg, var(--primary), #3b82f6);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-            animation: fadeInDown 0.6s ease-out;
-        }
-
-        h3 {
-            font-size: 1.5rem;
-            font-weight: 600;
-            margin-bottom: 1.5rem;
-            color: var(--foreground);
-            animation: fadeIn 0.6s ease-out;
-        }
-        
-        .mobile-menu-toggle {
-            display: none;
-        }
-
-        .icon {
-            display: inline-block;
-            vertical-align: middle;
-            margin-right: 4px;
-            margin-top: -2px;
-        }
-        
-        @media (max-width: 768px) {
-            .nav-links {
-                position: fixed;
-                top: 70px;
-                left: 0;
-                right: 0;
-                background: var(--background);
-                border: 1px solid var(--border);
-                border-top: none;
-                border-radius: 0 0 12px 12px;
-                padding: 1rem;
-                flex-direction: column;
-                gap: 0.5rem;
-                z-index: 1000;
-                transform: translateY(-100vh);
-                transition: transform 0.3s ease;
-                box-shadow: var(--shadow-lg);
-            }
-            
-            .nav-links.active {
-                transform: translateY(0);
-                animation: slideIn 0.3s ease-out;
-            }
-            
-            .mobile-menu-toggle {
-                display: block;
-                background: none;
-                border: none;
-                color: var(--foreground);
-                font-size: 1.5rem;
-                cursor: pointer;
-                padding: 0.5rem;
-                border-radius: var(--radius);
-                transition: all 0.3s ease;
-            }
-            
-            .mobile-menu-toggle:hover {
-                background-color: var(--muted);
-                transform: scale(1.1);
-            }
-            
-            .navbar-container {
-                justify-content: space-between;
-            }
-
-            h1 {
-                font-size: 2rem;
-            }
-        }
-
-        .search-section {
-            background: var(--card);
-            padding: 2rem;
-            border-radius: var(--radius);
-            box-shadow: var(--shadow-lg);
-            margin-bottom: 2.5rem;
-            border: 1px solid var(--border);
-            animation: fadeInUp 0.6s ease-out;
-            position: relative;
-            overflow: hidden;
-        }
-
-        .search-section::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 4px;
-            background: linear-gradient(90deg, var(--primary), #3b82f6);
-        }
-
-        .search-section:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 15px 30px rgba(0, 0, 0, 0.1);
-            transition: all 0.3s ease;
-        }
-
-        .form-group {
-            display: flex;
-            gap: 1.5rem;
-            margin-bottom: 1.5rem;
-            flex-wrap: wrap;
-            align-items: flex-end;
-        }
-
-        .input-group {
-            flex: 1;
-            min-width: 250px;
-        }
-
-        label {
-            display: block;
-            margin-bottom: 0.75rem;
-            font-weight: 500;
-            color: var(--foreground);
-            font-size: 1rem;
-        }
-
-        input[type="text"], input[type="number"] {
-            width: 100%;
-            padding: 1rem 1.25rem;
-            border: 1px solid var(--border);
-            border-radius: var(--radius);
-            background-color: var(--input);
-            color: var(--foreground);
-            font-size: 1rem;
-            transition: all 0.3s ease;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
-        }
-
-        input[type="text"]:focus, input[type="number"]:focus {
-            outline: none;
-            border-color: var(--ring);
-            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
-            transform: translateY(-2px);
-        }
-
-        input[type="text"]::placeholder, input[type="number"]::placeholder {
-            color: var(--muted-foreground);
-            font-style: italic;
-        }
-
-        .btn-group {
-            display: flex;
-            gap: 1rem;
-            flex-wrap: wrap;
-        }
-
-        button {
-            padding: 1rem 1.75rem;
-            background-color: var(--primary);
-            color: var(--primary-foreground);
-            border: none;
-            border-radius: var(--radius);
-            cursor: pointer;
-            font-size: 1rem;
-            font-weight: 600;
-            transition: all 0.3s ease;
-            position: relative;
-            overflow: hidden;
-            box-shadow: 0 4px 6px rgba(37, 99, 235, 0.3);
-        }
-
-        button:hover {
-            background-color: #1d4ed8;
-            transform: translateY(-3px);
-            box-shadow: 0 8px 15px rgba(37, 99, 235, 0.4);
-        }
-
-        button:active {
-            transform: translateY(-1px);
-            box-shadow: 0 4px 6px rgba(37, 99, 235, 0.3);
-        }
-
-        button:disabled {
-            background-color: var(--muted);
-            cursor: not-allowed;
-            transform: none;
-            box-shadow: none;
-        }
-
-        button::after {
-            content: '';
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            width: 0;
-            height: 0;
-            background: rgba(255, 255, 255, 0.2);
-            border-radius: 50%;
-            transform: translate(-50%, -50%);
-            transition: width 0.6s, height 0.6s;
-        }
-
-        button:hover::after {
-            width: 300px;
-            height: 300px;
-        }
-
-        .results-section {
-            margin-top: 2.5rem;
-        }
-
-        .result-card {
-            background-color: var(--card);
-            border: 1px solid var(--border);
-            border-radius: var(--radius);
-            padding: 1.75rem;
-            margin-bottom: 1.5rem;
-            box-shadow: var(--shadow);
-            transition: all 0.3s ease;
-            animation: fadeInUp 0.4s ease-out;
-            position: relative;
-        }
-
-        .result-card:hover {
-            transform: translateY(-4px);
-            box-shadow: var(--shadow-lg);
-            border-color: var(--primary);
-        }
-
-        .result-card::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 0;
-            height: 4px;
-            background: linear-gradient(90deg, var(--primary), #3b82f6);
-            transition: width 0.3s ease;
-            border-radius: var(--radius) var(--radius) 0 0;
-        }
-
-        .result-card:hover::before {
-            width: 100%;
-        }
-
-        .result-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 1.25rem;
-            padding-bottom: 1rem;
+        .navbar {
+            position: sticky; top: 0; z-index: 100;
+            background: var(--navbar-bg); backdrop-filter: blur(20px) saturate(1.5);
             border-bottom: 1px solid var(--border);
         }
+        .navbar-inner {
+            max-width: 1200px; margin: 0 auto;
+            display: flex; align-items: center; justify-content: space-between;
+            height: 56px; padding: 0 20px;
+        }
+        .logo {
+            display: flex; align-items: center; gap: 10px;
+            text-decoration: none; color: var(--text-primary);
+            font-weight: 700; font-size: 1.1rem;
+            font-family: var(--font-mono);
+        }
+        .logo-icon {
+            width: 32px; height: 32px; border-radius: 8px;
+            background: linear-gradient(135deg, var(--accent), #3b82f6);
+            display: flex; align-items: center; justify-content: center;
+            color: #fff; font-size: 1rem;
+            box-shadow: 0 0 20px var(--accent-glow);
+            transition: transform var(--transition);
+        }
+        .logo:hover .logo-icon { transform: scale(1.08); }
+        .nav-links { display: flex; align-items: center; gap: 4px; }
+        .nav-link {
+            padding: 6px 14px; border-radius: var(--radius-sm);
+            text-decoration: none; color: var(--text-secondary);
+            font-size: 0.875rem; font-weight: 500; white-space: nowrap;
+            transition: all var(--transition);
+        }
+        .nav-link:hover { color: var(--text-primary); background: var(--bg-card); }
+        .nav-link.active { color: var(--accent); background: var(--accent-glow); }
+        .theme-btn {
+            background: none; border: none; color: var(--text-secondary);
+            font-size: 1.1rem; cursor: pointer; padding: 6px; border-radius: var(--radius-sm);
+            transition: all var(--transition);
+        }
+        .theme-btn:hover { color: var(--text-primary); background: var(--bg-card); }
+        .mobile-toggle { display: none; background: none; border: none; color: var(--text-primary); font-size: 1.5rem; cursor: pointer; padding: 6px; border-radius: var(--radius-sm); }
 
-        .result-title {
-            font-size: 1.35rem;
-            font-weight: 600;
-            color: var(--primary);
-        }
+        main { flex: 1; padding: 40px 20px; }
+        .container { max-width: 1000px; margin: 0 auto; }
 
-        .result-source {
-            font-size: 0.95rem;
-            padding: 0.35rem 1rem;
-            border-radius: 25px;
-            background-color: var(--secondary);
-            font-weight: 500;
+        .hero { text-align: center; margin-bottom: 32px; }
+        .hero h1 {
+            font-family: var(--font-mono);
+            font-size: 2rem; font-weight: 700;
+            background: linear-gradient(135deg, var(--accent), #3b82f6);
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+            background-clip: text; letter-spacing: -0.02em;
         }
+        .hero p { color: var(--text-secondary); font-size: 0.9rem; margin-top: 8px; }
 
-        .result-content {
-            font-family: 'JetBrains Mono', monospace;
-            white-space: pre-wrap;
-            word-break: break-all;
-            max-height: 350px;
-            overflow-y: auto;
-            background-color: var(--muted);
-            padding: 1.25rem;
-            border-radius: var(--radius);
-            font-size: 0.95rem;
-            line-height: 1.5;
-            transition: all 0.3s ease;
-        }
-
-        .result-content:hover {
-            box-shadow: inset 0 0 0 1px var(--border);
-        }
-        
-        .result-summary {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 1.25rem;
-            margin-bottom: 1.25rem;
-            padding: 1.25rem;
-            background-color: var(--secondary);
-            border-radius: var(--radius);
-            border-left: 4px solid var(--primary);
-        }
-        
-        .summary-item {
-            display: flex;
-            flex-direction: column;
-            min-width: 120px;
-        }
-        
-        .summary-label {
-            font-size: 0.85rem;
-            color: var(--muted-foreground);
-            margin-bottom: 0.35rem;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }
-        
-        .summary-value {
-            font-weight: 700;
-            font-size: 1.2rem;
-            color: var(--foreground);
-        }
-        
-        .api-endpoint {
-            font-family: 'JetBrains Mono', monospace;
-            background-color: var(--muted);
-            padding: 0.75rem 1rem;
-            border-radius: var(--radius);
-            font-size: 0.95rem;
-            margin: 0.75rem 0;
-            border-left: 4px solid var(--primary);
-            transition: all 0.3s ease;
-        }
-
-        .api-endpoint:hover {
-            transform: translateX(5px);
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-        }
-
-        .loading {
-            text-align: center;
-            padding: 3rem;
-            color: var(--muted-foreground);
-            background-color: var(--card);
-            border-radius: var(--radius);
+        .search-box {
+            background: var(--bg-card); border: 1px solid var(--border);
+            border-radius: var(--radius); padding: 20px; margin-bottom: 24px;
             box-shadow: var(--shadow);
-            margin: 2rem 0;
         }
+        .search-row {
+            display: flex; gap: 12px; align-items: flex-end; flex-wrap: wrap;
+        }
+        .search-field { flex: 1; min-width: 200px; }
+        .search-field label {
+            display: block; font-size: 0.82rem; font-weight: 500;
+            color: var(--text-secondary); margin-bottom: 4px;
+        }
+        .search-field input {
+            width: 100%; padding: 10px 14px;
+            background: var(--bg-input); border: 1px solid var(--border);
+            border-radius: var(--radius-sm); color: var(--text-primary);
+            font-family: var(--font-mono); font-size: 0.9rem;
+            transition: all var(--transition);
+        }
+        .search-field input:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-glow); }
+        .search-field input::placeholder { color: var(--text-tertiary); }
+        .search-field input[type="number"] { width: 80px; }
+        .search-actions { display: flex; gap: 8px; flex-wrap: wrap; align-items: flex-end; }
 
-        .spinner {
-            width: 50px;
-            height: 50px;
-            border: 5px solid var(--muted);
-            border-top: 5px solid var(--primary);
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
-            margin: 0 auto 1.5rem;
+        .btn {
+            padding: 9px 18px; border: none; border-radius: var(--radius-sm);
+            background: var(--accent); color: #fff;
+            font-family: var(--font-sans); font-weight: 600; font-size: 0.82rem;
+            cursor: pointer; white-space: nowrap;
+            transition: all var(--transition);
         }
+        .btn:hover { background: var(--accent-dim); box-shadow: 0 0 20px var(--accent-glow); }
+        .btn:active { transform: scale(0.97); }
+        .btn-secondary { background: var(--bg-secondary); border: 1px solid var(--border); color: var(--text-secondary); }
+        .btn-secondary:hover { background: var(--bg-card); color: var(--text-primary); box-shadow: none; }
+        .btn-sm { padding: 6px 14px; font-size: 0.78rem; }
 
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
+        .checkbox-row {
+            display: flex; align-items: center; gap: 8px; padding: 4px 0;
         }
-
-        @keyframes fadeIn {
-            from { opacity: 0; }
-            to { opacity: 1; }
-        }
-
-        @keyframes fadeInDown {
-            from {
-                opacity: 0;
-                transform: translateY(-30px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-
-        @keyframes fadeInUp {
-            from {
-                opacity: 0;
-                transform: translateY(30px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-
-        @keyframes slideIn {
-            from {
-                opacity: 0;
-                transform: translateY(-100vh);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-
-        .status-indicator {
-            display: inline-block;
-            padding: 0.35rem 1rem;
-            border-radius: 25px;
-            font-size: 0.9rem;
-            font-weight: 600;
-            transition: all 0.3s ease;
-        }
-
-        .status-success {
-            background-color: rgba(72, 187, 120, 0.2);
-            color: #166534;
-            border: 1px solid rgba(72, 187, 120, 0.4);
-        }
-
-        .status-error {
-            background-color: rgba(239, 68, 68, 0.2);
-            color: #991b1b;
-            border: 1px solid rgba(239, 68, 68, 0.4);
-        }
-
-        .status-pending {
-            background-color: rgba(245, 158, 11, 0.2);
-            color: #92400e;
-            border: 1px solid rgba(245, 158, 11, 0.4);
-        }
+        .checkbox-row label { font-size: 0.82rem; color: var(--text-secondary); cursor: pointer; }
+        .checkbox-row input { accent-color: var(--accent); }
 
         .tabs {
-            display: flex;
-            margin-bottom: 2rem;
-            border-bottom: 1px solid var(--border);
-            flex-wrap: wrap;
-            gap: 0.5rem;
+            display: flex; gap: 4px; border-bottom: 1px solid var(--border);
+            margin-bottom: 20px; overflow-x: auto;
         }
-
         .tab {
-            padding: 1rem 1.75rem;
-            cursor: pointer;
-            border-bottom: 3px solid transparent;
-            transition: all 0.3s ease;
-            font-weight: 500;
-            position: relative;
-            border-radius: var(--radius) var(--radius) 0 0;
+            padding: 10px 18px; cursor: pointer; font-size: 0.85rem; font-weight: 500;
+            color: var(--text-tertiary); border-bottom: 2px solid transparent;
+            white-space: nowrap; transition: all var(--transition);
+        }
+        .tab:hover { color: var(--text-primary); background: var(--bg-card); }
+        .tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+
+        .tab-pane { display: none; animation: fadeSlideUp 0.3s ease; }
+        .tab-pane.active { display: block; }
+
+        .result-card {
+            background: var(--bg-card); border: 1px solid var(--border);
+            border-radius: var(--radius); padding: 20px; margin-bottom: 12px;
+            box-shadow: var(--shadow);
+        }
+        .result-header {
+            display: flex; justify-content: space-between; align-items: center;
+            margin-bottom: 12px; gap: 8px; flex-wrap: wrap;
+        }
+        .result-title { font-family: var(--font-mono); font-size: 0.95rem; font-weight: 600; }
+        .result-status {
+            font-size: 0.72rem; padding: 2px 10px; border-radius: 20px; font-weight: 600;
+        }
+        .result-status.success { background: rgba(16,185,129,0.15); color: var(--green); }
+        .result-status.error { background: rgba(239,68,68,0.15); color: var(--red); }
+        .result-status.pending { background: rgba(245,158,11,0.15); color: var(--amber); }
+
+        .api-endpoint {
+            font-family: var(--font-mono); font-size: 0.78rem;
+            background: var(--bg-secondary); padding: 8px 12px;
+            border-radius: var(--radius-sm); border: 1px solid var(--border);
+            margin-bottom: 12px; color: var(--accent);
+        }
+        .result-summary {
+            display: flex; gap: 16px; flex-wrap: wrap; margin-bottom: 12px;
+            padding: 12px; background: var(--bg-secondary);
+            border-radius: var(--radius-sm); border-left: 3px solid var(--accent);
+        }
+        .summary-item { display: flex; flex-direction: column; min-width: 80px; }
+        .summary-label { font-size: 0.7rem; color: var(--text-tertiary); text-transform: uppercase; letter-spacing: 0.03em; }
+        .summary-value { font-family: var(--font-mono); font-size: 1rem; font-weight: 600; margin-top: 2px; }
+
+        .result-json {
+            font-family: var(--font-mono); font-size: 0.78rem; line-height: 1.5;
+            max-height: 300px; overflow: auto; white-space: pre-wrap; word-break: break-all;
+            background: var(--bg-secondary); padding: 14px; border-radius: var(--radius-sm);
+            border: 1px solid var(--border);
+        }
+        .result-json .key { color: var(--accent); }
+        .result-json .string { color: var(--green); }
+        .result-json .number { color: var(--amber); }
+        .result-json .bool { color: var(--red); }
+        .result-json .null { color: var(--text-tertiary); }
+
+        .loading {
+            text-align: center; padding: 40px 20px; color: var(--text-tertiary);
         }
 
-        .tab:hover {
-            background-color: var(--muted);
-            transform: translateY(-2px);
+        .toast {
+            position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(100px);
+            background: var(--bg-card); border: 1px solid var(--border);
+            color: var(--text-primary); padding: 10px 20px; border-radius: var(--radius-sm);
+            font-size: 0.85rem; box-shadow: var(--shadow-lg);
+            opacity: 0; transition: all 0.3s ease; z-index: 300;
+            pointer-events: none;
         }
+        .toast.visible { opacity: 1; transform: translateX(-50%) translateY(0); }
 
-        .tab.active {
-            border-bottom: 3px solid var(--primary);
-            color: var(--primary);
-            font-weight: 600;
-            background-color: var(--muted);
-        }
-
-        .tab-content {
-            display: none;
-            animation: fadeIn 0.6s ease-out;
-        }
-
-        .tab-content.active {
-            display: block;
+        @keyframes fadeSlideUp {
+            from { opacity: 0; transform: translateY(12px); }
+            to { opacity: 1; transform: translateY(0); }
         }
 
         @media (max-width: 768px) {
-            .form-group {
-                flex-direction: column;
-                align-items: stretch;
+            main { padding: 24px 16px; }
+            .hero h1 { font-size: 1.5rem; }
+            .nav-links {
+                display: none; flex-direction: column; position: absolute;
+                top: 56px; left: 0; right: 0;
+                background: rgba(10,14,23,0.98); backdrop-filter: blur(20px);
+                border-bottom: 1px solid var(--border); padding: 12px;
+                animation: fadeSlideUp 0.2s ease;
             }
-            
-            .btn-group {
-                flex-direction: column;
-            }
-            
-            button {
-                width: 100%;
-            }
-            
-            .result-header {
-                flex-direction: column;
-                align-items: flex-start;
-                gap: 0.75rem;
-            }
-
-            .result-summary {
-                gap: 1rem;
-            }
-
-            .summary-item {
-                min-width: 100px;
-            }
-
-            .search-section {
-                padding: 1.5rem;
-            }
-
-            .result-card {
-                padding: 1.25rem;
-            }
+            .nav-links.open { display: flex; }
+            .mobile-toggle { display: block; }
+            .search-row { flex-direction: column; }
+            .search-actions { width: 100%; }
+            .search-actions .btn { flex: 1; }
+            .result-header { flex-direction: column; align-items: flex-start; }
         }
     </style>
 </head>
 <body>
     <nav class="navbar">
-        <div class="navbar-container">
-            <a href="/" class="logo">
-                <div class="logo-icon">
-                    ⚡
-                </div>
-                加速服务
-            </a>
-            
-            <button class="mobile-menu-toggle" id="mobileMenuToggle">
-                ☰
-            </button>
-            
+        <div class="navbar-inner">
+            <a href="/" class="logo"><div class="logo-icon">⚡</div>HubProxy</a>
+            <button class="mobile-toggle" id="mobileToggle" aria-label="Menu">☰</button>
             <div class="nav-links" id="navLinks">
-                <a href="/" class="nav-link">🚀 GitHub加速</a>
-                <a href="/images.html" class="nav-link">🐳 离线镜像下载</a>
-                <a href="/search.html" class="nav-link">🔍 镜像搜索</a>
-                <a href="/test_api.html" class="nav-link active">🧪 API测试</a>
-                
-                <button class="theme-toggle" id="themeToggle">
-                    🌙
-                </button>
+                <a href="/" class="nav-link">🚀 加速</a>
+                <a href="/images.html" class="nav-link">🐳 离线镜像</a>
+                <a href="/search.html" class="nav-link">🔍 搜索</a>
+                <a href="/test_api.html" class="nav-link active">🧪 API</a>
+                <button class="theme-btn" id="themeToggle" aria-label="Theme">🌙</button>
             </div>
         </div>
     </nav>
 
-    <main class="main">
+    <main>
         <div class="container">
-            <h1>API测试页面</h1>
+            <div class="hero">
+                <h1>api debug</h1>
+                <p>搜索 API 端点调试与测试</p>
+            </div>
 
-            <div class="search-section">
-                <div class="form-group">
-                    <div class="input-group">
-                        <label for="searchQuery">搜索关键词</label>
-                        <input type="text" id="searchQuery" placeholder="输入搜索关键词，例如: litellm" value="litellm">
+            <div class="search-box">
+                <div class="search-row">
+                    <div class="search-field">
+                        <label>搜索关键词</label>
+                        <input type="text" id="searchQuery" placeholder="nginx, redis..." value="litellm">
                     </div>
-                    <div class="input-group">
+                    <div class="search-field">
+                        <label>页码</label>
+                        <input type="number" id="searchPage" value="1" min="1">
+                    </div>
+                    <div class="search-field">
+                        <label>每页</label>
+                        <input type="number" id="searchPageSize" value="25" min="1" max="100">
+                    </div>
+                    <div class="search-field" style="min-width:auto">
                         <label>&nbsp;</label>
-                        <div class="btn-group">
-                            <button type="button" id="testSingle">测试单一搜索</button>
-                            
-                            <button type="button" id="testAllSources">测试全部源</button>
-                        </div>
+                        <div class="checkbox-row"><input type="checkbox" id="ckMulti"><label for="ckMulti">多源</label></div>
+                    </div>
+                    <div class="search-field" style="min-width:auto">
+                        <label>&nbsp;</label>
+                        <div class="checkbox-row"><input type="checkbox" id="ckMerged"><label for="ckMerged">合并</label></div>
+                    </div>
+                    <div class="search-actions">
+                        <button class="btn" id="btnSearch">搜索</button>
+                        <button class="btn btn-secondary btn-sm" id="btnAllSources">测试全部源</button>
                     </div>
                 </div>
             </div>
 
-            <div class="tabs">
-                <div class="tab active" data-tab="single">单一搜索</div>
-                <div class="tab" data-tab="individual">独立源测试</div>
+            <div class="tabs" id="tabs">
+                <div class="tab active" data-tab="single">单一</div>
+                <div class="tab" data-tab="multi-separate">多源分离</div>
+                <div class="tab" data-tab="multi-merged">多源合并</div>
+                <div class="tab" data-tab="individual">各源独立</div>
             </div>
 
-            <div class="results-section">
-                <div id="singleTab" class="tab-content active">
-                    <h3>单一搜索结果</h3>
-                    <div id="singleResults"></div>
-                </div>
-
-                <div id="multiSeparateTab" class="tab-content">
-                    <h3>多源分离搜索结果</h3>
-                    <div id="multiSeparateResults"></div>
-                </div>
-
-                <div id="multiMergedTab" class="tab-content">
-                    <h3>多源合并搜索结果</h3>
-                    <div id="multiMergedResults"></div>
-                </div>
-
-                <div id="individualTab" class="tab-content">
-                    <h3>独立源测试结果</h3>
-                    <div id="individualResults"></div>
-                </div>
-            </div>
+            <div id="singleTab" class="tab-pane active"><div id="singleResults"></div></div>
+            <div id="multi-separateTab" class="tab-pane"><div id="multiSeparateResults"></div></div>
+            <div id="multi-mergedTab" class="tab-pane"><div id="multiMergedResults"></div></div>
+            <div id="individualTab" class="tab-pane"><div id="individualResults"></div></div>
         </div>
     </main>
 
+    <div class="toast" id="toast"></div>
+
     <script>
-        // 模块化结构
-        const ApiTester = {
-            // DOM元素缓存
-            elements: {
-                searchQuery: document.getElementById('searchQuery'),
-                testSingle: document.getElementById('testSingle'),
-                testAllSources: document.getElementById('testAllSources'),
-                testWithParams: null, // 动态添加
-                searchPage: null, // 动态添加
-                searchPageSize: null, // 动态添加
-                searchMultiSource: null, // 动态添加
-                searchMerged: null, // 动态添加
-                singleResults: document.getElementById('singleResults'),
-                multiSeparateResults: document.getElementById('multiSeparateResults'),
-                multiMergedResults: document.getElementById('multiMergedResults'),
-                individualResults: document.getElementById('individualResults'),
-                themeToggle: document.getElementById('themeToggle'),
-                mobileMenuToggle: document.getElementById('mobileMenuToggle'),
-                navLinks: document.getElementById('navLinks')
-            },
+        let toastTimer;
+        function toast(msg) {
+            clearTimeout(toastTimer);
+            const t = document.getElementById('toast');
+            t.textContent = msg; t.classList.add('visible');
+            toastTimer = setTimeout(() => t.classList.remove('visible'), 2500);
+        }
 
-            // 初始化
-            init() {
-                this.addAdvancedSearchOptions();
-                this.initElements();
-                this.bindEvents();
-                this.initFromUrlParams();
-                this.initTheme();
-            },
+        function el(id) { return document.getElementById(id); }
 
-            // 初始化动态元素
-            initElements() {
-                this.elements.testWithParams = document.getElementById('testWithParams');
-                this.elements.searchPage = document.getElementById('searchPage');
-                this.elements.searchPageSize = document.getElementById('searchPageSize');
-                this.elements.searchMultiSource = document.getElementById('searchMultiSource');
-                this.elements.searchMerged = document.getElementById('searchMerged');
-            },
+        function jsonHighlight(obj) {
+            return JSON.stringify(obj, null, 2)
+                .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+                .replace(/"([^"]+)":/g, '<span class="key">"$1"</span>:')
+                .replace(/: "([^"]+)"/g, ': <span class="string">"$1"</span>')
+                .replace(/: (\d+\.?\d*)/g, ': <span class="number">$1</span>')
+                .replace(/: (true|false)/g, ': <span class="bool">$1</span>')
+                .replace(/: null/g, ': <span class="null">null</span>');
+        }
 
-            // 添加高级搜索选项
-            addAdvancedSearchOptions() {
-                document.querySelector('.search-section').insertAdjacentHTML('beforeend', `
-                    <div class="form-group" style="margin-top: 1rem;">
-                        <div class="input-group">
-                            <label for="searchPage">页码</label>
-                            <input type="number" id="searchPage" placeholder="页码，默认1" value="1" min="1">
-                        </div>
-                        <div class="input-group">
-                            <label for="searchPageSize">每页大小</label>
-                            <input type="number" id="searchPageSize" placeholder="每页结果数，默认25" value="25" min="1" max="100">
-                        </div>
-                        <div class="input-group" style="align-self: flex-end;">
-                            <label>
-                                <input type="checkbox" id="searchMultiSource"> 多源搜索
-                            </label>
-                        </div>
-                        <div class="input-group" style="align-self: flex-end;">
-                            <label>
-                                <input type="checkbox" id="searchMerged"> 合并结果
-                            </label>
-                        </div>
-                    </div>
-                    <div class="btn-group" style="margin-top: 1rem;">
-                        <button id="testWithParams">使用参数搜索</button>
-                    </div>
-                `);
-            },
+        function renderCard(title, data, status, endpoint, time) {
+            const results = data.results || [];
+            const multiResults = data.multi_source_results || [];
+            const count = multiResults.length ? multiResults.reduce((s, r) => s + (r.Results || []).length, 0) : results.length;
+            const isOk = count > 0 || (data.Count && data.Count > 0);
+            return `<div class="result-card">
+                <div class="result-header">
+                    <div class="result-title">${title}</div>
+                    <span class="result-status ${isOk ? 'success' : 'error'}">${isOk ? 'Success' : 'No Results'}</span>
+                </div>
+                ${endpoint ? `<div class="api-endpoint">${endpoint}</div>` : ''}
+                <div class="result-summary">
+                    <div class="summary-item"><span class="summary-label">状态码</span><span class="summary-value">${status}</span></div>
+                    ${time !== null ? `<div class="summary-item"><span class="summary-label">耗时</span><span class="summary-value">${time}ms</span></div>` : ''}
+                    <div class="summary-item"><span class="summary-label">结果数</span><span class="summary-value">${count}</span></div>
+                </div>
+                <div class="result-json">${jsonHighlight(data)}</div>
+            </div>`;
+        }
 
-            // 绑定事件
-            bindEvents() {
-                // 搜索按钮事件
-                this.elements.testSingle.addEventListener('click', this.testSingleSearch.bind(this));
-                this.elements.testAllSources.addEventListener('click', this.testIndividualSources.bind(this));
-                this.elements.testWithParams.addEventListener('click', this.testWithParams.bind(this));
-                
-                // 回车键搜索
-                this.elements.searchQuery.addEventListener('keypress', (e) => {
-                    if (e.key === 'Enter') {
-                        this.testSingleSearch();
+        function showLoading(containerId, msg) {
+            el(containerId).innerHTML = '<div class="loading">' + msg + '</div>';
+        }
+
+        async function fetchJSON(url) {
+            const r = await fetch(url);
+            if (!r.ok) throw new Error(`HTTP ${r.status}`);
+            return await r.json();
+        }
+
+        // Single search
+        async function testSingle() {
+            const q = el('searchQuery').value.trim();
+            if (!q) { toast('请输入搜索关键词'); return; }
+            showLoading('singleResults', '搜索中…');
+            const start = Date.now();
+            try {
+                const data = await fetchJSON('/search?q=' + encodeURIComponent(q));
+                el('singleResults').innerHTML = renderCard('Docker Hub 搜索', data, 200, '/search?q=' + q, Date.now() - start);
+            } catch (e) { el('singleResults').innerHTML = renderCard('Docker Hub 搜索', { error: e.message }, 0, null, null); }
+        }
+
+        // Multi separate
+        async function testMultiSeparate() {
+            const q = el('searchQuery').value.trim();
+            if (!q) { toast('请输入搜索关键词'); return; }
+            showLoading('multiSeparateResults', '搜索多个源…');
+            const start = Date.now();
+            try {
+                const data = await fetchJSON('/search?q=' + encodeURIComponent(q) + '&multi_source=true');
+                const html = renderCard('多源分离搜索', data, 200, '/search?q=' + q + '&multi_source=true', Date.now() - start);
+                el('multiSeparateResults').innerHTML = html;
+            } catch (e) { el('multiSeparateResults').innerHTML = renderCard('多源分离搜索', { error: e.message }, 0, null, null); }
+        }
+
+        // Multi merged
+        async function testMultiMerged() {
+            const q = el('searchQuery').value.trim();
+            if (!q) { toast('请输入搜索关键词'); return; }
+            showLoading('multiMergedResults', '搜索中…');
+            const start = Date.now();
+            try {
+                const data = await fetchJSON('/search?q=' + encodeURIComponent(q) + '&multi_source=true&merged=true');
+                el('multiMergedResults').innerHTML = renderCard('多源合并搜索', data, 200, '/search?q=' + q + '&multi_source=true&merged=true', Date.now() - start);
+            } catch (e) { el('multiMergedResults').innerHTML = renderCard('多源合并搜索', { error: e.message }, 0, null, null); }
+        }
+
+        // Individual sources
+        async function testIndividual() {
+            const q = el('searchQuery').value.trim();
+            if (!q) { toast('请输入搜索关键词'); return; }
+            showLoading('individualResults', '测试各源…');
+            const sources = [
+                { n: 'Docker Hub', url: '/search?q=' + encodeURIComponent(q) + '&source=docker.io' },
+                { n: 'GHCR', url: '/search?q=' + encodeURIComponent(q) + '&source=ghcr.io' },
+                { n: 'GCR', url: '/search?q=' + encodeURIComponent(q) + '&source=gcr.io' },
+                { n: 'Quay.io', url: '/search?q=' + encodeURIComponent(q) + '&source=quay.io' },
+                { n: 'K8s', url: '/search?q=' + encodeURIComponent(q) + '&source=registry.k8s.io' },
+            ];
+            try {
+                const results = await Promise.all(sources.map(async (s) => {
+                    try {
+                        const st = Date.now();
+                        const r = await fetch(s.url);
+                        const data = await r.json();
+                        return renderCard(s.n, data, r.status, s.url, Date.now() - st);
+                    } catch (e) {
+                        return renderCard(s.n, { error: e.message }, 0, s.url, null);
                     }
-                });
-
-                // 主题切换事件
-                if (this.elements.themeToggle) {
-                    this.elements.themeToggle.addEventListener('click', this.toggleTheme.bind(this));
-                }
-
-                // 移动端菜单事件
-                if (this.elements.mobileMenuToggle && this.elements.navLinks) {
-                    this.elements.mobileMenuToggle.addEventListener('click', this.toggleMobileMenu.bind(this));
-                    document.addEventListener('click', (e) => {
-                        if (!e.target.closest('.navbar') && this.elements.navLinks && this.elements.navLinks.classList.contains('active')) {
-                            this.elements.navLinks.classList.remove('active');
-                            this.elements.mobileMenuToggle.textContent = '☰';
-                        }
-                    });
-                }
-            },
-
-            // 初始化主题
-            initTheme() {
-                const html = document.documentElement;
-                const savedTheme = localStorage.getItem('theme');
-                const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-                
-                if (savedTheme === 'dark' || (!savedTheme && prefersDark)) {
-                    html.classList.add('dark');
-                    this.elements.themeToggle.textContent = '☀️';
-                }
-            },
-
-            // 切换主题
-            toggleTheme() {
-                const html = document.documentElement;
-                html.classList.toggle('dark');
-                const isDark = html.classList.contains('dark');
-                this.elements.themeToggle.textContent = isDark ? '☀️' : '🌙';
-                localStorage.setItem('theme', isDark ? 'dark' : 'light');
-            },
-
-            // 切换移动端菜单
-            toggleMobileMenu() {
-                this.elements.navLinks.classList.toggle('active');
-                this.elements.mobileMenuToggle.textContent = this.elements.navLinks.classList.contains('active') ? '✕' : '☰';
-            },
-
-            // 通用辅助函数
-            showLoading(container, message = '正在搜索...') {
-                container.innerHTML = `<div class="loading"><div class="spinner"></div>${message}</div>`;
-            },
-
-            showError(container, title, error) {
-                container.innerHTML = `<div class="result-card">
-                    <div class="result-header">
-                        <div class="result-title">${title}</div>
-                        <div class="result-source status-indicator status-error">Error</div>
-                    </div>
-                    <div class="result-content">${error.message || error}</div>
-                </div>`;
-            },
-
-            createResultCard(title, source, data, statusCode, responseTime = null, endpoint = null) {
-                const hasResults = data && ((Array.isArray(data.results) && data.results.length > 0) || 
-                                           (data.multi_source_results && data.multi_source_results.length > 0) ||
-                                           (Array.isArray(data) && data.length > 0));
-                const status = hasResults ? 'success' : 'error';
-                const statusText = hasResults ? 'Success' : 'No Results';
-                
-                // 计算结果摘要
-                let resultCount = 0;
-                let sourceCount = 0;
-                if (data.results) {
-                    resultCount = Array.isArray(data.results) ? data.results.length : 0;
-                }
-                if (data.multi_source_results) {
-                    sourceCount = Array.isArray(data.multi_source_results) ? data.multi_source_results.length : 0;
-                    // 计算所有源的总结果数
-                    resultCount = data.multi_source_results.reduce((sum, sourceRes) => 
-                        sum + (Array.isArray(sourceRes.Results) ? sourceRes.Results.length : 0), 0);
-                }
-                
-                let apiEndpointHtml = '';
-                if (endpoint) {
-                    apiEndpointHtml = `<div class="api-endpoint">${endpoint}</div>`;
-                }
-                
-                let responseTimeHtml = '';
-                if (responseTime !== null) {
-                    responseTimeHtml = `
-                        <div class="summary-item">
-                            <span class="summary-label">响应时间</span>
-                            <span class="summary-value">${responseTime}ms</span>
-                        </div>`;
-                }
-                
-                return `
-                    <div class="result-card">
-                        <div class="result-header">
-                            <div class="result-title">${title}</div>
-                            <div class="result-source status-indicator status-${status}">${statusText}</div>
-                        </div>
-                        ${apiEndpointHtml}
-                        <div class="result-summary">
-                            <div class="summary-item">
-                                <span class="summary-label">HTTP状态码</span>
-                                <span class="summary-value">${statusCode}</span>
-                            </div>
-                            ${responseTimeHtml}
-                            <div class="summary-item">
-                                <span class="summary-label">结果数量</span>
-                                <span class="summary-value">${resultCount}</span>
-                            </div>
-                            <div class="summary-item">
-                                <span class="summary-label">数据源数量</span>
-                                <span class="summary-value">${sourceCount || 1}</span>
-                            </div>
-                        </div>
-                        <div class="result-content">响应数据:\n${JSON.stringify(data, null, 2)}</div>
-                    </div>
-                `;
-            },
-
-            displayResult(container, title, source, data, statusCode) {
-                container.innerHTML = this.createResultCard(title, source, data, statusCode);
-            },
-
-            // 测试函数
-            async testSingleSearch() {
-                const query = this.elements.searchQuery.value.trim();
-                if (!query) {
-                    alert('请输入搜索关键词');
-                    return;
-                }
-
-                const resultsDiv = this.elements.singleResults;
-                this.showLoading(resultsDiv, '正在搜索...');
-
-                try {
-                    const response = await fetch(`/search?q=${encodeURIComponent(query)}`);
-                    const data = await response.json();
-                    
-                    this.displayResult(resultsDiv, 'Docker Hub 搜索', 'docker.io', data, response.status);
-                } catch (error) {
-                    // 即使出现错误，也显示错误信息而不是隐藏结果
-                    this.showError(resultsDiv, 'Docker Hub 搜索', error);
-                }
-            },
-
-            async testMultiSeparateSearch() {
-                const query = this.elements.searchQuery.value.trim();
-                if (!query) {
-                    alert('请输入搜索关键词');
-                    return;
-                }
-
-                const resultsDiv = this.elements.multiSeparateResults;
-                this.showLoading(resultsDiv, '正在搜索多个源...');
-
-                try {
-                    const startTime = Date.now();
-                    const response = await fetch(`/search?q=${encodeURIComponent(query)}&multi_source=true`);
-                    const responseTime = Date.now() - startTime;
-                    const data = await response.json();
-                    
-                    console.log('多源分离搜索响应:', data); // 调试信息
-                    
-                    // 检查是否有错误
-                    if (data.error || data.Error) {
-                        resultsDiv.innerHTML = `<div class="result-card">
-                            <div class="result-header">
-                                <div class="result-title">多源分离搜索</div>
-                                <div class="result-source status-indicator status-error">Error</div>
-                            </div>
-                            <div class="result-summary">
-                                <div class="summary-item">
-                                    <span class="summary-label">HTTP状态码</span>
-                                    <span class="summary-value">${response.status}</span>
-                                </div>
-                                <div class="summary-item">
-                                    <span class="summary-label">响应时间</span>
-                                    <span class="summary-value">${responseTime}ms</span>
-                                </div>
-                            </div>
-                            <div class="result-content">服务器返回错误: ${data.error || data.Error}</div>
-                        </div>`;
-                        return;
-                    }
-                    
-                    if (data.multi_source_results && Array.isArray(data.multi_source_results)) {
-                        resultsDiv.innerHTML = '';
-                        
-                        // 显示总体摘要
-                        const totalSources = data.multi_source_results.length;
-                        const successfulSources = data.multi_source_results.filter(r => !(r.Error || r.error)).length;
-                        const totalResults = data.multi_source_results.reduce((sum, r) => 
-                            sum + (r.Results ? r.Results.length : r.results ? r.results.length : 0), 0);
-                        
-                        const summaryCard = document.createElement('div');
-                        summaryCard.className = 'result-card';
-                        summaryCard.innerHTML = `
-                            <div class="result-header">
-                                <div class="result-title">多源分离搜索 - 概览</div>
-                                <div class="result-source status-indicator status-success">Summary</div>
-                            </div>
-                            <div class="result-summary">
-                                <div class="summary-item">
-                                    <span class="summary-label">HTTP状态码</span>
-                                    <span class="summary-value">${response.status}</span>
-                                </div>
-                                <div class="summary-item">
-                                    <span class="summary-label">响应时间</span>
-                                    <span class="summary-value">${responseTime}ms</span>
-                                </div>
-                                <div class="summary-item">
-                                    <span class="summary-label">数据源数量</span>
-                                    <span class="summary-value">${totalSources}</span>
-                                </div>
-                                <div class="summary-item">
-                                    <span class="summary-label">成功源数</span>
-                                    <span class="summary-value">${successfulSources}</span>
-                                </div>
-                                <div class="summary-item">
-                                    <span class="summary-label">总结果数</span>
-                                    <span class="summary-value">${totalResults}</span>
-                                </div>
-                            </div>
-                        `;
-                        resultsDiv.appendChild(summaryCard);
-                        
-                        if (totalResults === 0 && successfulSources === 0) {
-                            const noResultsCard = document.createElement('div');
-                            noResultsCard.className = 'result-card';
-                            noResultsCard.innerHTML = `
-                                <div class="result-header">
-                                    <div class="result-title">提示</div>
-                                    <div class="result-source status-indicator status-error">无结果</div>
-                                </div>
-                                <div class="result-content">所有数据源均未返回结果。这可能是因为：
-                                    1. 搜索的镜像名称不存在
-                                    2. 网络连接问题导致API调用失败
-                                    3. 搜索词过于特殊，没有匹配项
-                                    4. 部分注册表暂时不可用
-                                    
-                                    请尝试使用更常见的搜索词，如 "nginx"、"redis" 或 "alpine"。
-                                </div>
-                            `;
-                            resultsDiv.appendChild(noResultsCard);
-                        }
-                        
-                        // 显示每个源的详细结果
-                        data.multi_source_results.forEach(result => {
-                            const title = `${result.Source || result.source || 'Unknown'} 搜索结果`;
-                            const hasError = result.Error || result.error;
-                            const status = hasError ? 'error' : (result.Results && result.Results.length > 0) || (result.results && result.results.length > 0) ? 'success' : 'pending';
-                            const statusText = hasError ? 'Error' : (result.Results && result.Results.length > 0) || (result.results && result.results.length > 0) ? 'Success' : 'No Results';
-                            const resultCount = result.Results ? result.Results.length : result.results ? result.results.length : 0;
-                            
-                            const resultCard = document.createElement('div');
-                            resultCard.className = 'result-card';
-                            resultCard.innerHTML = `
-                                <div class="result-header">
-                                    <div class="result-title">${title}</div>
-                                    <div class="result-source status-indicator status-${status}">${statusText}</div>
-                                </div>
-                                <div class="result-summary">
-                                    <div class="summary-item">
-                                        <span class="summary-label">结果数量</span>
-                                        <span class="summary-value">${resultCount}</span>
-                                    </div>
-                                    <div class="summary-item">
-                                        <span class="summary-label">计数</span>
-                                        <span class="summary-value">${result.Count || result.count || 0}</span>
-                                    </div>
-                                </div>
-                                <div class="result-content">${JSON.stringify(result, null, 2)}</div>
-                            `;
-                            resultsDiv.appendChild(resultCard);
-                        });
-                    } else {
-                        resultsDiv.innerHTML = `<div class="result-card">
-                            <div class="result-header">
-                                <div class="result-title">多源分离搜索</div>
-                                <div class="result-source status-indicator status-error">Error</div>
-                            </div>
-                            <div class="result-summary">
-                                <div class="summary-item">
-                                    <span class="summary-label">HTTP状态码</span>
-                                    <span class="summary-value">${response.status}</span>
-                                </div>
-                                <div class="summary-item">
-                                    <span class="summary-label">响应时间</span>
-                                    <span class="summary-value">${responseTime}ms</span>
-                                </div>
-                            </div>
-                            <div class="result-content">没有返回预期的数据格式。响应内容: ${JSON.stringify(data)}</div>
-                        </div>`;
-                    }
-                } catch (error) {
-                    console.error('多源分离搜索错误:', error); // 调试信息
-                    // 即使出现错误，也显示错误信息而不是隐藏结果
-                    this.showError(resultsDiv, '多源分离搜索', error);
-                }
-            },
-
-            async testMultiMergedSearch() {
-                const query = this.elements.searchQuery.value.trim();
-                if (!query) {
-                    alert('请输入搜索关键词');
-                    return;
-                }
-
-                const resultsDiv = this.elements.multiMergedResults;
-                this.showLoading(resultsDiv, '正在搜索...');
-
-                try {
-                    const startTime = Date.now();
-                    const response = await fetch(`/search?q=${encodeURIComponent(query)}&multi_source=true&merged=false`);
-                    const responseTime = Date.now() - startTime;
-                    const data = await response.json();
-                    
-                    console.log('多源合并搜索响应:', data); // 调试信息
-                    
-                    // 检查是否有错误
-                    if (data.error || data.Error) {
-                        resultsDiv.innerHTML = `<div class="result-card">
-                            <div class="result-header">
-                                <div class="result-title">多源合并搜索</div>
-                                <div class="result-source status-indicator status-error">Error</div>
-                            </div>
-                            <div class="result-summary">
-                                <div class="summary-item">
-                                    <span class="summary-label">HTTP状态码</span>
-                                    <span class="summary-value">${response.status}</span>
-                                </div>
-                                <div class="summary-item">
-                                    <span class="summary-label">响应时间</span>
-                                    <span class="summary-value">${responseTime}ms</span>
-                                </div>
-                            </div>
-                            <div class="result-content">服务器返回错误: ${data.error || data.Error}</div>
-                        </div>`;
-                        return;
-                    }
-                    
-                    // 计算结果摘要
-                    let resultCount = 0;
-                    if (data.results) {
-                        resultCount = Array.isArray(data.results) ? data.results.length : 0;
-                    }
-                    
-                    // 检查是否有结果
-                    const hasAnyResults = resultCount > 0;
-                    
-                    // 确定状态和文本
-                    const finalStatus = hasAnyResults ? 'success' : 'pending';
-                    const finalStatusText = hasAnyResults ? 'Success' : 'No Results';
-                    
-                    resultsDiv.innerHTML = `
-                        <div class="result-card">
-                            <div class="result-header">
-                                <div class="result-title">多源合并搜索</div>
-                                <div class="result-source status-indicator status-${finalStatus}">${finalStatusText}</div>
-                            </div>
-                            <div class="result-summary">
-                                <div class="summary-item">
-                                    <span class="summary-label">HTTP状态码</span>
-                                    <span class="summary-value">${response.status}</span>
-                                </div>
-                                <div class="summary-item">
-                                    <span class="summary-label">响应时间</span>
-                                    <span class="summary-value">${responseTime}ms</span>
-                                </div>
-                                <div class="summary-item">
-                                    <span class="summary-label">结果数量</span>
-                                    <span class="summary-value">${resultCount}</span>
-                                </div>
-                                <div class="summary-item">
-                                    <span class="summary-label">数据源数量</span>
-                                    <span class="summary-value">多个源</span>
-                                </div>
-                            </div>
-                            ${!hasAnyResults ? `
-                            <div class="result-content">所有数据源均未返回结果。这可能是因为：
-                                1. 搜索的镜像名称不存在
-                                2. 网络连接问题导致API调用失败
-                                3. 搜索词过于特殊，没有匹配项
-                                4. 部分注册表暂时不可用
-                                
-                                请尝试使用更常见的搜索词，如 "nginx"、"redis" 或 "alpine"。
-                            </div>` : `
-                            <div class="result-content">响应数据:\n${JSON.stringify(data, null, 2)}</div>`}
-                        </div>
-                    `;
-                } catch (error) {
-                    console.error('多源合并搜索错误:', error); // 调试信息
-                    // 即使出现错误，也显示错误信息而不是隐藏结果
-                    this.showError(resultsDiv, '多源合并搜索', error);
-                }
-            },
-
-            async testIndividualSources() {
-                const query = this.elements.searchQuery.value.trim();
-                if (!query) {
-                    alert('请输入搜索关键词');
-                    return;
-                }
-
-                const resultsDiv = this.elements.individualResults;
-                this.showLoading(resultsDiv, '正在测试各个源...');
-
-                // 测试每个源的独立端点
-                const sources = [
-                    { name: 'Docker Hub', endpoint: `/search?q=${encodeURIComponent(query)}&source=docker.io`, source: 'docker.io' },
-                    { name: 'GHCR', endpoint: `/search?q=${encodeURIComponent(query)}&source=ghcr.io`, source: 'ghcr.io' },
-                    { name: 'GCR', endpoint: `/search?q=${encodeURIComponent(query)}&source=gcr.io`, source: 'gcr.io' },
-                    { name: 'Quay.io', endpoint: `/search?q=${encodeURIComponent(query)}&source=quay.io`, source: 'quay.io' },
-                    { name: 'K8s Registry', endpoint: `/search?q=${encodeURIComponent(query)}&source=registry.k8s.io`, source: 'registry.k8s.io' }
-                ];
-
-                try {
-                    // 使用Promise.all并行处理所有请求
-                    const results = await Promise.all(
-                        sources.map(async (source) => {
-                            try {
-                                const startTime = Date.now();
-                                const response = await fetch(source.endpoint);
-                                const responseTime = Date.now() - startTime;
-                                const data = await response.json();
-                                
-                                // 计算该源的结果数量
-                                let resultCount = 0;
-                                if (data.results) {
-                                    resultCount = Array.isArray(data.results) ? data.results.length : 0;
-                                }
-                                if (data.multi_source_results) {
-                                    // 如果是多源结果，计算特定源的结果数
-                                    const sourceResult = data.multi_source_results.find(r => 
-                                        r.Source === source.source || r.source === source.source
-                                    );
-                                    if (sourceResult && sourceResult.Results) {
-                                        resultCount = sourceResult.Results.length;
-                                    }
-                                }
-                                
-                                const hasResults = resultCount > 0;
-                                const status = hasResults ? 'success' : 'error';
-                                const statusText = hasResults ? 'Success' : 'No Results';
-                                
-                                return {
-                                    source,
-                                    success: true,
-                                    response,
-                                    data,
-                                    responseTime,
-                                    status,
-                                    statusText,
-                                    resultCount
-                                };
-                            } catch (error) {
-                                return {
-                                    source,
-                                    success: false,
-                                    error
-                                };
-                            }
-                        })
-                    );
-
-                    // 显示所有结果
-                    resultsDiv.innerHTML = '';
-                    
-                    results.forEach(result => {
-                        const resultCard = document.createElement('div');
-                        resultCard.className = 'result-card';
-                        
-                        if (result.success) {
-                            resultCard.innerHTML = `
-                                <div class="result-header">
-                                    <div class="result-title">${result.source.name}</div>
-                                    <div class="result-source status-indicator status-${result.status}">${result.statusText}</div>
-                                </div>
-                                <div class="api-endpoint">${result.source.endpoint}</div>
-                                <div class="result-summary">
-                                    <div class="summary-item">
-                                        <span class="summary-label">HTTP状态码</span>
-                                        <span class="summary-value">${result.response.status}</span>
-                                    </div>
-                                    <div class="summary-item">
-                                        <span class="summary-label">响应时间</span>
-                                        <span class="summary-value">${result.responseTime}ms</span>
-                                    </div>
-                                    <div class="summary-item">
-                                        <span class="summary-label">结果数量</span>
-                                        <span class="summary-value">${result.resultCount}</span>
-                                    </div>
-                                </div>
-                                <div class="result-content">响应数据:\n${JSON.stringify(result.data, null, 2)}</div>
-                            `;
-                        } else {
-                            resultCard.innerHTML = `
-                                <div class="result-header">
-                                    <div class="result-title">${result.source.name}</div>
-                                    <div class="result-source status-indicator status-error">Error</div>
-                                </div>
-                                <div class="api-endpoint">${result.source.endpoint}</div>
-                                <div class="result-summary">
-                                    <div class="summary-item">
-                                        <span class="summary-label">错误信息</span>
-                                        <span class="summary-value">请求失败</span>
-                                    </div>
-                                </div>
-                                <div class="result-content">错误详情:\n${result.error.message}</div>
-                            `;
-                        }
-                        
-                        resultsDiv.appendChild(resultCard);
-                    });
-                } catch (error) {
-                    this.showError(resultsDiv, '独立源测试', error);
-                }
-            },
-
-            // URL参数解析函数
-            getUrlParams() {
-                const params = new URLSearchParams(window.location.search);
-                return {
-                    q: params.get('q') || '',
-                    page: params.get('page') || '1',
-                    page_size: params.get('page_size') || '25',
-                    multi_source: params.get('multi_source') !== null,
-                    merged: params.get('merged') !== null
-                };
-            },
-
-            // 构建API端点URL
-            buildApiUrl(params) {
-                let url = '/search?q=' + encodeURIComponent(params.q);
-                if (params.page) url += `&page=${params.page}`;
-                if (params.page_size) url += `&page_size=${params.page_size}`;
-                if (params.multi_source) url += '&multi_source=true';
-                if (params.merged) url += '&merged=true';
-                return url;
-            },
-
-            // 根据URL参数自动执行搜索
-            initFromUrlParams() {
-                // 检查URL是否包含我们关心的搜索参数
-                const urlParams = new URLSearchParams(window.location.search);
-                const hasSearchParams = urlParams.has('q') || urlParams.has('page') || urlParams.has('page_size') || 
-                                       urlParams.has('multi_source') || urlParams.has('merged');
-                                        
-                if (hasSearchParams) {
-                    const params = this.getUrlParams();
-                    if (params.q && params.q.trim() !== '') {
-                        this.elements.searchQuery.value = params.q;
-                        
-                        // 设置页面中的其他参数（检查元素是否存在）
-                        if (params.page && this.elements.searchPage) this.elements.searchPage.value = params.page;
-                        if (params.page_size && this.elements.searchPageSize) this.elements.searchPageSize.value = params.page_size;
-                        if (params.multi_source && this.elements.searchMultiSource) this.elements.searchMultiSource.checked = true;
-                        if (params.merged && this.elements.searchMerged) this.elements.searchMerged.checked = true;
-                        
-                        // 根据参数自动执行相应的搜索类型
-                        if (this.elements.searchPage && this.elements.searchPageSize && this.elements.searchMultiSource && this.elements.searchMerged) {
-                            setTimeout(() => {
-                                this.testWithParams(); // 使用带参数的搜索
-                            }, 100); // 稍微延时以确保UI元素已完全加载
-                        }
-                    }
-                }
-            },
-
-            // 更新浏览器URL而不刷新页面
-            updateUrl(params) {
-                const queryString = Object.keys(params)
-                    .filter(key => params[key] !== '' && params[key] !== false)
-                    .map(key => `${key}=${encodeURIComponent(params[key])}`)
-                    .join('&');
-                
-                const newUrl = queryString ? `?${queryString}` : '?';
-                window.history.replaceState({}, '', newUrl);
-            },
-
-            // 使用参数搜索函数
-            async testWithParams() {
-                const query = this.elements.searchQuery.value.trim();
-                if (!query) {
-                    alert('请输入搜索关键词');
-                    return;
-                }
-
-                const page = this.elements.searchPage.value || '1';
-                const pageSize = this.elements.searchPageSize.value || '25';
-                const multiSource = this.elements.searchMultiSource.checked;
-                const merged = this.elements.searchMerged.checked;
-
-                // 更新URL参数
-                const params = { q: query, page, page_size: pageSize };
-                if (multiSource) params.multi_source = true;
-                if (merged) params.merged = true;
-                this.updateUrl(params);
-
-                const resultsDiv = this.elements.singleResults;
-                this.showLoading(resultsDiv, '正在搜索...');
-
-                try {
-                    const startTime = Date.now();
-                    const apiUrl = this.buildApiUrl(params);
-                    const response = await fetch(apiUrl);
-                    const responseTime = Date.now() - startTime;
-                    const data = await response.json();
-                    
-                    resultsDiv.innerHTML = this.createResultCard('带参数搜索', '', data, response.status, responseTime, apiUrl);
-                } catch (error) {
-                    resultsDiv.innerHTML = `<div class="result-card">
-                        <div class="result-header">
-                            <div class="result-title">带参数搜索</div>
-                            <div class="result-source status-indicator status-error">Error</div>
-                        </div>
-                        <div class="api-endpoint">${this.buildApiUrl({q: query, page, page_size: pageSize, multi_source: multiSource, merged})}</div>
-                        <div class="result-content">${error.message}</div>
-                    </div>`;
-                }
+                }));
+                el('individualResults').innerHTML = results.join('');
+            } catch (e) {
+                el('individualResults').innerHTML = renderCard('独立源测试', { error: e.message }, 0, null, null);
             }
-        };
+        }
 
-        // 为Tab切换添加对ApiTester方法的调用
+        // Search with params
+        async function testWithParams() {
+            const q = el('searchQuery').value.trim();
+            if (!q) { toast('请输入搜索关键词'); return; }
+            const page = el('searchPage').value || '1';
+            const ps = el('searchPageSize').value || '25';
+            const multi = el('ckMulti').checked;
+            const merged = el('ckMerged').checked;
+            let url = '/search?q=' + encodeURIComponent(q) + '&page=' + page + '&page_size=' + ps;
+            if (multi) url += '&multi_source=true';
+            if (merged) url += '&merged=true';
+            const params = new URLSearchParams({ q, page, page_size: ps, ...(multi ? { multi_source: 'true' } : {}), ...(merged ? { merged: 'true' } : {}) });
+            window.history.replaceState({}, '', '?' + params.toString());
+            showLoading('singleResults', '搜索中…');
+            const start = Date.now();
+            try {
+                const data = await fetchJSON(url);
+                el('singleResults').innerHTML = renderCard('带参数搜索', data, 200, url, Date.now() - start);
+            } catch (e) { el('singleResults').innerHTML = renderCard('带参数搜索', { error: e.message }, 0, url, null); }
+        }
+
+        // Tab switching
         document.querySelectorAll('.tab').forEach(tab => {
             tab.addEventListener('click', () => {
-                // 移除所有活动标签
                 document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-                document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
-                
-                // 激活当前标签
+                document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
                 tab.classList.add('active');
-                const tabId = `${tab.dataset.tab}Tab`;
-                const targetTabContent = document.getElementById(tabId);
-                if (targetTabContent) {
-                    targetTabContent.classList.add('active');
-                }
-                
-                // 如果切换到某选项卡且对应内容区域为空，自动执行搜索
-                const query = ApiTester.elements.searchQuery.value.trim();
-                if (query && query !== '') {
-                    // 检查对应的结果区域是否为空
-                    let shouldAutoSearch = false;
-                    let resultsContainerId = '';
-                    
-                    if (tab.dataset.tab === 'multi-separate') {
-                        resultsContainerId = 'multiSeparateResults';
-                        shouldAutoSearch = true;
-                    } else if (tab.dataset.tab === 'multi-merged') {
-                        resultsContainerId = 'multiMergedResults';
-                        shouldAutoSearch = true;
-                    } else if (tab.dataset.tab === 'single') {
-                        resultsContainerId = 'singleResults';
-                        shouldAutoSearch = true;
-                    } else if (tab.dataset.tab === 'individual') {
-                        resultsContainerId = 'individualResults';
-                        shouldAutoSearch = true;
-                    }
-                    
-                    if (shouldAutoSearch) {
-                        const resultsContainer = document.getElementById(resultsContainerId);
-                        // 只有当结果容器为空或只包含初始内容时才自动搜索
-                        if (resultsContainer && 
-                            (resultsContainer.innerHTML.trim() === '' || 
-                             resultsContainer.querySelector('.loading'))) {
-                            // 根据选项卡类型执行相应的搜索
-                            if (tab.dataset.tab === 'multi-separate') {
-                                ApiTester.testMultiSeparateSearch();
-                            } else if (tab.dataset.tab === 'multi-merged') {
-                                ApiTester.testMultiMergedSearch();
-                            } else if (tab.dataset.tab === 'single') {
-                                ApiTester.testSingleSearch();
-                            } else if (tab.dataset.tab === 'individual') {
-                                ApiTester.testIndividualSources();
-                            }
-                        }
-                    }
-                } else {
-                    // 如果没有查询词，则在选项卡中显示提示信息
-                    let resultsContainerId = '';
-                    let placeholderTitle = '';
-                    let placeholderContent = '';
-                    
-                    if (tab.dataset.tab === 'multi-separate') {
-                        resultsContainerId = 'multiSeparateResults';
-                        placeholderTitle = '多源分离搜索';
-                        placeholderContent = '请输入搜索关键词以执行多源分离搜索。多源分离搜索会从多个镜像仓库（如Docker Hub、GHCR、GCR等）分别获取结果并单独显示。';
-                    } else if (tab.dataset.tab === 'multi-merged') {
-                        resultsContainerId = 'multiMergedResults';
-                        placeholderTitle = '多源合并搜索';
-                        placeholderContent = '请输入搜索关键词以执行多源合并搜索。多源合并搜索会从多个镜像仓库获取结果并合并显示。';
-                    } else if (tab.dataset.tab === 'single') {
-                        resultsContainerId = 'singleResults';
-                        placeholderTitle = '单一搜索';
-                        placeholderContent = '请输入搜索关键词以执行单一搜索。';
-                    } else if (tab.dataset.tab === 'individual') {
-                        resultsContainerId = 'individualResults';
-                        placeholderTitle = '独立源测试';
-                        placeholderContent = '请输入搜索关键词以测试各个独立的镜像仓库源。';
-                    }
-                    
-                    const resultsContainer = document.getElementById(resultsContainerId);
-                    if (resultsContainer && resultsContainer.innerHTML.trim() === '') {
-                        resultsContainer.innerHTML = `<div class="result-card">
-                            <div class="result-header">
-                                <div class="result-title">${placeholderTitle}</div>
-                                <div class="result-source status-indicator status-pending">待执行</div>
-                            </div>
-                            <div class="result-content">${placeholderContent}</div>
-                        </div>`;
-                    }
-                }
+                const pane = el(tab.dataset.tab + 'Tab');
+                if (pane) pane.classList.add('active');
+                autoSearchForTab(tab.dataset.tab);
             });
         });
 
-        // 初始化ApiTester
-        document.addEventListener('DOMContentLoaded', () => {
-            ApiTester.init();
+        function autoSearchForTab(tabId) {
+            const q = el('searchQuery').value.trim();
+            if (!q) return;
+            const map = {
+                'single': { id: 'singleResults', fn: testSingle },
+                'multi-separate': { id: 'multiSeparateResults', fn: testMultiSeparate },
+                'multi-merged': { id: 'multiMergedResults', fn: testMultiMerged },
+                'individual': { id: 'individualResults', fn: testIndividual },
+            };
+            const t = map[tabId];
+            if (t && el(t.id).innerHTML.trim() === '') t.fn();
+        }
+
+        el('btnSearch').addEventListener('click', testWithParams);
+        el('btnAllSources').addEventListener('click', testIndividual);
+        el('searchQuery').addEventListener('keydown', e => { if (e.key === 'Enter') testWithParams(); });
+
+        el('mobileToggle').addEventListener('click', () => el('navLinks').classList.toggle('open'));
+        (function initTheme() {
+            const saved = localStorage.getItem('theme');
+            const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+            if (saved === 'dark' || (!saved && prefersDark)) {
+                document.body.classList.add('dark');
+            }
+            el('themeToggle').textContent = document.body.classList.contains('dark') ? '☀️' : '🌙';
+        })();
+        el('themeToggle').addEventListener('click', () => {
+            document.body.classList.toggle('dark');
+            const isDark = document.body.classList.contains('dark');
+            el('themeToggle').textContent = isDark ? '☀️' : '🌙';
+            localStorage.setItem('theme', isDark ? 'dark' : 'light');
         });
+
+        // URL params
+        (function initFromUrl() {
+            const p = new URLSearchParams(window.location.search);
+            if (p.has('q')) {
+                el('searchQuery').value = p.get('q');
+                if (p.has('page')) el('searchPage').value = p.get('page');
+                if (p.has('page_size')) el('searchPageSize').value = p.get('page_size');
+                if (p.has('multi_source')) el('ckMulti').checked = true;
+                if (p.has('merged')) el('ckMerged').checked = true;
+                setTimeout(testWithParams, 100);
+            }
+        })();
     </script>
 </body>
 </html>

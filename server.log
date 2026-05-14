@@ -1,0 +1,6 @@
+未找到config.toml，使用默认配置
+HubProxy 启动成功
+监听地址: 0.0.0.0:5000
+限流配置: 500请求/3小时
+版本号: dev
+项目地址: https://github.com/KaQiNuo/hubproxy
