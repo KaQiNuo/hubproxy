@@ -413,6 +413,52 @@
         }
         .toast.visible { opacity: 1; transform: translateX(-50%) translateY(0); }
 
+        .search-box { position: relative; }
+        .history-dropdown {
+            display: none; position: absolute; top: 100%; left: 0; right: 0; z-index: 50;
+            background: var(--bg-card); border: 1px solid var(--border);
+            border-radius: var(--radius-sm); margin-top: 4px;
+            box-shadow: var(--shadow-lg); max-height: 320px; overflow-y: auto;
+            animation: fadeSlideUp 0.15s ease;
+        }
+        .history-dropdown.visible { display: block; }
+        .history-header {
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 8px 14px; border-bottom: 1px solid var(--border);
+            font-size: 0.75rem; color: var(--text-tertiary);
+        }
+        .history-clear-btn {
+            background: none; border: none; color: var(--text-tertiary);
+            font-size: 0.72rem; cursor: pointer; padding: 2px 6px; border-radius: 4px;
+            transition: all var(--transition);
+        }
+        .history-clear-btn:hover { color: var(--red); background: rgba(239,68,68,0.1); }
+        .history-item {
+            display: flex; align-items: center; gap: 8px;
+            padding: 8px 14px; cursor: pointer;
+            transition: background var(--transition);
+        }
+        .history-item:hover { background: var(--bg-card-hover); }
+        .history-item .icon { color: var(--text-tertiary); font-size: 0.85rem; flex-shrink: 0; }
+        .history-item .query {
+            flex: 1; font-family: var(--font-mono); font-size: 0.85rem;
+            overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+        }
+        .history-item .time {
+            font-size: 0.72rem; color: var(--text-tertiary); white-space: nowrap; flex-shrink: 0;
+        }
+        .history-item .del-btn {
+            background: none; border: none; color: var(--text-tertiary);
+            font-size: 0.85rem; cursor: pointer; padding: 2px 4px; border-radius: 4px;
+            opacity: 0; transition: all var(--transition); flex-shrink: 0;
+        }
+        .history-item:hover .del-btn { opacity: 1; }
+        .history-item .del-btn:hover { color: var(--red); background: rgba(239,68,68,0.1); }
+        .history-empty {
+            padding: 24px; text-align: center; color: var(--text-tertiary);
+            font-size: 0.82rem;
+        }
+
         @keyframes fadeSlideUp {
             from { opacity: 0; transform: translateY(12px); }
             to { opacity: 1; transform: translateY(0); }
@@ -471,6 +517,13 @@
                         <button class="search-clear" id="clearBtn" aria-label="Clear">✕</button>
                         <button class="search-btn" id="searchBtn">搜索</button>
                     </div>
+                </div>
+                <div class="history-dropdown" id="historyDropdown">
+                    <div class="history-header">
+                        <span>搜索历史</span>
+                        <button class="history-clear-btn" id="historyClearBtn">清除全部</button>
+                    </div>
+                    <div id="historyList"></div>
                 </div>
             </div>
 
@@ -572,6 +625,9 @@
             mobileToggle: document.getElementById('mobileToggle'),
             navLinks: document.getElementById('navLinks'),
             controlsBar: document.getElementById('controlsBar'),
+            historyDropdown: document.getElementById('historyDropdown'),
+            historyList: document.getElementById('historyList'),
+            historyClearBtn: document.getElementById('historyClearBtn'),
         };
 
         let toastTimer = null;
@@ -579,6 +635,73 @@
         let tagPendingController = null;
 
         const STORAGE_KEY = 'hubproxy_sources';
+        const HISTORY_KEY = 'hubproxy_search_history';
+        const MAX_HISTORY = 20;
+
+        function getHistory() {
+            try { const d = localStorage.getItem(HISTORY_KEY); return d ? JSON.parse(d) : []; } catch { return []; }
+        }
+        function saveHistory(h) {
+            try { localStorage.setItem(HISTORY_KEY, JSON.stringify(h.slice(0, MAX_HISTORY))); } catch {}
+        }
+        function addToHistory(q) {
+            if (!q) return;
+            let h = getHistory().filter(x => x.q !== q);
+            h.unshift({ q, t: Date.now() });
+            saveHistory(h);
+            renderHistory();
+        }
+        function clearHistory() {
+            saveHistory([]);
+            renderHistory();
+            DOM.historyDropdown.classList.remove('visible');
+        }
+        function removeHistoryItem(q) {
+            let h = getHistory().filter(x => x.q !== q);
+            saveHistory(h);
+            renderHistory();
+            if (!h.length) DOM.historyDropdown.classList.remove('visible');
+        }
+        function timeAgo(ts) {
+            const diff = Date.now() - ts;
+            if (diff < 6e4) return '刚刚';
+            if (diff < 36e5) return Math.floor(diff/6e4)+'分钟前';
+            if (diff < 864e5) return Math.floor(diff/36e5)+'小时前';
+            return Math.floor(diff/864e5)+'天前';
+        }
+        function renderHistory() {
+            const h = getHistory();
+            if (!h.length) {
+                DOM.historyList.innerHTML = '<div class="history-empty">暂无搜索历史</div>';
+                return;
+            }
+            const frag = document.createDocumentFragment();
+            h.forEach(x => {
+                const div = document.createElement('div');
+                div.className = 'history-item';
+                div.innerHTML = `<span class="icon">⏱</span><span class="query">${x.q}</span><span class="time">${timeAgo(x.t)}</span><button class="del-btn" data-q="${x.q}">✕</button>`;
+                div.addEventListener('click', e => {
+                    if (e.target.closest('.del-btn')) return;
+                    DOM.input.value = x.q;
+                    DOM.clearBtn.classList.toggle('visible', true);
+                    DOM.historyDropdown.classList.remove('visible');
+                    doSearch();
+                });
+                frag.appendChild(div);
+            });
+            DOM.historyList.innerHTML = '';
+            DOM.historyList.appendChild(frag);
+        }
+        function showHistory() {
+            const h = getHistory();
+            if (!h.length) return;
+            renderHistory();
+            DOM.historyDropdown.classList.add('visible');
+        }
+        function hideHistory() {
+            DOM.historyDropdown.classList.remove('visible');
+        }
+
         const FMT = {
             n(n) { if (!n) return '0'; if (n >= 1e9) return (n/1e9).toFixed(1)+'B'; if (n >= 1e6) return (n/1e6).toFixed(1)+'M'; if (n >= 1e3) return (n/1e3).toFixed(1)+'K'; return n+''; },
             t(s) { if (!s) return ''; try { const d = new Date(s); if (isNaN(d)) return ''; const diff = Date.now()-d; if (diff < 6e4) return '刚刚'; if (diff < 36e5) return Math.floor(diff/6e4)+'分钟前'; if (diff < 864e5) return Math.floor(diff/36e5)+'小时前'; return Math.floor(diff/864e5)+'天前'; } catch { return ''; }},
@@ -662,6 +785,7 @@
                     STATE.currentResults = data.results || [];
                     STATE.currentSourceResults = {};
                     STATE.totalPages = Math.max(1, Math.ceil((data.count || STATE.currentResults.length) / 25));
+                    addToHistory(STATE.query);
                     renderResults();
                 } else if (STATE.view === 'separate') {
                     const promises = STATE.sources.map(src => {
@@ -675,6 +799,7 @@
                     all.forEach(r => { STATE.currentSourceResults[r.source] = r.results; });
                     STATE.currentResults = [];
                     STATE.totalPages = 1;
+                    addToHistory(STATE.query);
                     renderResults();
                 } else {
                     const params = new URLSearchParams({ q, multi_source: 'true', merged: 'true', page: STATE.page, page_size: 25 });
@@ -682,6 +807,7 @@
                     STATE.currentResults = data.results || [];
                     STATE.currentSourceResults = {};
                     STATE.totalPages = 1;
+                    addToHistory(STATE.query);
                     renderResults();
                 }
             } catch (err) {
@@ -914,17 +1040,28 @@
 
         DOM.input.addEventListener('input', () => {
             DOM.clearBtn.classList.toggle('visible', DOM.input.value.length > 0);
-            debouncedSearch();
+            if (DOM.input.value) { hideHistory(); return; }
+            showHistory();
         });
+        DOM.input.addEventListener('focus', () => { if (!DOM.input.value) showHistory(); });
+        DOM.input.addEventListener('blur', () => setTimeout(hideHistory, 200));
         DOM.input.addEventListener('keydown', e => {
-            if (e.key === 'Enter') { e.preventDefault(); doSearch(); }
-            if (e.key === 'Escape') { DOM.input.value = ''; DOM.clearBtn.classList.remove('visible'); DOM.input.blur(); }
+            if (e.key === 'Enter') { e.preventDefault(); hideHistory(); doSearch(); }
+            if (e.key === 'Escape') { DOM.input.value = ''; DOM.clearBtn.classList.remove('visible'); DOM.input.blur(); hideHistory(); }
         });
         DOM.searchBtn.addEventListener('click', doSearch);
+        DOM.historyClearBtn.addEventListener('click', clearHistory);
+        DOM.historyList.addEventListener('click', e => {
+            const btn = e.target.closest('.del-btn');
+            if (!btn) return;
+            e.stopPropagation();
+            removeHistoryItem(btn.dataset.q);
+        });
         DOM.clearBtn.addEventListener('click', () => {
             DOM.input.value = '';
             DOM.clearBtn.classList.remove('visible');
             DOM.input.focus();
+            showHistory();
             STATE.query = '';
             STATE.currentResults = [];
             STATE.currentSourceResults = {};
@@ -935,7 +1072,7 @@
         });
 
         document.addEventListener('keydown', e => {
-            if ((e.ctrlKey || e.metaKey) && e.key === 'k') { e.preventDefault(); DOM.input.focus(); }
+            if ((e.ctrlKey || e.metaKey) && e.key === 'k') { e.preventDefault(); DOM.input.focus(); if (!DOM.input.value) showHistory(); }
         });
 
         DOM.mobileToggle.addEventListener('click', () => DOM.navLinks.classList.toggle('open'));
