@@ -62,6 +62,9 @@ func buildRouter(cfg *config.AppConfig) *gin.Engine {
 	// DNS 测速 API
 	router.POST("/api/dns/lookup", handlers.CreateDNSLookupHandler())
 
+	// GitHub Hosts 解析 API
+	router.GET("/api/gh-hosts/resolve", handlers.CreateGHHostsHandler())
+
 	// 初始化监控端点
 	initHealthRoutes(router)
 
@@ -92,6 +95,9 @@ func buildRouter(cfg *config.AppConfig) *gin.Engine {
 		router.GET("/trackers.html", func(c *gin.Context) {
 			serveEmbedFile(c, "public/trackers.html")
 		})
+		router.GET("/gh-hosts.html", func(c *gin.Context) {
+			serveEmbedFile(c, "public/gh-hosts.html")
+		})
 		router.GET("/favicon.ico", func(c *gin.Context) {
 			serveEmbedFile(c, "public/favicon.ico")
 		})
@@ -115,6 +121,9 @@ func buildRouter(cfg *config.AppConfig) *gin.Engine {
 			c.Status(http.StatusNotFound)
 		})
 		router.GET("/trackers.html", func(c *gin.Context) {
+			c.Status(http.StatusNotFound)
+		})
+		router.GET("/gh-hosts.html", func(c *gin.Context) {
 			c.Status(http.StatusNotFound)
 		})
 		router.GET("/favicon.ico", func(c *gin.Context) {
