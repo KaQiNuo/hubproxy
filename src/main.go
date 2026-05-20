@@ -89,6 +89,9 @@ func buildRouter(cfg *config.AppConfig) *gin.Engine {
 		router.GET("/dns.html", func(c *gin.Context) {
 			serveEmbedFile(c, "public/dns.html")
 		})
+		router.GET("/trackers.html", func(c *gin.Context) {
+			serveEmbedFile(c, "public/trackers.html")
+		})
 		router.GET("/favicon.ico", func(c *gin.Context) {
 			serveEmbedFile(c, "public/favicon.ico")
 		})
@@ -109,6 +112,9 @@ func buildRouter(cfg *config.AppConfig) *gin.Engine {
 			c.Status(http.StatusNotFound)
 		})
 		router.GET("/dns.html", func(c *gin.Context) {
+			c.Status(http.StatusNotFound)
+		})
+		router.GET("/trackers.html", func(c *gin.Context) {
 			c.Status(http.StatusNotFound)
 		})
 		router.GET("/favicon.ico", func(c *gin.Context) {
