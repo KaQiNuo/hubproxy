@@ -1,0 +1,546 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="公共 DNS 测速 - IPv4 + IPv6">
+    <meta name="color-scheme" content="dark light">
+    <title>DNS · HubProxy</title>
+    <link rel="icon" href="/favicon.ico">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+        :root {
+            --bg-primary: #f1f5f9;
+            --bg-secondary: #e2e8f0;
+            --bg-card: #ffffff;
+            --bg-card-hover: #f8fafc;
+            --bg-input: #ffffff;
+            --border: #cbd5e1;
+            --border-focus: #06b6d4;
+            --text-primary: #0f172a;
+            --text-secondary: #475569;
+            --text-tertiary: #94a3b8;
+            --accent: #0891b2;
+            --accent-dim: #06b6d4;
+            --accent-glow: rgba(8,145,178,0.12);
+            --green: #059669;
+            --amber: #d97706;
+            --red: #dc2626;
+            --radius: 12px;
+            --radius-sm: 8px;
+            --shadow: 0 1px 3px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.06);
+            --shadow-lg: 0 10px 25px rgba(0,0,0,0.1), 0 4px 10px rgba(0,0,0,0.06);
+            --navbar-bg: rgba(241,245,249,0.85);
+            --font-sans: 'Plus Jakarta Sans', system-ui, sans-serif;
+            --font-mono: 'JetBrains Mono', 'Fira Code', monospace;
+            --transition: 200ms cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        body.light {
+            --bg-primary: #f1f5f9;
+            --bg-secondary: #e2e8f0;
+            --bg-card: #ffffff;
+            --bg-card-hover: #f8fafc;
+            --bg-input: #ffffff;
+            --border: #cbd5e1;
+            --border-focus: #06b6d4;
+            --text-primary: #0f172a;
+            --text-secondary: #475569;
+            --text-tertiary: #94a3b8;
+            --accent: #0891b2;
+            --accent-dim: #06b6d4;
+            --accent-glow: rgba(8,145,178,0.12);
+            --green: #059669;
+            --amber: #d97706;
+            --red: #dc2626;
+            --shadow: 0 1px 3px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.06);
+            --shadow-lg: 0 10px 25px rgba(0,0,0,0.1), 0 4px 10px rgba(0,0,0,0.06);
+            --navbar-bg: rgba(255,255,255,0.8);
+        }
+        body.dark {
+            --bg-primary: #0a0e17;
+            --bg-secondary: #111827;
+            --bg-card: #1a1f2e;
+            --bg-card-hover: #1f2638;
+            --bg-input: #0d1117;
+            --border: #1e293b;
+            --border-focus: #06b6d4;
+            --text-primary: #e2e8f0;
+            --text-secondary: #94a3b8;
+            --text-tertiary: #64748b;
+            --accent: #06b6d4;
+            --accent-dim: #0891b2;
+            --accent-glow: rgba(6,182,212,0.15);
+            --green: #10b981;
+            --amber: #f59e0b;
+            --red: #ef4444;
+            --shadow: 0 1px 3px rgba(0,0,0,0.3), 0 1px 2px rgba(0,0,0,0.2);
+            --shadow-lg: 0 10px 25px rgba(0,0,0,0.4), 0 4px 10px rgba(0,0,0,0.3);
+            --navbar-bg: rgba(10,14,23,0.85);
+        }
+        html { scroll-behavior: smooth; }
+        body {
+            font-family: var(--font-sans);
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            line-height: 1.6;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            background-image: radial-gradient(ellipse at 20% 50%, rgba(6,182,212,0.03) 0%, transparent 50%),
+                              radial-gradient(ellipse at 80% 20%, rgba(6,182,212,0.02) 0%, transparent 50%);
+        }
+        ::selection { background: var(--accent); color: #fff; }
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: var(--bg-secondary); }
+        ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: var(--text-tertiary); }
+
+        .navbar {
+            position: sticky; top: 0; z-index: 100;
+            background: var(--navbar-bg);
+            backdrop-filter: blur(20px) saturate(1.5);
+            border-bottom: 1px solid var(--border);
+        }
+        .navbar-inner {
+            max-width: 1200px; margin: 0 auto;
+            display: flex; align-items: center; justify-content: space-between;
+            height: 56px; padding: 0 20px;
+        }
+        .logo {
+            display: flex; align-items: center; gap: 10px;
+            text-decoration: none; color: var(--text-primary);
+            font-weight: 700; font-size: 1.1rem;
+            font-family: var(--font-mono);
+        }
+        .logo-icon {
+            width: 32px; height: 32px; border-radius: 8px;
+            background: linear-gradient(135deg, var(--accent), #3b82f6);
+            display: flex; align-items: center; justify-content: center;
+            color: #fff; font-size: 1rem;
+            box-shadow: 0 0 20px var(--accent-glow);
+            transition: transform var(--transition);
+        }
+        .logo:hover .logo-icon { transform: scale(1.08); }
+        .nav-links { display: flex; align-items: center; gap: 4px; }
+        .nav-link {
+            padding: 6px 14px; border-radius: var(--radius-sm);
+            text-decoration: none; color: var(--text-secondary);
+            font-size: 0.875rem; font-weight: 500;
+            transition: all var(--transition);
+        }
+        .nav-link:hover { color: var(--text-primary); background: var(--bg-card); }
+        .nav-link.active { color: var(--accent); background: var(--accent-glow); }
+        .theme-btn {
+            background: none; border: none; color: var(--text-secondary);
+            font-size: 1.1rem; cursor: pointer; padding: 6px; border-radius: var(--radius-sm);
+            transition: all var(--transition);
+        }
+        .theme-btn:hover { color: var(--text-primary); background: var(--bg-card); }
+        .mobile-toggle { display: none; background: none; border: none; color: var(--text-primary); font-size: 1.5rem; cursor: pointer; padding: 6px; border-radius: var(--radius-sm); }
+
+        main { flex: 1; padding: 40px 20px; }
+        .container { max-width: 1200px; margin: 0 auto; }
+
+        .hero { text-align: center; margin-bottom: 36px; }
+        .hero h1 {
+            font-family: var(--font-mono);
+            font-size: 2rem; font-weight: 700;
+            background: linear-gradient(135deg, var(--accent), #3b82f6);
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+            background-clip: text;
+            letter-spacing: -0.02em;
+        }
+        .hero p { color: var(--text-secondary); font-size: 0.9rem; margin-top: 8px; }
+
+        .filter-bar {
+            display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+            margin-bottom: 24px; padding: 12px 16px;
+            background: var(--bg-card); border-radius: var(--radius);
+            border: 1px solid var(--border);
+        }
+        .filter-btn {
+            padding: 6px 16px; border-radius: 20px; border: 1px solid var(--border);
+            background: transparent; color: var(--text-secondary);
+            font-size: 0.8rem; font-family: var(--font-mono); font-weight: 500;
+            cursor: pointer; transition: all var(--transition);
+        }
+        .filter-btn:hover { border-color: var(--accent); color: var(--accent); }
+        .filter-btn.active { background: var(--accent-glow); border-color: var(--accent); color: var(--accent); }
+        .filter-spacer { flex: 1; }
+        .test-all-btn {
+            padding: 6px 18px; border: none; border-radius: var(--radius-sm);
+            background: var(--accent); color: #fff;
+            font-family: var(--font-sans); font-weight: 600; font-size: 0.82rem;
+            cursor: pointer; transition: all var(--transition);
+        }
+        .test-all-btn:hover { background: var(--accent-dim); box-shadow: 0 0 16px var(--accent-glow); }
+        .test-all-btn:active { transform: scale(0.97); }
+        .test-all-btn.loading { pointer-events: none; opacity: 0.7; }
+
+        .dns-grid {
+            display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+            gap: 12px;
+        }
+        .dns-card {
+            background: var(--bg-card); border-radius: var(--radius);
+            border: 1px solid var(--border); padding: 20px;
+            transition: all var(--transition);
+            position: relative; overflow: hidden;
+        }
+        .dns-card::before {
+            content: ''; position: absolute; top: 0; left: 0;
+            width: 3px; height: 100%;
+            transition: opacity var(--transition);
+        }
+        .dns-card[data-location="cn"]::before { background: var(--green); opacity: 0.6; }
+        .dns-card[data-location="global"]::before { background: var(--accent); opacity: 0.6; }
+        .dns-card:hover { border-color: var(--accent); transform: translateY(-2px); box-shadow: var(--shadow-lg); }
+        .dns-card.testing { opacity: 0.6; pointer-events: none; }
+
+        .dns-header {
+            display: flex; align-items: center; justify-content: space-between;
+            margin-bottom: 14px;
+        }
+        .dns-name { font-weight: 700; font-size: 1rem; }
+        .dns-badge {
+            font-size: 0.7rem; padding: 2px 10px; border-radius: 20px;
+            font-weight: 600; letter-spacing: 0.03em;
+        }
+        .dns-badge.cn { background: rgba(16,185,129,0.15); color: var(--green); }
+        .dns-badge.global { background: var(--accent-glow); color: var(--accent); }
+
+        .dns-addr-group { margin-bottom: 10px; }
+        .dns-addr-label {
+            font-size: 0.72rem; color: var(--text-tertiary);
+            font-family: var(--font-mono); margin-bottom: 4px;
+            display: flex; align-items: center; gap: 4px;
+        }
+        .dns-addr {
+            display: flex; align-items: center; gap: 6px;
+            font-family: var(--font-mono); font-size: 0.82rem;
+            padding: 6px 10px; background: var(--bg-secondary);
+            border-radius: var(--radius-sm); border: 1px solid var(--border);
+            margin-bottom: 4px;
+        }
+        .dns-addr code { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .dns-addr .copy-btn-sm {
+            background: none; border: none; color: var(--text-tertiary);
+            cursor: pointer; padding: 2px 6px; border-radius: 4px;
+            font-size: 0.75rem; transition: all var(--transition); flex-shrink: 0;
+        }
+        .dns-addr .copy-btn-sm:hover { color: var(--accent); background: var(--accent-glow); }
+
+        .dns-footer {
+            display: flex; align-items: center; justify-content: space-between;
+            margin-top: 12px; padding-top: 12px;
+            border-top: 1px solid var(--border);
+        }
+        .dns-latency {
+            font-family: var(--font-mono); font-size: 0.82rem;
+            color: var(--text-tertiary);
+        }
+        .dns-latency.value {
+            font-weight: 600;
+        }
+        .dns-latency.good { color: var(--green); }
+        .dns-latency.ok { color: var(--amber); }
+        .dns-latency.slow { color: var(--red); }
+        .dns-latency.error { color: var(--red); }
+
+        .test-btn {
+            padding: 4px 14px; border: 1px solid var(--border);
+            border-radius: var(--radius-sm); background: transparent;
+            color: var(--text-secondary); font-size: 0.78rem; font-weight: 500;
+            cursor: pointer; transition: all var(--transition);
+            font-family: var(--font-sans);
+        }
+        .test-btn:hover { border-color: var(--accent); color: var(--accent); background: var(--accent-glow); }
+        .test-btn:active { transform: scale(0.97); }
+        .test-btn.testing { pointer-events: none; opacity: 0.5; }
+
+        .empty-state {
+            text-align: center; padding: 60px 20px;
+            color: var(--text-tertiary);
+        }
+        .empty-state .icon { font-size: 3rem; margin-bottom: 16px; opacity: 0.5; }
+
+        .toast {
+            position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(100px);
+            background: var(--bg-card); border: 1px solid var(--border);
+            color: var(--text-primary); padding: 10px 20px; border-radius: var(--radius-sm);
+            font-size: 0.85rem; box-shadow: var(--shadow-lg);
+            opacity: 0; transition: all 0.3s ease; z-index: 200;
+            pointer-events: none;
+        }
+        .toast.visible { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+        @keyframes fadeSlideUp {
+            from { opacity: 0; transform: translateY(12px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .dns-card { animation: fadeSlideUp 0.3s ease; }
+
+        @media (max-width: 768px) {
+            main { padding: 24px 16px; }
+            .hero h1 { font-size: 1.5rem; }
+            .nav-links { display: none; }
+            .nav-links.open {
+                display: flex; flex-direction: column; position: absolute;
+                top: 56px; left: 0; right: 0;
+                background: rgba(10,14,23,0.98); backdrop-filter: blur(20px);
+                border-bottom: 1px solid var(--border); padding: 12px;
+                animation: fadeSlideUp 0.2s ease;
+            }
+            .mobile-toggle { display: block; }
+            .dns-grid { grid-template-columns: 1fr; }
+            .filter-bar { flex-direction: column; align-items: stretch; }
+            .filter-spacer { display: none; }
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar">
+        <div class="navbar-inner">
+            <a href="/" class="logo">
+                <div class="logo-icon">⚡</div>
+                HubProxy
+            </a>
+            <button class="mobile-toggle" id="mobileToggle" aria-label="Menu">☰</button>
+            <div class="nav-links" id="navLinks">
+                <a href="/" class="nav-link">🚀 加速</a>
+                <a href="/images.html" class="nav-link">🐳 离线镜像</a>
+                <a href="/search.html" class="nav-link">🔍 搜索</a>
+                <a href="/dns.html" class="nav-link active">🌐 DNS</a>
+                <a href="/test_api.html" class="nav-link">🧪 API</a>
+                <button class="theme-btn" id="themeToggle" aria-label="Theme">🌙</button>
+            </div>
+        </div>
+    </nav>
+
+    <main>
+        <div class="container">
+            <div class="hero">
+                <h1>public DNS</h1>
+                <p>公共 DNS 服务器列表 · IPv4 + IPv6 · 一键测速</p>
+            </div>
+
+            <div class="filter-bar">
+                <button class="filter-btn active" data-filter="all">全部</button>
+                <button class="filter-btn" data-filter="cn">🇨🇳 国内</button>
+                <button class="filter-btn" data-filter="global">🌍 国外</button>
+                <button class="filter-btn" data-filter="ipv4">IPv4</button>
+                <button class="filter-btn" data-filter="ipv6">IPv6</button>
+                <span class="filter-spacer"></span>
+                <span style="font-size:0.78rem;color:var(--text-tertiary)" id="dnsCount"></span>
+                <button class="test-all-btn" id="testAllBtn">▶ 测速全部</button>
+            </div>
+
+            <div class="dns-grid" id="dnsGrid"></div>
+        </div>
+    </main>
+
+    <div class="toast" id="toast"></div>
+
+    <script>
+        const DNS_LIST = [
+            { name: '114 DNS', location: 'cn', label: '🇨🇳 国内', ipv4: ['114.114.114.114', '114.114.115.115'], ipv6: [] },
+            { name: 'AliDNS', location: 'cn', label: '🇨🇳 国内', ipv4: ['223.5.5.5', '223.6.6.6'], ipv6: ['2400:3200::1', '2400:3200:baba::1'] },
+            { name: 'DNSPod', location: 'cn', label: '🇨🇳 国内', ipv4: ['119.29.29.29'], ipv6: ['2402:4e00::'] },
+            { name: '百度 DNS', location: 'cn', label: '🇨🇳 国内', ipv4: ['180.76.76.76'], ipv6: ['2400:da00::6666'] },
+            { name: 'CNNIC DNS', location: 'cn', label: '🇨🇳 国内', ipv4: ['1.2.4.8', '210.2.4.8'], ipv6: [] },
+            { name: '360 DNS', location: 'cn', label: '🇨🇳 国内', ipv4: ['101.226.4.6', '218.30.118.6'], ipv6: [] },
+            { name: 'Google DNS', location: 'global', label: '🌍 国外', ipv4: ['8.8.8.8', '8.8.4.4'], ipv6: ['2001:4860:4860::8888', '2001:4860:4860::8844'] },
+            { name: 'Cloudflare', location: 'global', label: '🌍 国外', ipv4: ['1.1.1.1', '1.0.0.1'], ipv6: ['2606:4700:4700::1111', '2606:4700:4700::1001'] },
+            { name: 'OpenDNS', location: 'global', label: '🌍 国外', ipv4: ['208.67.222.222', '208.67.220.220'], ipv6: ['2620:119:35::35', '2620:119:53::53'] },
+            { name: 'Quad9', location: 'global', label: '🌍 国外', ipv4: ['9.9.9.9', '149.112.112.112'], ipv6: ['2620:fe::fe', '2620:fe::9'] },
+            { name: 'AdGuard DNS', location: 'global', label: '🌍 国外', ipv4: ['94.140.14.14', '94.140.15.15'], ipv6: ['2a10:50c0::ad1:ff', '2a10:50c0::ad2:ff'] },
+            { name: 'Comodo DNS', location: 'global', label: '🌍 国外', ipv4: ['8.26.56.26', '8.20.247.20'], ipv6: [] },
+            { name: 'CleanBrowsing', location: 'global', label: '🌍 国外', ipv4: ['185.228.168.9', '185.228.169.9'], ipv6: ['2a0d:2a00:1::2', '2a0d:2a00:2::2'] },
+        ];
+
+        const DOM = {
+            grid: document.getElementById('dnsGrid'),
+            toast: document.getElementById('toast'),
+            mobileToggle: document.getElementById('mobileToggle'),
+            navLinks: document.getElementById('navLinks'),
+            dnsCount: document.getElementById('dnsCount'),
+            testAllBtn: document.getElementById('testAllBtn'),
+        };
+
+        let toastTimer = null;
+        let activeFilter = 'all';
+        let testingAll = false;
+
+        function toast(msg) {
+            clearTimeout(toastTimer);
+            DOM.toast.textContent = msg;
+            DOM.toast.classList.add('visible');
+            toastTimer = setTimeout(() => DOM.toast.classList.remove('visible'), 2500);
+        }
+
+        function copyText(text) {
+            navigator.clipboard.writeText(text).then(() => toast('已复制')).catch(() => toast('复制失败'));
+        }
+
+        function latencyClass(ms) {
+            if (ms === null || ms === undefined) return '';
+            if (ms < 50) return 'good';
+            if (ms < 200) return 'ok';
+            return 'slow';
+        }
+
+        function latencyText(ms, err) {
+            if (err) return '⚠️ ' + err;
+            if (ms === null || ms === undefined) return '—';
+            return ms + ' ms';
+        }
+
+        function renderGrid(filter) {
+            const filtered = DNS_LIST.filter(d => {
+                if (filter === 'all') return true;
+                if (filter === 'cn') return d.location === 'cn';
+                if (filter === 'global') return d.location === 'global';
+                if (filter === 'ipv4') return d.ipv4.length > 0;
+                if (filter === 'ipv6') return d.ipv6.length > 0;
+                return true;
+            });
+
+            DOM.dnsCount.textContent = `${filtered.length} / ${DNS_LIST.length}`;
+
+            const frag = document.createDocumentFragment();
+            filtered.forEach(d => {
+                const card = document.createElement('div');
+                card.className = 'dns-card';
+                card.dataset.location = d.location;
+                card.dataset.name = d.name;
+
+                const addrsHtml = [];
+                if (d.ipv4.length) {
+                    addrsHtml.push(`<div class="dns-addr-group"><div class="dns-addr-label">📡 IPv4</div>`);
+                    d.ipv4.forEach(a => {
+                        addrsHtml.push(`<div class="dns-addr"><code>${a}</code><button class="copy-btn-sm" data-copy="${a}">复制</button></div>`);
+                    });
+                    addrsHtml.push(`</div>`);
+                }
+                if (d.ipv6.length) {
+                    addrsHtml.push(`<div class="dns-addr-group"><div class="dns-addr-label">🛰 IPv6</div>`);
+                    d.ipv6.forEach(a => {
+                        addrsHtml.push(`<div class="dns-addr"><code>${a}</code><button class="copy-btn-sm" data-copy="${a}">复制</button></div>`);
+                    });
+                    addrsHtml.push(`</div>`);
+                }
+
+                card.innerHTML = `
+                    <div class="dns-header">
+                        <span class="dns-name">${d.name}</span>
+                        <span class="dns-badge ${d.location}">${d.label}</span>
+                    </div>
+                    ${addrsHtml.join('')}
+                    <div class="dns-footer">
+                        <span class="dns-latency" id="lat-${d.name.replace(/\s/g, '_')}">—</span>
+                        <button class="test-btn" data-server="${d.ipv4[0] || d.ipv6[0]}">测速</button>
+                    </div>
+                `;
+
+                card.querySelectorAll('.copy-btn-sm').forEach(btn => {
+                    btn.addEventListener('click', e => { e.stopPropagation(); copyText(btn.dataset.copy); });
+                });
+                card.querySelector('.test-btn').addEventListener('click', () => testServer(d));
+
+                frag.appendChild(card);
+            });
+            DOM.grid.innerHTML = '';
+            DOM.grid.appendChild(frag);
+        }
+
+        async function testServer(d) {
+            const card = DOM.grid.querySelector(`.dns-card[data-name="${d.name}"]`);
+            if (!card) return;
+            const btn = card.querySelector('.test-btn');
+            const latEl = card.querySelector('.dns-latency');
+            if (!btn || !latEl) return;
+
+            btn.classList.add('testing');
+            btn.textContent = '测试中…';
+            card.classList.add('testing');
+
+            const server = d.ipv4[0] || d.ipv6[0];
+            try {
+                const res = await fetch('/api/dns/lookup', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ server, host: 'www.google.com' }),
+                });
+                const data = await res.json();
+                const ms = data.latency_ms;
+                const err = data.error;
+                latEl.textContent = latencyText(ms, err);
+                latEl.className = 'dns-latency ' + latencyClass(ms);
+                if (err) latEl.className = 'dns-latency error';
+            } catch (e) {
+                latEl.textContent = '⚠️ 请求失败';
+                latEl.className = 'dns-latency error';
+            } finally {
+                btn.classList.remove('testing');
+                btn.textContent = '测速';
+                card.classList.remove('testing');
+            }
+        }
+
+        async function testAll() {
+            if (testingAll) return;
+            testingAll = true;
+            DOM.testAllBtn.classList.add('loading');
+            DOM.testAllBtn.textContent = '测试中…';
+
+            const cards = DOM.grid.querySelectorAll('.dns-card');
+            for (const card of cards) {
+                const name = card.dataset.name;
+                const d = DNS_LIST.find(x => x.name === name);
+                if (d) await testServer(d);
+            }
+
+            testingAll = false;
+            DOM.testAllBtn.classList.remove('loading');
+            DOM.testAllBtn.textContent = '▶ 测速全部';
+            toast('全部测速完成');
+        }
+
+        document.querySelectorAll('.filter-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                activeFilter = btn.dataset.filter;
+                renderGrid(activeFilter);
+            });
+        });
+
+        DOM.testAllBtn.addEventListener('click', testAll);
+
+        DOM.mobileToggle.addEventListener('click', () => DOM.navLinks.classList.toggle('open'));
+
+        (function initTheme() {
+            const saved = localStorage.getItem('theme');
+            const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+            if (saved === 'dark' || (!saved && prefersDark)) {
+                document.body.classList.add('dark');
+            } else {
+                document.body.classList.remove('dark');
+            }
+            document.getElementById('themeToggle').textContent = document.body.classList.contains('dark') ? '☀️' : '🌙';
+        })();
+
+        document.getElementById('themeToggle').addEventListener('click', () => {
+            document.body.classList.toggle('dark');
+            const isDark = document.body.classList.contains('dark');
+            document.getElementById('themeToggle').textContent = isDark ? '☀️' : '🌙';
+            localStorage.setItem('theme', isDark ? 'dark' : 'light');
+        });
+
+        renderGrid('all');
+    </script>
+</body>
+</html>
