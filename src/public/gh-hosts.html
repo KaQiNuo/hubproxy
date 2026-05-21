@@ -3,9 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="GitHub Hosts - 加速 GitHub 访问">
+    <meta name="description" content="CDN Hosts - 加速 CDN 访问">
     <meta name="color-scheme" content="dark light">
-    <title>GitHub Hosts · HubProxy</title>
+    <title>CDN Hosts · HubProxy</title>
     <link rel="icon" href="/favicon.ico">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -166,6 +166,14 @@
         .action-btn.secondary { background: var(--bg-card); color: var(--text-secondary); border: 1px solid var(--border); }
         .action-btn.secondary:hover { border-color: var(--accent); color: var(--accent); }
         .action-btn.loading { pointer-events: none; opacity: 0.7; }
+        .filter-btn {
+            padding: 5px 14px; border-radius: 20px; border: 1px solid var(--border);
+            background: transparent; color: var(--text-secondary);
+            font-size: 0.78rem; font-family: var(--font-mono); font-weight: 500;
+            cursor: pointer; transition: all var(--transition);
+        }
+        .filter-btn:hover { border-color: var(--accent); color: var(--accent); }
+        .filter-btn.active { background: var(--accent-glow); border-color: var(--accent); color: var(--accent); }
 
         .stats-bar {
             display: flex; align-items: center; gap: 16px; flex-wrap: wrap;
@@ -270,7 +278,7 @@
                 <a href="/search.html" class="nav-link">🔍 搜索</a>
                 <a href="/dns.html" class="nav-link">🌐 DNS</a>
                 <a href="/trackers.html" class="nav-link">🔗 Tracker</a>
-                <a href="/gh-hosts.html" class="nav-link active">📄 GitHub Hosts</a>
+                <a href="/gh-hosts.html" class="nav-link active">📄 CDN Hosts</a>
                 <a href="/test_api.html" class="nav-link">🧪 API</a>
                 <button class="theme-btn" id="themeToggle" aria-label="Theme">🌙</button>
             </div>
@@ -280,12 +288,19 @@
     <main>
         <div class="container">
             <div class="hero">
-                <h1>github hosts</h1>
-                <p>解析 GitHub 域名 · 获取最新 IP · 加速访问</p>
+                <h1>📄 CDN Hosts</h1>
+                <p class="subtitle">解析 CDN 域名 · 获取最新 IP · 加速访问</p>
+            </div>
+            <div class="bar" style="justify-content:center;gap:6px;margin-bottom:16px">
+                <button class="filter-btn active" data-category="github">GitHub</button>
+                <button class="filter-btn" data-category="cloudflare">Cloudflare</button>
             </div>
 
             <div class="bar">
-                <span style="font-size:0.78rem;color:var(--text-tertiary)">服务器 DNS 解析结果</span>
+                <span style="font-size:0.78rem;color:var(--text-tertiary)">DNS 解析</span>
+                <button class="filter-btn active" data-dns="system">系统默认</button>
+                <button class="filter-btn" data-dns="1.1.1.1">Cloudflare</button>
+                <button class="filter-btn" data-dns="8.8.8.8">Google</button>
                 <span class="bar-spacer"></span>
                 <button class="action-btn primary" id="refreshBtn">🔄 重新检测</button>
             </div>
@@ -298,7 +313,7 @@
 
             <div class="hosts-card" id="hostsCard">
                 <div class="hosts-row" style="border-bottom:2px solid var(--border);font-weight:600;font-size:0.75rem;color:var(--text-tertiary);cursor:default">
-                    <span class="hosts-domain">域名</span>
+                    <span class="hosts-domain" style="width:220px">域名</span>
                     <span class="hosts-ips">IP 地址</span>
                     <span class="hosts-latency" style="min-width:52px;text-align:right">延迟</span>
                 </div>
@@ -323,6 +338,8 @@
     <script>
         let toastTimer = null;
         let results = [];
+        let activeDns = 'system';
+        let activeCategory = 'github';
 
         const DOM = {
             toast: document.getElementById('toast'),
@@ -358,7 +375,7 @@
         }
 
         function buildHostsContent(data) {
-            const lines = ['# GitHub Hosts', `# 更新: ${new Date().toLocaleString('zh-CN')}`, `# 来源: HubProxy DNS 解析`, `# 域名: ${data.length} 个`, ''];
+            const lines = ['# CDN Hosts', `# 更新: ${new Date().toLocaleString('zh-CN')}`, `# 来源: HubProxy DNS 解析`, `# 分类: ${activeCategory === 'github' ? 'GitHub' : 'Cloudflare'}`, `# 域名: ${data.length} 个`, ''];
             data.forEach(d => {
                 if (d.ips && d.ips.length) {
                     d.ips.forEach(ip => lines.push(`${ip.padEnd(20)}${d.domain}`));
@@ -377,7 +394,8 @@
             DOM.statusText.style.color = 'var(--amber)';
 
             try {
-                const res = await fetch('/api/gh-hosts/resolve');
+            const url = `/api/gh-hosts/resolve?category=${activeCategory}${activeDns === 'system' ? '' : '&server=' + activeDns}`;
+            const res = await fetch(url);
                 const data = await res.json();
                 results = data.domains || [];
 
@@ -440,6 +458,24 @@
         });
 
         DOM.refreshBtn.addEventListener('click', fetchHosts);
+
+        document.querySelectorAll('[data-dns]').forEach(btn => {
+            btn.addEventListener('click', function() {
+                document.querySelectorAll('[data-dns]').forEach(b => b.classList.remove('active'));
+                this.classList.add('active');
+                activeDns = this.dataset.dns;
+                fetchHosts();
+            });
+        });
+
+        document.querySelectorAll('[data-category]').forEach(btn => {
+            btn.addEventListener('click', function() {
+                document.querySelectorAll('[data-category]').forEach(b => b.classList.remove('active'));
+                this.classList.add('active');
+                activeCategory = this.dataset.category;
+                fetchHosts();
+            });
+        });
 
         DOM.mobileToggle.addEventListener('click', () => DOM.navLinks.classList.toggle('open'));
 

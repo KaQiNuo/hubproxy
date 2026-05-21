@@ -29,6 +29,27 @@ var githubDomains = []string{
 	"desktop.github.com",
 }
 
+var cloudflareDomains = []string{
+	"cloudflare.com",
+	"www.cloudflare.com",
+	"api.cloudflare.com",
+	"dash.cloudflare.com",
+	"developers.cloudflare.com",
+	"blog.cloudflare.com",
+	"support.cloudflare.com",
+	"community.cloudflare.com",
+	"dns.cloudflare.com",
+	"cdnjs.cloudflare.com",
+	"ajax.cloudflare.com",
+	"radar.cloudflare.com",
+	"pages.cloudflare.com",
+	"workers.cloudflare.com",
+	"r2.cloudflare.com",
+	"one.dash.cloudflare.com",
+	"star.cloudflare.com",
+	"juno.cloudflare.com",
+}
+
 type ghDomainResult struct {
 	Domain    string   `json:"domain"`
 	IPs       []string `json:"ips"`
@@ -36,18 +57,41 @@ type ghDomainResult struct {
 	Error     string   `json:"error,omitempty"`
 }
 
+var domainSets = map[string]struct {
+	Domains []string
+	Label   string
+}{
+	"github":     {githubDomains, "GitHub"},
+	"cloudflare": {cloudflareDomains, "Cloudflare"},
+}
+
 func CreateGHHostsHandler() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		r := &net.Resolver{PreferGo: true}
-		results := make([]ghDomainResult, 0, len(githubDomains))
+		category := c.DefaultQuery("category", "github")
+		server := c.Query("server")
 
+		set, ok := domainSets[category]
+		if !ok {
+			set = domainSets["github"]
+		}
+		domains := set.Domains
+
+		r := &net.Resolver{PreferGo: true}
+		if server != "" {
+			r.Dial = func(ctx context.Context, network, address string) (net.Conn, error) {
+				d := net.Dialer{Timeout: 5 * time.Second}
+				return d.DialContext(ctx, "udp", net.JoinHostPort(server, "53"))
+			}
+		}
+
+		results := make([]ghDomainResult, 0, len(domains))
 		type job struct {
 			domain string
 			result ghDomainResult
 		}
-		ch := make(chan job, len(githubDomains))
+		ch := make(chan job, len(domains))
 
-		for _, d := range githubDomains {
+		for _, d := range domains {
 			d := d
 			go func() {
 				start := time.Now()
@@ -70,12 +114,18 @@ func CreateGHHostsHandler() gin.HandlerFunc {
 			}()
 		}
 
-		for i := 0; i < len(githubDomains); i++ {
+		for i := 0; i < len(domains); i++ {
 			j := <-ch
 			results = append(results, j.result)
 		}
 
 		sort.Slice(results, func(i, j int) bool { return results[i].Domain < results[j].Domain })
-		c.JSON(http.StatusOK, gin.H{"domains": results, "count": len(results), "updated_at": time.Now().Unix()})
+		c.JSON(http.StatusOK, gin.H{
+			"domains":    results,
+			"count":      len(results),
+			"category":   category,
+			"server":     server,
+			"updated_at": time.Now().Unix(),
+		})
 	}
 }

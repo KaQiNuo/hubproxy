@@ -267,6 +267,58 @@
         }
         .empty-state .icon { font-size: 3rem; margin-bottom: 16px; opacity: 0.5; }
 
+        .modal-overlay {
+            position: fixed; inset: 0; background: rgba(0,0,0,0.6);
+            z-index: 300; display: flex; align-items: center; justify-content: center;
+            opacity: 0; pointer-events: none; transition: opacity 0.25s ease;
+            padding: 20px;
+        }
+        .modal-overlay.visible { opacity: 1; pointer-events: auto; }
+        .modal {
+            background: var(--bg-card); border-radius: var(--radius);
+            border: 1px solid var(--border); max-width: 560px; width: 100%;
+            padding: 24px; box-shadow: var(--shadow-lg); max-height: 90vh; overflow-y: auto;
+        }
+        .modal h3 { font-family: var(--font-mono); font-size: 1rem; margin-bottom: 4px; }
+        .modal .modal-sub { color: var(--text-tertiary); font-size: 0.82rem; margin-bottom: 16px; }
+        .cmd-group { margin-bottom: 16px; }
+        .cmd-label {
+            font-size: 0.75rem; font-weight: 600; color: var(--text-secondary);
+            margin-bottom: 6px; display: flex; align-items: center; gap: 6px;
+        }
+        .cmd-block {
+            background: var(--bg-secondary); border: 1px solid var(--border);
+            border-radius: var(--radius-sm); padding: 10px 14px;
+            font-family: var(--font-mono); font-size: 0.78rem;
+            color: var(--text-primary); overflow-x: auto;
+            white-space: pre-wrap; word-break: break-all;
+            position: relative;
+        }
+        .cmd-copy {
+            position: absolute; top: 6px; right: 6px;
+            background: var(--bg-card); border: 1px solid var(--border);
+            border-radius: 4px; padding: 2px 8px; font-size: 0.72rem;
+            color: var(--text-tertiary); cursor: pointer; transition: all var(--transition);
+        }
+        .cmd-copy:hover { color: var(--accent); border-color: var(--accent); }
+        .modal-close {
+            margin-top: 8px; width: 100%; padding: 8px;
+            border: 1px solid var(--border); border-radius: var(--radius-sm);
+            background: transparent; color: var(--text-secondary);
+            font-family: var(--font-sans); font-size: 0.85rem; cursor: pointer;
+            transition: all var(--transition);
+        }
+        .modal-close:hover { border-color: var(--accent); color: var(--accent); }
+
+        .use-btn {
+            padding: 2px 10px; border: 1px solid var(--border);
+            border-radius: 4px; background: transparent;
+            color: var(--text-tertiary); font-size: 0.72rem; cursor: pointer;
+            transition: all var(--transition); font-family: var(--font-sans);
+            margin-left: 6px; flex-shrink: 0;
+        }
+        .use-btn:hover { border-color: var(--accent); color: var(--accent); background: var(--accent-glow); }
+
         .toast {
             position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(100px);
             background: var(--bg-card); border: 1px solid var(--border);
@@ -315,7 +367,7 @@
                 <a href="/search.html" class="nav-link">🔍 搜索</a>
                 <a href="/dns.html" class="nav-link active">🌐 DNS</a>
                 <a href="/trackers.html" class="nav-link">🔗 Tracker</a>
-                <a href="/gh-hosts.html" class="nav-link">📄 GitHub Hosts</a>
+                <a href="/gh-hosts.html" class="nav-link">📄 CDN Hosts</a>
                 <a href="/test_api.html" class="nav-link">🧪 API</a>
                 <button class="theme-btn" id="themeToggle" aria-label="Theme">🌙</button>
             </div>
@@ -337,6 +389,10 @@
                 <button class="filter-btn" data-filter="ipv6">IPv6</button>
                 <span class="filter-spacer"></span>
                 <span style="font-size:0.78rem;color:var(--text-tertiary)" id="dnsCount"></span>
+                <span style="width:1px;height:20px;background:var(--border);margin:0 4px"></span>
+                <button class="filter-btn active" data-mode="server">🖥️ 服务端</button>
+                <button class="filter-btn" data-mode="local">💻 本地</button>
+                <span style="width:1px;height:20px;background:var(--border);margin:0 4px"></span>
                 <button class="test-all-btn" id="testAllBtn">▶ 测速全部</button>
             </div>
 
@@ -345,6 +401,15 @@
     </main>
 
     <div class="toast" id="toast"></div>
+
+    <div class="modal-overlay" id="modalOverlay">
+        <div class="modal">
+            <h3 id="modalTitle">设置系统 DNS</h3>
+            <div class="modal-sub" id="modalSub"></div>
+            <div id="modalBody"></div>
+            <button class="modal-close" id="modalClose">关闭</button>
+        </div>
+    </div>
 
     <script>
         const DNS_LIST = [
@@ -370,11 +435,72 @@
             navLinks: document.getElementById('navLinks'),
             dnsCount: document.getElementById('dnsCount'),
             testAllBtn: document.getElementById('testAllBtn'),
+            modalOverlay: document.getElementById('modalOverlay'),
+            modalTitle: document.getElementById('modalTitle'),
+            modalSub: document.getElementById('modalSub'),
+            modalBody: document.getElementById('modalBody'),
+            modalClose: document.getElementById('modalClose'),
         };
 
         let toastTimer = null;
         let activeFilter = 'all';
         let testingAll = false;
+        let localMode = false;
+
+        const DOH_MAP = {
+            'AliDNS': 'https://dns.alidns.com/dns-query',
+            'DNSPod': 'https://dns.pub/dns-query',
+            'Google DNS': 'https://dns.google/resolve',
+            'Cloudflare': 'https://cloudflare-dns.com/dns-query',
+            'OpenDNS': 'https://dns.opendns.com/dns-query',
+            'Quad9': 'https://dns.quad9.net/dns-query',
+            'AdGuard DNS': 'https://dns.adguard-dns.com/dns-query',
+            'CleanBrowsing': 'https://dns.cleanbrowsing.org/dns-query',
+        };
+
+        function showSetupGuide(server, name) {
+            const s = server;
+            DOM.modalTitle.textContent = `🔧 设置系统 DNS — ${name}`;
+            DOM.modalSub.textContent = `DNS 服务器：${s}`;
+
+            const winCmd = `netsh interface ip set dns "Wi-Fi" static ${s}`;
+            const winPsCmd = `Set-DnsClientServerAddress -InterfaceAlias "Wi-Fi" -ServerAddresses ("${s}")`;
+            const linuxCmd = `sudo resolvectl dns eth0 ${s}`;
+            const linuxShCmd = `sudo sh -c 'echo "nameserver ${s}" > /etc/resolv.conf'`;
+            const armbianCmd = `sudo nmcli con mod "$(sudo nmcli -t -f NAME con show --active | head -1)" ipv4.dns "${s}"\nsudo nmcli con up "$(sudo nmcli -t -f NAME con show --active | head -1)"`;
+
+            DOM.modalBody.innerHTML = `
+                <div class="cmd-group">
+                    <div class="cmd-label">🪟 Windows 11/10 (CMD，管理员)</div>
+                    <div class="cmd-block">${winCmd}<button class="cmd-copy" data-cmd="${winCmd.replace(/"/g, '&quot;')}">复制</button></div>
+                </div>
+                <div class="cmd-group">
+                    <div class="cmd-label">🪟 Windows 11/10 (PowerShell，管理员)</div>
+                    <div class="cmd-block">${winPsCmd}<button class="cmd-copy" data-cmd="${winPsCmd.replace(/"/g, '&quot;')}">复制</button></div>
+                </div>
+                <div class="cmd-group">
+                    <div class="cmd-label">🐧 Linux (systemd-resolved)</div>
+                    <div class="cmd-block">${linuxCmd}<button class="cmd-copy" data-cmd="${linuxCmd}">复制</button></div>
+                </div>
+                <div class="cmd-group">
+                    <div class="cmd-label">🐧 Linux (/etc/resolv.conf)</div>
+                    <div class="cmd-block">${linuxShCmd}<button class="cmd-copy" data-cmd="echo 'nameserver ${s}' | sudo tee /etc/resolv.conf">复制</button></div>
+                </div>
+                <div class="cmd-group">
+                    <div class="cmd-label">🐧 Armbian (NetworkManager)</div>
+                    <div class="cmd-block">${armbianCmd}<button class="cmd-copy" data-cmd="${armbianCmd.replace(/"/g, '&quot;')}">复制</button></div>
+                </div>
+                <p style="font-size:0.75rem;color:var(--text-tertiary);margin-top:4px">💡 接口名称可能不同，请用 <code style="background:var(--bg-secondary);padding:1px 6px;border-radius:3px">netsh interface show interface</code> 或 <code style="background:var(--bg-secondary);padding:1px 6px;border-radius:3px">ip link</code> 查看</p>
+            `;
+
+            DOM.modalBody.querySelectorAll('.cmd-copy').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    navigator.clipboard.writeText(btn.dataset.cmd).then(() => toast('已复制命令')).catch(() => toast('复制失败'));
+                });
+            });
+
+            DOM.modalOverlay.classList.add('visible');
+        }
 
         function toast(msg) {
             clearTimeout(toastTimer);
@@ -385,6 +511,17 @@
 
         function copyText(text) {
             navigator.clipboard.writeText(text).then(() => toast('已复制')).catch(() => toast('复制失败'));
+        }
+
+        function addUseButton(card, server, name) {
+            let btn = card.querySelector('.use-btn');
+            if (!btn) {
+                btn = document.createElement('button');
+                btn.className = 'use-btn';
+                btn.textContent = '🔧 使用';
+                card.querySelector('.dns-footer').insertBefore(btn, card.querySelector('.test-btn'));
+            }
+            btn.onclick = () => showSetupGuide(server, name);
         }
 
         function latencyClass(ms) {
@@ -465,6 +602,40 @@
             const latEl = card.querySelector('.dns-latency');
             if (!btn || !latEl) return;
 
+            if (localMode) {
+                const dohUrl = DOH_MAP[d.name];
+                if (!dohUrl) {
+                    latEl.textContent = '⚠️ 不支持本地测速';
+                    latEl.className = 'dns-latency error';
+                    return;
+                }
+                btn.classList.add('testing');
+                btn.textContent = '测试中…';
+                card.classList.add('testing');
+                try {
+                    const start = performance.now();
+                    const res = await fetch(`${dohUrl}?name=www.google.com&type=A`, {
+                        headers: { 'Accept': 'application/dns-json' },
+                        signal: AbortSignal.timeout(5000),
+                    });
+                    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                    const data = await res.json();
+                    if (data.Status !== 0) throw new Error(`DNS status ${data.Status}`);
+                    const ms = Math.round(performance.now() - start);
+                    latEl.textContent = latencyText(ms, null) + ' 💻';
+                    latEl.className = 'dns-latency ' + latencyClass(ms);
+                    addUseButton(card, d.ipv4[0] || d.ipv6[0], d.name);
+                } catch (e) {
+                    latEl.textContent = '⚠️ ' + (e.message || '请求失败');
+                    latEl.className = 'dns-latency error';
+                } finally {
+                    btn.classList.remove('testing');
+                    btn.textContent = '测速';
+                    card.classList.remove('testing');
+                }
+                return;
+            }
+
             btn.classList.add('testing');
             btn.textContent = '测试中…';
             card.classList.add('testing');
@@ -482,6 +653,7 @@
                 latEl.textContent = latencyText(ms, err);
                 latEl.className = 'dns-latency ' + latencyClass(ms);
                 if (err) latEl.className = 'dns-latency error';
+                if (!err) addUseButton(card, server, d.name);
             } catch (e) {
                 latEl.textContent = '⚠️ 请求失败';
                 latEl.className = 'dns-latency error';
@@ -511,18 +683,29 @@
             toast('全部测速完成');
         }
 
-        document.querySelectorAll('.filter-btn').forEach(btn => {
+        document.querySelectorAll('[data-filter]').forEach(btn => {
             btn.addEventListener('click', () => {
-                document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+                document.querySelectorAll('[data-filter]').forEach(b => b.classList.remove('active'));
                 btn.classList.add('active');
                 activeFilter = btn.dataset.filter;
                 renderGrid(activeFilter);
             });
         });
 
+        document.querySelectorAll('[data-mode]').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('[data-mode]').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                localMode = btn.dataset.mode === 'local';
+            });
+        });
+
         DOM.testAllBtn.addEventListener('click', testAll);
 
         DOM.mobileToggle.addEventListener('click', () => DOM.navLinks.classList.toggle('open'));
+
+        DOM.modalClose.addEventListener('click', () => DOM.modalOverlay.classList.remove('visible'));
+        DOM.modalOverlay.addEventListener('click', e => { if (e.target === DOM.modalOverlay) DOM.modalOverlay.classList.remove('visible'); });
 
         (function initTheme() {
             const saved = localStorage.getItem('theme');
