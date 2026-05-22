@@ -59,13 +59,6 @@ func buildRouter(cfg *config.AppConfig) *gin.Engine {
 	// 全局限流中间件
 	router.Use(utils.RateLimitMiddleware(globalLimiter))
 
-	// DNS 测速 API
-	router.POST("/api/dns/lookup", handlers.CreateDNSLookupHandler())
-
-	// GitHub Hosts 解析 API
-	router.GET("/api/gh-hosts/resolve", handlers.CreateGHHostsHandler())
-
-	// 初始化监控端点
 	initHealthRoutes(router)
 
 	// 初始化镜像tar下载路由
@@ -89,15 +82,6 @@ func buildRouter(cfg *config.AppConfig) *gin.Engine {
 		router.GET("/test_api.html", func(c *gin.Context) {
 			serveEmbedFile(c, "public/test_api.html")
 		})
-		router.GET("/dns.html", func(c *gin.Context) {
-			serveEmbedFile(c, "public/dns.html")
-		})
-		router.GET("/trackers.html", func(c *gin.Context) {
-			serveEmbedFile(c, "public/trackers.html")
-		})
-		router.GET("/gh-hosts.html", func(c *gin.Context) {
-			serveEmbedFile(c, "public/gh-hosts.html")
-		})
 		router.GET("/favicon.ico", func(c *gin.Context) {
 			serveEmbedFile(c, "public/favicon.ico")
 		})
@@ -115,15 +99,6 @@ func buildRouter(cfg *config.AppConfig) *gin.Engine {
 			c.Status(http.StatusNotFound)
 		})
 		router.GET("/test_api.html", func(c *gin.Context) {
-			c.Status(http.StatusNotFound)
-		})
-		router.GET("/dns.html", func(c *gin.Context) {
-			c.Status(http.StatusNotFound)
-		})
-		router.GET("/trackers.html", func(c *gin.Context) {
-			c.Status(http.StatusNotFound)
-		})
-		router.GET("/gh-hosts.html", func(c *gin.Context) {
 			c.Status(http.StatusNotFound)
 		})
 		router.GET("/favicon.ico", func(c *gin.Context) {
